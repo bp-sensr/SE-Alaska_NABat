@@ -1,0 +1,1190 @@
+---
+title: "North American Bat Monitoring Program in SE Alaska"
+subtitle: "Data Summary and Activity Trend Analyses: 2016 - 2025"
+format:
+  html:
+    grid:
+      margin-width: 300px
+    title-block-banner: "#1d4566"
+    title-block-banner-color: "#F4F4F5"
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    toc-expand: true
+    toc-location: left
+    css: styles.css
+  pdf:
+    tbl-pos: "H"
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - margin=1in
+    papersize: letter
+    extra_dependencies: ["float"]
+    title-graphic: "images/212266.jpg"
+    include-before-body:
+      text: |
+        \clearpage
+    include-in-header:
+      text: |
+        \usepackage{placeins}
+        \usepackage{float}
+date: last-modified
+author: 
+  - name: "Camila Hurtado"
+    affiliation: "Biodiversity Pathways"
+  - name: "Taylor Hart"
+    affiliation: "University of Alberta"   
+editor: visual
+bibliography: references.bib
+nocite: '@*'
+---
+
+::: {.content-visible when-format="html"}
+![Deployment in Kamloops Grid Cell 212266 in 2025](images/212266.jpg)
+:::
+
+```{r}
+#| label: setup - load libraries, data and create covariates in models table
+#| include: false
+#| echo: false
+#| eval: true
+#| warning: false
+#| message: false
+
+# Display with kable for nice formatting
+library(knitr)
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(tinytex)
+library(quarto)
+library(lubridate)
+library(flextable)
+library(tidyverse)
+library(readr)
+library(reactable)
+library(leaflet)
+library(leaflet.extras)
+library(kableExtra)
+library(gt)
+library(RColorBrewer)
+
+# Ensure proper initialization order
+options(htmlwidgets.TOJSON_ARGS = list(na = 'string'))
+
+#load sampling effort csv
+samplingE <- read.csv("Data/Analyzed/SummarySamplingEffort.csv")
+#remove extra column with numebrs
+samplingE$X <- NULL
+
+# Load the model covariates summary table
+model_covariates <- read.csv("Data/Analyzed/ModelVariables.csv")
+transect_covariates <- read.csv("Data/Analyzed/ModelVariables_Transect.csv")
+#this comes from running the ModelSelection.R code where it runs all of the covariates and chooses the best model best on AIC
+
+#upload data with bat passes and sites
+bat_summary <- readRDS("Data/Analyzed/bat_summary.rds")
+sites_2025  <- read_csv("Data/Analyzed/Sampling2025.csv") %>%   # already how you load it
+  mutate(
+    grts_id  = as.character(GRTS.Cell.ID),
+    quadrant = as.character(Quadrant)
+  )
+
+#format the covariates df 
+
+# Species code to common name lookup
+species_names <- c(
+  ANPA = "Pallid Bat",
+  COTO = "Townsend's Big-eared Bat",
+  EPFU = "Big Brown Bat",
+  EUMA = "Spotted Bat",
+  LABO = "Eastern Red Bat",
+  LACI = "Hoary Bat",
+  LANO = "Silver-haired Bat",
+  MYLU = "Little Brown Myotis",
+  MYYU = "Yuma Myotis",
+  MYEV = "Long-eared Myotis",
+  MYTH = "Fringed Myotis",
+  MYVO = "Long-legged Myotis",
+  MYCA = "California Myotis",
+  MYCI = "Western Small-footed Myotis",
+  PAHE = "Canyon Bat",
+  TABR = "Mexican Free-tailed Bat",
+  MYSE = "Northern Myotis"
+)
+
+# Clean covariate from models and format for report
+clean_covars <- function(x) {
+  x %>%
+    gsub("\\.", " ", .) %>%                          # replace dots with spaces
+    gsub("\\bdd\\b", "Degree Days", .) %>%           # dd -> Degree Days
+    gsub("Temp\\b", "Temperature", .) %>%            # Temp -> Temperature
+    gsub("Windsp\\b", "Wind Speed", .) %>%           # Windsp -> Wind Speed
+    gsub("Clutterdist\\b", "Distance to Clutter", .) %>%  # Clutterdist -> Distance to Clutter
+    gsub("mtime2h mphase", "Moon", .) %>%      # mtime2h mphase -> Moon Phase
+    gsub(",\\s*I\\(YearS\\^2\\)|I\\(YearS\\^2\\),?\\s*", "", .) %>% #remove quadratic term from the reporting 
+    trimws()
+}
+
+model_covariates<- model_covariates %>%
+  mutate(
+    Common_Name = species_names[sp],
+    Covariates = clean_covars(vars)
+  ) %>%
+  select(Common_Name, Species_Code = sp, Covariates)
+
+transect_covariates<- transect_covariates %>%
+  mutate(
+    Common_Name = species_names[sp],
+    Covariates = clean_covars(vars)
+  ) %>%
+  select(Common_Name, Species_Code = sp, Covariates)
+
+
+```
+
+```{r}
+#| label: setup - creating interactive map
+#| include: false
+#| cache: true
+#| echo: false
+#| eval: true
+#| warning: false
+#| message: false
+#| 
+# ── 1. Species cols ────────────────────────────────────────────────────────────
+sp_cols <- c("ANPA","COTO","EPFU","EUMA","LABO","LACI","LANO",
+             "MYCA","MYCI","MYEV","MYLU","MYSE","MYTH","MYVO","MYYU",
+             "PAHE","TABR")
+
+# ── 3. Colour palette ──────────────────────────────────────────────────────────
+sp_colors <- c(
+  "ANPA" = "#3A86FF", "COTO" = "#FB5607", "EPFU" = "#F28E2B",
+  "EUMA" = "#FF006E", "LABO" = "#8338EC", "LACI" = "#06D6A0",
+  "LANO" = "#E15759", "MYCA" = "#118AB2", "MYCI" = "#FFD166",
+  "MYEV" = "#4E79A7", "MYLU" = "#59A14F", "MYSE" = "#F94144",
+  "MYTH" = "#43AA8B", "MYVO" = "#9B59B6", "MYYU" = "#76B7B2",
+  "PAHE" = "#EDC948", "TABR" = "#A05195", "Other" = "#AAAAAA"
+)
+
+# ── 4. SVG pie helper ──────────────────────────────────────────────────────────
+make_pie_svg <- function(values, colors, size = 70) {
+  total <- sum(values)
+  if (total == 0) return(NULL)
+  fracs  <- values / total
+  angles <- cumsum(c(0, fracs)) * 2 * pi
+  r <- size / 2 - 2
+  slices <- purrr::map2_chr(seq_along(values), colors, function(i, col) {
+    a0 <- angles[i]; a1 <- angles[i + 1]
+    if (abs(a1 - a0) >= 2 * pi - 1e-6) {
+      sprintf('<circle cx="%s" cy="%s" r="%s" fill="%s"/>',
+              size/2, size/2, r, col)
+    } else {
+      x0 <- size/2 + r*sin(a0); y0 <- size/2 - r*cos(a0)
+      x1 <- size/2 + r*sin(a1); y1 <- size/2 - r*cos(a1)
+      large <- if ((a1 - a0) > pi) 1L else 0L
+      sprintf('<path d="M %s %s L %s %s A %s %s 0 %s 1 %s %s Z" fill="%s" stroke="white" stroke-width="1"/>',
+              size/2, size/2, x0, y0, r, r, large, x1, y1, col)
+    }
+  })
+  svg <- sprintf('<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s">%s</svg>',
+                 size, size, paste(slices, collapse = ""))
+  paste0("data:image/svg+xml;base64,", base64enc::base64encode(charToRaw(svg)))
+}
+
+# ── 5. HTML table body helper ──────────────────────────────────────────────────
+make_sp_table <- function(sp_df, pie_colors) {
+  sp_df %>%
+    arrange(desc(n)) %>%
+    mutate(pct = round(n / sum(n) * 100, 1)) %>%
+    purrr::pmap_chr(function(species, n, pct) sprintf(
+      '<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:50%%;background:%s;margin-right:4px"></span>%s</td><td align="right">%s</td><td align="right">%s%%</td></tr>',
+      ifelse(species %in% names(pie_colors), pie_colors[species], "#AAAAAA"),
+      species, n, pct
+    )) %>%
+    paste(collapse = "")
+}
+
+# ── 6. Collapse to top-5 + Other for pie ──────────────────────────────────────
+collapse_pie <- function(sp_df) {
+  top5 <- sp_df$species[order(sp_df$n, decreasing = TRUE)][1:min(5, nrow(sp_df))]
+  sp_df %>%
+    mutate(species = if_else(species %in% top5, species, "Other")) %>%
+    group_by(species) %>%
+    summarise(n = sum(n), .groups = "drop") %>%
+    arrange(desc(n))
+}
+
+# ── 7. Build site list ─────────────────────────────────────────────────────────
+site_list <- sites_2025 %>%
+  mutate(
+    grts_id   = as.character(GRTS.Cell.ID),
+    quadrant  = as.character(Quadrant),
+    site_name = paste(GRTS.Cell.ID, Quadrant)
+  ) %>%
+  filter(!is.na(Lat), !is.na(Long)) %>%
+  left_join(bat_summary, by = c("grts_id", "quadrant")) %>%
+  group_by(site_name, grts_id, quadrant, Lat, Long, Years_Sampled, N_Years) %>%
+  summarise(
+    sp_data = list(tibble(species, n, year)),
+    total   = sum(n, na.rm = TRUE),
+    years   = list(sort(unique(year))),
+    .groups = "drop"
+  )
+
+# ── 8. Draw map ────────────────────────────────────────────────────────────────
+m <- leaflet() %>%
+  addProviderTiles(providers$CartoDB.Positron)
+
+all_pie_colors <- c()
+
+for (i in seq_len(nrow(site_list))) {
+  row   <- site_list[i, ]
+  sp    <- row$sp_data[[1]]
+  years <- row$years[[1]]
+
+  uid <- gsub("[^a-zA-Z0-9]", "_", row$site_name)
+
+  # -- Determine pie year: 2025 if available, else nearest prior year ----------
+  has_2025 <- any(sp$year == 2025, na.rm = TRUE)
+  if (has_2025) {
+    pie_year     <- 2025L
+    pie_year_lbl <- "2025"
+  } else if (length(years) > 0) {
+    pie_year     <- max(years, na.rm = TRUE)
+    pie_year_lbl <- paste0(pie_year, " (most recent)")
+  } else {
+    next  # no data at all, skip
+  }
+
+  sp_for_pie <- sp %>%
+    filter(year == pie_year) %>%
+    group_by(species) %>%
+    summarise(n = sum(n), .groups = "drop")
+
+  if (nrow(sp_for_pie) == 0 || sum(sp_for_pie$n) == 0) next
+
+  sp_pie <- collapse_pie(sp_for_pie)
+
+  unknown_sp    <- setdiff(sp_pie$species, names(sp_colors))
+  fallback_cols <- setNames(
+    colorRampPalette(brewer.pal(8, "Dark2"))(max(length(unknown_sp), 1)),
+    unknown_sp)
+  pie_colors <- setNames(
+    c(sp_colors, fallback_cols)[sp_pie$species],
+    sp_pie$species)
+
+  # Colours for table (all species, no collapsing)
+  all_sp       <- unique(sp$species)
+  unknown_all  <- setdiff(all_sp, names(sp_colors))
+  fallback_all <- setNames(
+    colorRampPalette(brewer.pal(8, "Dark2"))(max(length(unknown_all), 1)),
+    unknown_all)
+  all_colors <- c(sp_colors, fallback_all)
+
+  all_pie_colors <- c(all_pie_colors, pie_colors)
+
+  uri <- make_pie_svg(sp_pie$n, pie_colors[sp_pie$species])
+
+  # -- All-years table ---------------------------------------------------------
+  sp_all_table <- sp %>%
+    group_by(species) %>%
+    summarise(n = sum(n), .groups = "drop")
+
+  all_table_html <- paste0(
+    '<tr><th align="left">Species</th><th align="right">n</th><th align="right">%</th></tr>',
+    make_sp_table(sp_all_table, all_colors)
+  )
+
+  # -- Year buttons + per-year tables ------------------------------------------
+  year_button_list <- c(
+    sprintf(
+      '<button onclick="(function(b){var uid=\'%s\';var rows=b.getAttribute(\'data-rows\');var tot=b.getAttribute(\'data-tot\');document.getElementById(\'tbl_\'+uid).innerHTML=rows;document.getElementById(\'lbl_\'+uid).innerHTML=\'All years &mdash; \'+tot+\' detections\';[].forEach.call(document.querySelectorAll(\'[data-uid%s]\'),function(x){x.style.background=\'#e0e0e0\';x.style.color=\'#333\'});b.style.background=\'#4E79A7\';b.style.color=\'white\';})(this)" data-uid%s="1" data-tot="%s" data-rows="%s" id="btn_%s_all" style="margin:2px;padding:3px 8px;border:1px solid #ccc;border-radius:4px;background:#4E79A7;color:white;cursor:pointer;font-size:11px;">All</button>',
+      uid, uid, uid, row$total,
+      htmltools::htmlEscape(all_table_html, attribute = TRUE),
+      uid
+    ),
+    purrr::map_chr(years, function(yr) {
+      sp_yr <- sp %>%
+        filter(year == yr) %>%
+        group_by(species) %>%
+        summarise(n = sum(n), .groups = "drop")
+      yr_total <- sum(sp_yr$n)
+      yr_table_html <- paste0(
+        '<tr><th align="left">Species</th><th align="right">n</th><th align="right">%</th></tr>',
+        make_sp_table(sp_yr, all_colors)
+      )
+      sprintf(
+        '<button onclick="(function(b){var uid=\'%s\';var rows=b.getAttribute(\'data-rows\');var tot=b.getAttribute(\'data-tot\');var yr=b.getAttribute(\'data-yr\');document.getElementById(\'tbl_\'+uid).innerHTML=rows;document.getElementById(\'lbl_\'+uid).innerHTML=yr+\' &mdash; \'+tot+\' detections\';[].forEach.call(document.querySelectorAll(\'[data-uid%s]\'),function(x){x.style.background=\'#e0e0e0\';x.style.color=\'#333\'});b.style.background=\'#4E79A7\';b.style.color=\'white\';})(this)" data-uid%s="1" data-yr="%s" data-tot="%s" data-rows="%s" id="btn_%s_%s" style="margin:2px;padding:3px 8px;border:1px solid #ccc;border-radius:4px;background:#e0e0e0;color:#333;cursor:pointer;font-size:11px;">%s</button>',
+        uid, uid, uid, yr, yr_total,
+        htmltools::htmlEscape(yr_table_html, attribute = TRUE),
+        uid, yr, yr
+      )
+    })
+  ) %>% paste(collapse = "")
+
+  # -- Full popup --------------------------------------------------------------
+  n_species   <- nrow(sp_all_table)
+  table_style <- if (n_species > 15) {
+    'style="width:100%;margin-top:4px;display:block;max-height:250px;overflow-y:auto;"'
+  } else {
+    'style="width:100%;margin-top:4px;"'
+  }
+
+ popup <- sprintf(
+    '<div style="font-family:sans-serif;min-width:220px;max-width:300px">
+  <b>%s</b>
+  <div style="font-size:11px;color:#777;margin-bottom:4px;">Pie shows: %s</div>
+  <hr style="margin:5px 0"/>
+  <div style="margin-bottom:6px">%s</div>
+  <b id="lbl_%s">All years &mdash; %s detections</b>
+  <table id="tbl_%s" %s>%s</table>
+</div>',
+    row$site_name,
+    pie_year_lbl,
+    year_button_list,
+    uid, row$total,
+    uid, table_style,
+    all_table_html
+  )
+
+  m <- m %>% addMarkers(
+    lng   = row$Long, lat = row$Lat,
+    icon  = makeIcon(iconUrl = uri, iconWidth = 70, iconHeight = 70,
+                     iconAnchorX = 35, iconAnchorY = 35),
+    popup = popup,
+    label = row$site_name
+  )
+}
+
+# ── 9. Legend ─────────────────────────────────────────────────────────────────
+legend_colors <- all_pie_colors[!duplicated(names(all_pie_colors))]
+legend_colors <- legend_colors[order(names(legend_colors))]
+if ("Other" %in% names(legend_colors)) {
+  legend_colors <- c(legend_colors[names(legend_colors) != "Other"],
+                     legend_colors["Other"])
+}
+
+legend_html <- htmltools::tags$div(
+  style = "background:white;padding:10px 14px;border-radius:6px;box-shadow:0 1px 5px rgba(0,0,0,.3);font-family:sans-serif;font-size:12px;max-height:300px;overflow-y:auto;",
+  htmltools::tags$b("Species"),
+  htmltools::tags$hr(style = "margin:4px 0"),
+  htmltools::HTML(paste(purrr::map_chr(names(legend_colors), ~sprintf(
+    '<div style="display:flex;align-items:center;margin-bottom:3px"><span style="display:inline-block;width:12px;height:12px;border-radius:50%%;background:%s;margin-right:6px"></span>%s</div>',
+    legend_colors[.x], .x)), collapse = ""))
+)
+
+m <- m %>% addControl(legend_html, position = "bottomright")
+
+```
+
+{{< pagebreak >}}
+
+```{r}
+#| label: setup - trend results
+#| include: false
+#| echo: false
+#| eval: true
+#| warning: false
+#| message: false
+
+bc.cov.slope.summary.singlet <- read.csv("Data/Analyzed/bc.cov.estimates.singlet.csv")
+bc.cov.slope.transect <- read.csv("Data/Analyzed/bc.transect.cov.estimates.csv")
+
+# Species excluded from stationary reporting due to insufficient precision
+excluded_stationary <- c("LABO", "MYSE", "MYCI", "ANPA")
+
+# Prepare stationary data
+stationary <- bc.cov.slope.summary.singlet %>%
+  filter(!SpeciesGroup %in% excluded_stationary) %>%
+  select(SpeciesGroup, Estimate, SE, p.value) %>%
+  mutate(
+    trend_ci = sprintf("%.2f ± %.2f", Estimate, 1.96 * SE),
+    p_val = case_when(
+      p.value < 0.001 ~ "<0.001",
+      TRUE ~ sprintf("%.3f", p.value)
+    )
+  ) %>%
+  select(SpeciesGroup, trend_ci, p_val, p.value) %>%
+  dplyr::rename(stationary_trend = trend_ci, stationary_p = p_val, stationary_pval = p.value)
+
+# Prepare transect data
+transect <- bc.cov.slope.transect %>%
+  mutate(
+    p_numeric = as.numeric(gsub("p = ", "", p.value)),
+    trend_ci = sprintf("%.2f ± %.2f", Estimate, 1.96 * SE),
+    p_val = case_when(
+      is.na(p_numeric) ~ NA_character_,
+      p_numeric < 0.001 ~ "<0.001",
+      TRUE ~ sprintf("%.3f", p_numeric)
+    )
+  ) %>%
+  select(SpeciesGroup, trend_ci, p_val, p_numeric) %>%
+  rename(transect_trend = trend_ci, transect_p = p_val, transect_pval = p_numeric)
+
+# Merge datasets
+merged_table <- full_join(stationary, transect, by = "SpeciesGroup")
+merged_table <- merged_table %>%
+  mutate(Species = species_names[SpeciesGroup]) %>%
+  mutate(
+    stationary_trend = ifelse(SpeciesGroup %in% excluded_stationary, "", stationary_trend),
+    stationary_p = ifelse(SpeciesGroup %in% excluded_stationary, "", stationary_p),
+    stationary_pval = ifelse(SpeciesGroup %in% excluded_stationary, NA, stationary_pval)
+  ) %>%
+  select(Species, stationary_trend, stationary_p, stationary_pval,
+         transect_trend, transect_p, transect_pval)
+
+# Add excluded species back as empty rows so they still appear in the table
+excluded_rows <- tibble(
+  SpeciesCode = excluded_stationary,
+  Species = species_names[excluded_stationary],
+  stationary_trend = "",
+  stationary_p = "",
+  stationary_pval = NA_real_,
+  transect_trend = "",
+  transect_p = "",
+  transect_pval = NA_real_
+)
+
+# Bind and sort alphabetically by species code
+merged_table <- merged_table %>%
+  mutate(SpeciesCode = names(species_names)[match(Species, species_names)]) %>%
+  bind_rows(excluded_rows) %>%
+  arrange(SpeciesCode) %>%
+  select(-SpeciesCode)
+
+# Replace NA with empty strings for display columns only
+merged_table <- merged_table %>%
+  mutate(SpeciesCode = names(species_names)[match(Species, species_names)]) %>%
+  bind_rows(excluded_rows) %>%
+  group_by(SpeciesCode) %>%
+  arrange(
+    desc(!is.na(stationary_pval) | stationary_trend != ""),
+    desc(!is.na(transect_pval) | transect_trend != "")
+  ) %>%
+  slice(1) %>%
+  ungroup() %>%
+  arrange(SpeciesCode) %>%
+  select(-SpeciesCode) %>%
+  mutate(
+    stationary_trend = ifelse(is.na(stationary_trend), "", stationary_trend),
+    stationary_p     = ifelse(is.na(stationary_p), "", stationary_p),
+    transect_trend   = ifelse(is.na(transect_trend), "", transect_trend),
+    transect_p       = ifelse(is.na(transect_p), "", transect_p)
+  )
+```
+
+```{r}
+#| echo: false
+#| warning: false  
+#| message: false
+#| label: regionmodelcov-prep
+
+region.cov.slope.summary.singlet <- read.csv("Data/Analyzed/region.slope.summary.singlet.csv")
+
+# Species excluded from stationary reporting due to insufficient precision
+excluded_stationary <- c("LABO", "MYSE", "MYCI", "ANPA")
+
+# Define desired species display order (adjust to match your table)
+species_order <- c("ANPA", "COTO", "EPFU", "EUMA", "LABO", "LACI", "LANO",
+                   "MYCA", "MYCI", "MYEV", "MYLU", "MYSE", "MYTH", "MYVO", "MYYU")
+
+# Process regional data
+regional_wide <- region.cov.slope.summary.singlet %>%
+  mutate(
+    trend_ci = sprintf("%.2f ± %.2f", Estimate, 1.96 * Std..Error),
+    p_val = case_when(
+      Pr...z.. < 0.001 ~ "<0.001",
+      TRUE ~ sprintf("%.3f", Pr...z..)
+    ),
+    is_sig = Pr...z.. < 0.05
+  ) %>%
+  select(Region, SpeciesGroup, trend_ci, p_val, is_sig) %>%
+  pivot_wider(
+    names_from = Region,
+    values_from = c(trend_ci, p_val, is_sig),
+    names_glue = "{Region}_{.value}"
+  )
+
+regions <- c("Kootenay Region", "Northern Region", "Okanagan Region", "South Coastal Region")
+
+# Build final display table
+final_table <- tibble(SpeciesGroup = species_order) %>%
+  left_join(regional_wide, by = "SpeciesGroup") %>%
+  mutate(Species = species_names[SpeciesGroup])
+
+#identify when html or df for bolding
+fmt <- ifelse(knitr::is_html_output(), "html", "latex")
+
+# Apply bolding region by region
+for (reg in regions) {
+  trend_col <- paste0(reg, "_trend_ci")
+  p_col     <- paste0(reg, "_p_val")
+  sig_col   <- paste0(reg, "_is_sig")
+  
+  if (trend_col %in% names(final_table)) {
+    final_table[[trend_col]] <- ifelse(
+      final_table$SpeciesGroup %in% excluded_stationary,
+      "",
+      ifelse(
+        !is.na(final_table[[sig_col]]) & final_table[[sig_col]] == TRUE,
+        cell_spec(final_table[[trend_col]], bold = TRUE, format = fmt),
+        final_table[[trend_col]]
+      )
+    )
+    final_table[[p_col]] <- ifelse(
+      final_table$SpeciesGroup %in% excluded_stationary,
+      "",
+      ifelse(
+        !is.na(final_table[[sig_col]]) & final_table[[sig_col]] == TRUE,
+        cell_spec(final_table[[p_col]], bold = TRUE, format = fmt),
+        final_table[[p_col]]
+      )
+    )
+  }
+}
+
+# Drop is_sig columns and select final columns
+final_table <- final_table %>%
+  select(Species, all_of(paste0(rep(regions, each = 2), c("_trend_ci", "_p_val"))))
+# Replace NA values with empty strings
+final_table <- final_table %>%
+  mutate(across(everything(), ~ replace_na(as.character(.x), "")))
+
+col_names <- c("Species", rep(c("Estimate ± 95%CI", "P-value"), length(regions)))
+```
+
+# Executive Summary
+
+The North American Bat Monitoring (NABat) program is a multi-agency initiative administered by the US Geological Survey (USGS). In 2024, the North by Northwest (NNW) Bat Hub was formed by combining the former Alberta Hub and the BC and Southeast Alaska (BC-SE_AK) Hub. The NNW Bat Hub leads the NABat program within British Columbia, with key support from provincial and state representatives and WCSC. In 2025, 57 grid cells throughout British Columbia were monitored. Results indicate that bat populations across British Columbia remain stable, with some key species showing small positive trends, including Little Brown Myotis and Eastern Red Bat. Given growing threats to bat populations in BC, continued monitoring is essential to detect any significant changes.
+
+{{< pagebreak >}}
+
+# Introduction
+
+## Overview of NABat and the NNW Bat Hub
+
+North American Bat Monitoring Program (NABat) is a large-scale coordinated effort to monitor bat species to address gaps in knowledge and lack of long-term studies across North America [@loeb2015Plan].The program is administered by the US Geological Survey (USGS) and implemented by the North by Northwest Bat (NNW) Hub in British Columbia, Alberta and S.E Alaska.
+
+NNW Bat Hub was established in 2024 with collaboration from Government of British Columbia, Government of Alberta, and Government of Alaska. The hub was formed by combining the previous Alberta Hub and the BC and southeast Alaska (BC-SE_AK) Hub. The implementation of the program within British Columbia has key support from Wildlife Conservation Society Canada (WCSC), government staff, other wildlife biologists, Indigenous Nations, community members and naturalists across the province.
+
+The centralization of efforts for the hub will expand exciting programs to coordinate more efficiently across jurisdictions, ensuring consistent and long-term bat monitoring through standardized data collection, and streamlined bioacoustic data management. It also seeks to enhance engagement with NABat, foster collaboration among stakeholders, and produce annual reports on regional monitoring.
+
+## Threats to bat populations in Alaska
+
+Bat populations in Alaska face a wide range of threats including forestry practices, anthropogenic expansion, and climate change among others. White-Nose Syndrome and wind energy development have emerged as two of the highest-priority concerns.
+
+### White-Nose Syndrome
+
+White-nose Syndrome (WNS) is a deadly fungal disease caused by the fungus *Pseudogymnoascus destructans* (*Pd*) that affects hibernating bats. As of 2026, WNS has been confirmed in nine Canadian provinces including Alberta, and *Pd* has been detected within British Columbia at two locations ( @fig-WNS: @cwhc-rcsf2024Canadian). Continued monitoring of populations in BC is critical as *Pd* and WNS continue to spread throughout the province.
+
+![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in Canada. Source: CWHC-RCSF (2026)](Figures/20260226%20Pd%20Canada.png){#fig-WNS fig-pos="H"}
+
+### Wind Energy Development
+
+Wind energy farms has been linked to high mortality rates across all bat species in Canada, with long distance migratory species accounting for 73% of recorded fatalities [@zimmerling2016Bat]. In British Columbia alone, one estimate predicts an annual mortality rate of 680 bats per wind turbine [@zimmerling2016Bat]. There are currently close to 300 turbines active in the province across 10 different projects with the most turbines found in the Peace region (@fig-turbines). In late 2024, B.C announced nine new wind projects which would require the installation of over 300 new wind turbines across the province [@ministryofenergyandclimatesolutions2024BC]. As of 2023, COSEWIC designated all three of B.C.'s long distance migratory species as endangered due in part to fatalities at wind turbine facilities [@committeeonthestatusofendangeredwildlifeincanada2023Hoary].
+
+![Current wind turbines in British Columbia based on the Canadian Wind Turbine Database (Source: https://search.open.canada.ca/openmap/79fdad93-9025-49ad-ba16-c26d718cc070)](Figures/WindTurbinesBC.JPG){#fig-turbines}
+
+{{< pagebreak >}}
+
+## Acoustic Monitoring of Bats
+
+Acoustic recording is a cost-effective method for monitoring bat populations across large geographic and temporal scales. However, several limitations affect the conclusions that can be drawn from these data:
+
+1.  **Imperfect species identification** — Unlike birds, bats rely on echolocation rather than song, and species with similar ecology and physiology often produce overlapping calls. While detectors are deployed to maximize recordings of diagnostic Search Phase calls, species identifiability will always vary depending on the local assemblage.
+
+2.  **Variable detectability** — Bat species are not equally detectable acoustically. Larger, wide-ranging species produce louder calls that travel farther, while smaller species with quieter calls or specialized habitat use are less reliably recorded. As a result, trend estimates cannot be produced for all species using acoustic methods alone.
+
+3.  **Data variability** — Many factors influence recording quality and bat activity, including wind speed, humidity, and local habitat. Additionally, stationary detectors cannot account for individual recapture, meaning acoustic data can only inform relative activity and occupancy.
+
+4.  **Processing limitations** — Auto-ID software enables efficient processing of large datasets but has known high misclassification rates for bats, making manual verification necessary to ensure accurate results.
+
+## Update in Statistical Models
+
+Bat monitoring data can be analyzed using different statistical approaches, each with distinct assumptions and outputs. Activity trend models examine changes in relative acoustic activity over time, providing a straightforward measure of whether bat detections are increasing, decreasing, or remaining stable across the monitoring network.
+
+Dynamic occupancy models take a different approach, estimating the probability that a species occupies a given site, while explicitly accounting for imperfect detection. Rather than treating a non-detection as an absence, these models distinguish between a species being truly absent versus simply going undetected — an important consideration given the variable detectability of bats discussed above. They also track colonization and extinction probabilities across sites over time, providing insight into range shifts and local population dynamics.
+
+In 2025, both model types were run to examine differences in results and assess the complementary information each approach provides.
+
+# Methods
+
+## Data Collection
+
+The NABat monitoring program was established in BC in 2016 by WCSC and has sampled 65 grid cells in total. Cells were selected using the GRTSID system [@loeb2015Plan], based on accessibility, presence of bat habitat, suitable recorder sites, and where possible, a road suitable for a driving transect (30–45 km, relatively straight).
+
+Of 63 currently active cells, `r samplingE[9,2]` were monitored in 2025 for a total of `r samplingE[9,3]` site nights ([@tbl-samp]); the remaining `r 63-samplingE[9,2]` were not monitored due to limited local capacity. The network is well-distributed across the province, with a slight bias toward southern BC and population centres ([@fig-map]).
+
+**Stationary Surveys**
+
+Two to four stationary detectors were deployed across at least two quadrants per grid cell for a minimum of seven nights. Sites are selected to maximize species detection and recording quality across different habitat types (see [@rae2024North] for full site selection criteria). Deployment occurs between mid-May and mid-July, after bats have emerged from hibernation but before young bats are volant. Sites and timing are kept consistent between years to minimize variability in conditions affecting bat activity.
+
+**Transect Surveys**
+
+Where possible, driving transects were conducted following @loeb2015Plan. Two replicates of a 30–35 km route are driven at 30–35 km/h with a rooftop detector, using straight roads that minimize switchbacks. Transects are conducted concurrently with stationary deployments.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: true
+#| label: tbl-samp
+#| tbl-cap: Total number active grid cells and number of site nights sampled summarized by calendar year in British Columbia. Site nights are defined as the cumulative number of nights during which recorders were operational
+#| fig.pos: 'H'
+
+kable(samplingE,
+      col.names = c("Year", "Number of Grid Cells Sampled", "Site Nights"),
+      label = "sampling-efforts",
+      escape = FALSE,
+      align = "ccc") %>%
+  kable_styling(bootstrap_options = c("striped"),
+                full_width = FALSE,
+                position = "center") %>%
+  column_spec(1, width = "8em") %>%
+  column_spec(2, width = "10em") %>%
+  column_spec(3, width = "8em")
+```
+
+### Equipment
+
+A wide range of equipment is used across sampling locations in BC. Stationary units are primarily Wildlife Acoustics SM4Bat-FS or SM2Bat units (Maynard, MA), alongside an increasing number of Titley Scientific Swift and Express units (Brisbane, AU). Mobile transects are conducted using either the Wildlife Acoustics EchoMeter Touch2Pro or Titley Scientific Anabat units (SD1/2 zero-cross or Walkabout models).
+
+2025 represents a transition year for equipment standardization. All SM2Bat units are being replaced with Titley Scientific Chorus units, and Anabat units are being phased out in favour of the EchoMeter Touch2Pro for mobile transects. To account for detection differences between outgoing and incoming equipment, paired deployments were conducted at a number of grid cells this year, both stationary (SM2Bat and Chorus) and mobile (Anabat SD1 and EchoMeter Touch2Pro). These paired deployments will provide correction factors to ensure data comparability across the transition period.
+
+### Model Covariates
+
+Numerous environmental factors influence bat activity across British Columbia. Species-specific covariates for stationary models were established by @rae2022North using AIC-based stepwise selection ([@tbl-cov]).
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: true
+#| label: tbl-cov
+#| tbl-cap: Top-performing stationary models selected via AIC-based stepwise selection. Covariates are described as, Moon = moon illumination × proportion of night above horizon; Clutter = distance (m) to nearest object; Nearby Water = detector within 100m of water;RH = mean nightly relative humidity (%); Degree Days = cumulative degree days above 10°C since Jan 1. Source @rae2024North
+#| fig.pos: 'H'
+
+kable(model_covariates,
+      col.names = c("Species", "Species Code", "Top Performing Model Covariates"),
+      label = "model-covariates") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE,
+                position = "left") %>%
+  column_spec(1, width = "15em") %>%
+  column_spec(2, width = "8em") %>%
+  column_spec(3, width = "20em")
+```
+
+Transect models followed the same selection approach, testing all combinations of nightly mean temperature, relative humidity, wind speed, and moon illumination, with the most parsimonious model for each species selected based on lowest AIC (@tbl-cov-transects).
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: true
+#| label: tbl-cov-transects
+#| tbl-cap: Top-performing transect models selected via AIC-based stepwise selection. Covariates are described as, Moon = moon illumination × proportion of night above horizon;RH = mean nightly relative humidity (%).
+#| fig.pos: 'H'
+
+kable(transect_covariates,
+      col.names = c("Species", "Species Code", "Top Performing Model Covariates"),
+      label = "model-covariates") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE,
+                position = "left") %>%
+  column_spec(1, width = "15em") %>%
+  column_spec(2, width = "8em") %>%
+  column_spec(3, width = "20em")
+```
+
+Dynamic occupancy model covariates were based on those established by @rae2022North, with additional exploration of factors influencing colonization and extinction. These included distance to roads and distance to harvest cutblocks, derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways.
+
+Where possible, temperature and relative humidity are recorded in each grid cell using onsite logging devices; otherwise, data are sourced from the nearest climate station. Additional covariates include nightly mean wind speed (km/h), cumulative precipitation since January 1 (mm), degree days above 10°C since January 1, and moon illumination (proportion illuminated × proportion of night above horizon). Site-level covariates — including distance to clutter, percent clutter, distance to water, and water feature type — are recorded by grid leaders during deployment.
+
+Since 2022, insect activity has been measured along transect routes using vehicle-mounted sticky traps. Collected samples are identified to order level by WCSC and will be evaluated as a potential covariate of bat activity.
+
+## Acoustic Processing
+
+In 2025 acoustic analysis mostly followed the standards set in previous years [@rae2022North; @rae2024North]. This included running all files through two automatic classifiers, Kaleidoscope's Bats of North America 5.4.0 classifier and Sonobat 3.0's Northwestern British Columbia classifier, to remove files that do not contain bat pulses and giving a preliminary bat species identification.
+
+Manual vetting follows @reichert2018Guide and analysis standards developed by the NNW Bat Hub and WCSC. Consistent with 2024, approximately 50% of all recordings were manually verified; for full details on this process, refer to the 2024 BC NABat Report.
+
+## Statistical Analyses
+
+### Activity Trends
+
+Statistical analyses followed closely what was established by WCSC and Dr. Carl Schwarz in 2021 [@rae2022North]. This includes conducting species-specific trend analyses examining activity patterns in the data collected to date using the (negative binomial GLMM) models and the covariates identified in @tbl-cov.
+
+Species were excluded from the analysis if model fit was not appropriate due to issues including under-dispersion or standard errors that were more than 3 times the estimate. Model results were also excluded if there was less than 150 recordings across all sample years. We conducted our statistical analyses on provincial and regional scales. For the regional analyses, we assigned all sampled grid cells into four geographic regions (Southwestern, Southcentral, Southeastern, and Northern), each roughly corresponding to different species sets ([@fig-map]). Since transects are only conducted in roughly 50% of our grid cells on a typical year and each transect records fewer bats per night than stationary monitoring, we have elected not to conduct regional-scale transect trend analyses due to low sample sizes.
+
+#### Use of Automated Identification Results in Stationary Trend Analyses
+
+Stationary trend analyses used AutoID classifications from Kaleidoscope Pro and Sonobat 3.0. Manual verification was applied only to flag non-bat noise; where manual review suggested a different species than the AutoID label, the original AutoID classification was retained.
+
+This approach was first identified as necessary in 2023 [@rae2022North], when analyses of manually verified data revealed a consistent positive trend across all species, this was interpreted as an artifact of reviewer learning over time rather than a true biological signal. As verifier experience increased across years, calls were increasingly assigned to specific species rather than left unidentified, producing an apparent increase in detections independent of actual bat activity. Because this observer effect is difficult to control for statistically, AutoID classifications are now used as the standard for all activity trend analyses, as automated classifiers apply consistent criteria across all years. While AutoID is subject to some misclassification, the error rate is consistent across years and does not confound detection of genuine temporal trends.
+
+Trend analyses are presented only for species confirmed present through manual verification and for which models fully converged.
+
+### Dynamic Occupancy
+
+This analysis used nightly acoustic detection/non-detection data from passive bat detectors deployed at GRTS-selected sites in British Columbia (BC) as part of the NABat long-term monitoring program. Data were filtered to the 2017–2025 period, and analysis used an every-other-night subsampling protocol to reduce temporal autocorrelation between consecutive nights, using max 4 visits per site-year. Sites had to have a minimum of 2 visits within a given year and data from at least 2 years total. Models were run separately for all 17 bat species.
+
+Fitted multi-season (dynamic) occupancy models (MacKenzie et al. 2003) to estimate trends in occupancy, colonization, and persistence while accounting for imperfect detection. Initial occupancy (ψ) was modeled as a function of elevation and water nearby, with a random effect for region. Colonization (γ) and persistence (φ) were modeled with time-varying intercepts and distance to road as a covariate. Detection probability (p) was modeled as a function of percent clutter, nightly mean temperature, and Julian date.
+
+Elevation for each site was extracted from AWS terrain tiles (\~30 m resolution, SRTM-based) using the elevatr package in R, distance to road and distance to harvest was extracted using the Biodiversity Pathways Human Footprint Index (not published yet). All continuous covariates were standardized by centering on their mean and dividing by their standard deviation; missing covariate values were imputed with the global mean prior to standardization.
+
+Models were fit in a Bayesian framework using JAGS via the jagsUI package in R, with 30,000 iterations, 15,000 burn-in, thinning by 5, and 3 chains run in parallel, yielding 9,000 posterior samples for inference. Priors on all regression coefficients were normally distributed (mean = 0, precision = 0.368, equivalent to SD ≈ 1.65), and the region-level random effect standard deviation received a uniform(0, 5) prior. Model convergence was assessed using Rhat diagnostics. Results are interpreted using posterior means and 95% Bayesian credible intervals. An overall occupancy trend metric (λ) was calculated as the ratio of estimated occupancy in the final year to occupancy in the initial year; values of λ \> 1 with 95 CIs entirely above 1 indicate an increase in occupancy, values \< 1 with 95 CIs entirely below 1 indicate a decline, and values with CIs overlapping 1 indicate uncertain or stable trends. 
+
+# Results
+
+2025 marked the tenth year of coordinated NABat sampling done in BC. A total of 56 grid cells were sampled with the support of over 60 individuals including contractors, volunteers and staff members from BC Parks, BC WLRS, and BC Ministry of Forests. Grid leaders have also collected a total of 16 transect insect sticky trap samples in 2025.
+
+## Species Detection
+
+In 2025, all species previously documented in BC were detected. The manually verified detections varied among grid cell and regions (@fig-map). The most widely identified species as well as the most geographically distributed bats that were confirmed through manual ID were the Little Brown Bat followed by the Silver-haired Bat. Any notable species detection are addressed in the discussion
+
+```{r}
+#| echo: false
+#| eval: true
+#| cache: true
+#| warning: false
+#| message: false
+#| include: true
+#| fig-align: center
+#| fig-cap: "NABat survey efforts in 2025 within British Columbia. Analysis regions were defined by Wildlife Conservation Society Canada (WCSC) based on species ranges maps to group areas with similar species compositions."
+#| label: fig-map
+
+# ── Load spatial data ──────────────────────────────────────────────────────────
+transects_sf <- st_read("Data/transects_merged.shp", quiet = TRUE)
+transects_sf <- st_transform(transects_sf, crs = 4326)
+
+regions <- st_read("Data/BC-SEAK Hub Regions Mar 2025.shp", quiet = TRUE)
+regions <- st_transform(regions, crs = 4326)
+regions <- regions %>%
+  filter(Region != "AK") %>%
+  mutate(Region_Merged = case_when(
+    Region %in% c("HG", "WC", "NE", "NW") ~ "Northern",
+    Region == "SE"                          ~ "Southeast",
+    Region == "SC"                          ~ "Southcentral",
+    Region == "SW"                          ~ "Southwest",
+    TRUE                                    ~ Region
+  )) %>%
+  group_by(Region_Merged) %>%
+  summarise(geometry = st_union(geometry)) %>%
+  rename(Region = Region_Merged)
+
+region_colors <- c(
+  "Northern"     = "#70A800",
+  "Southeast"    = "#E6E600",
+  "Southcentral" = "#E64C00",
+  "Southwest"    = "#0084A8"
+)
+
+pal_regions <- colorFactor(palette = region_colors, domain = regions$Region)
+
+# ── Add regions + transects to m ──────────────────────────────────────────────
+m_full <- m %>%
+  # Insert regions behind all other layers by adding first
+  addPolygons(
+    data        = regions,
+    fillColor   = ~pal_regions(Region),
+    fillOpacity = 0.2,
+    color       = "gray",
+    weight      = 2,
+    label       = ~Region,
+    group       = "Analysis Regions"
+  ) %>%
+  addPolylines(
+    data             = transects_sf,
+    color            = "darkgreen",
+    weight           = 3,
+    opacity          = 0.7,
+    label            = ~paste0("GRTS ID: ", GRTS_ID,
+                               " | Years Sampled: ", N_Years,
+                               " | Years: ", Yrs_Smp),
+    highlightOptions = highlightOptions(
+      color        = "darkgreen",
+      weight       = 5,
+      bringToFront = TRUE
+    ),
+    group = "Transects"
+  ) %>%
+  addLayersControl(
+    overlayGroups = c("Analysis Regions", "Transects", "dots", "pies"),
+    options       = layersControlOptions(collapsed = FALSE)
+  ) %>%
+  addScaleBar(position = "bottomleft")
+
+# ── Render ─────────────────────────────────────────────────────────────────────
+if (knitr::pandoc_to("html")) {
+  m_full
+} else {
+  dir.create(file.path(getwd(), "Figures"), showWarnings = FALSE)
+  map_file <- file.path(getwd(), "Figures", "survey_map.png")
+  tryCatch({
+    mapview::mapshot2(
+      m_full,
+      file    = map_file,
+      delay   = 5,
+      vwidth  = 900,
+      vheight = 1100
+    )
+  }, error = function(e) {
+    message("mapshot2 failed: ", e$message)
+  })
+  knitr::include_graphics(map_file)
+}
+```
+
+## Activity Trend Models
+
+Stationary data was used to estimate activity trends for `r sum(merged_table$stationary_trend != "", na.rm = TRUE)` of BC's 15 resident species, while transect data was sufficient to estimate trends for `r sum(merged_table$transect_trend != "", na.rm = TRUE)` species (@tbl-modelcov). Of the stationary models, seven species showed statistically significant positive trends (p \< 0.05):
+
+- Townsend's Big-eared Bat (`r merged_table$stationary_trend[merged_table$Species == "Townsend's Big-eared Bat"]`)
+
+- Big Brown Bat (`r merged_table$stationary_trend[merged_table$Species == "Big Brown Bat"]`)
+
+- Spotted Bat (`r merged_table$stationary_trend[merged_table$Species == "Spotted Bat"]`)
+
+- Silver-haired Bat (`r merged_table$stationary_trend[merged_table$Species == "Silver-haired Bat"]`)
+
+- California Myotis (`r merged_table$stationary_trend[merged_table$Species == "California Myotis"]`)
+
+- Little Brown Mytois( `r merged_table$stationary_trend[merged_table$Species == "Little Brown Myotis"]`).
+
+- Long-legged Myotis (`r merged_table$stationary_trend[merged_table$Species == "Long-legged Myotis"]`).
+
+No significant negative trends were detected in the stationary models. The remaining species with sufficient data had non-significant trend estimates.
+
+Transect models yielded results for fewer species, with only Little Brown Myotis showing a significant positive trend (`r merged_table$transect_trend[merged_table$Species == "Little Brown Myotis"]`). Trend estimates for the remaining species with transect data were small and non-significant.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: tbl-modelcov
+#| tbl-cap:  Provincial stationary and transect trend estimates from 2017-2024 NABat monitoring in BC adjusted for covariates. Trends estimated on a logarithmic scale, thus a trend estimate of 0.05 corresponds to an annual change of 5%. Significant results (p value < 0.05) are highlighted in bold.
+#| tbl-pos: 'H'
+
+# Display table with conditional bolding
+kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_trend, transect_p),
+      col.names = c("Species", "Trend Estimate ± 95%CI", "P-value",
+                    "Trend Estimate ± 95%CI", "P-value"),
+      align = c("l", "r", "r", "r", "r"),
+      booktabs = TRUE) %>%
+  kable_styling(latex_table_env = "tabular") %>%
+  add_header_above(c(" " = 1, "Stationary Models" = 2, "Transect Models" = 2)) %>%
+  column_spec(2, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE)) %>%
+  column_spec(3, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE)) %>%
+  column_spec(4, bold = ifelse(!is.na(merged_table$transect_pval) & merged_table$transect_pval < 0.05, TRUE, FALSE)) %>%
+  column_spec(5, bold = ifelse(!is.na(merged_table$transect_pval) & merged_table$transect_pval < 0.05, TRUE, FALSE))
+```
+
+Regional trend analyses revealed significant results (p \< 0.05) across all regions with the most found in the South Coastal region (@tbl-regionmodelcov). Most significant results were positive, but significant negative trends were found in:
+
+- Hoary Bat in the South coastal Region (`r final_table[final_table$Species == "Hoary Bat", "South Coastal Region_trend_ci"]`)
+
+- Yuma Myotis in the Northern Region (`r final_table[final_table$Species == "Yuma Myotis", "Northern Region_trend_ci"]` ).
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: tbl-regionmodelcov
+#| tbl-cap:  Regional trend estimates from 2017-2024 NABat monitoring in BC adjusted for covariates. Trends estimated on a logarithmic scale, thus a trend estimate of 0.05 corresponds to an annual change of 5%. Significant results (p value < 0.05) are highlighted in bold.
+#| tbl-pos: 'H'
+
+if (knitr::is_html_output()) {
+  kbl(final_table,
+      col.names = col_names,
+      booktabs = TRUE,
+      align = c("l", rep(c("c", "c"), length(regions))),
+      escape = FALSE) %>%
+    add_header_above(c(
+      " " = 1,
+      "Kootenay Region" = 2,
+      "Northern Region" = 2,
+      "Okanagan Region" = 2,
+      "South Coastal Region" = 2
+    )) %>%
+    column_spec(1, width = "5.5cm") %>%
+    column_spec(c(2, 4, 6, 8), width = "3cm") %>%
+    column_spec(c(3, 5, 7, 9), width = "1.5cm") %>%
+    kable_styling(font_size = 9, full_width = TRUE) %>%
+    scroll_box(width = "100%", extra_css = "overflow-x: auto; min-width: 900px;")
+
+} else {
+  regions_top    <- c("Kootenay Region", "Northern Region")
+  regions_bottom <- c("Okanagan Region", "South Coastal Region")
+
+  make_gt_subtable <- function(data, region_group) {
+    cols <- c("Species", paste0(rep(region_group, each = 2), c("_trend_ci", "_p_val")))
+    sub_data <- data %>% select(all_of(cols))
+
+    # Rename columns to simple names for gt
+    new_names <- c("Species", paste0(rep(seq_along(region_group), each = 2), 
+                                      c("_est", "_p")))
+    names(sub_data) <- new_names
+
+    tbl <- gt(sub_data) %>%
+      fmt_passthrough(everything()) %>%
+      fmt(columns = everything(),
+          fns = function(x) ifelse(is.na(x), "", x))
+
+    # Add spanner headers for each region
+    for (i in seq_along(region_group)) {
+      tbl <- tbl %>%
+        tab_spanner(
+          label = region_group[i],
+          columns = c(paste0(i, "_est"), paste0(i, "_p"))
+        )
+    }
+
+    # Rename columns to display names
+    rename_list <- list("Species" = "Species")
+    for (i in seq_along(region_group)) {
+      rename_list[[paste0(i, "_est")]] <- "Estimate ± 95%CI"
+      rename_list[[paste0(i, "_p")]]   <- "P-value"
+    }
+    tbl <- tbl %>%
+      cols_label(.list = rename_list) %>%
+      cols_width(
+        Species ~ px(130),
+        ends_with("_est") ~ px(110),
+        ends_with("_p")   ~ px(60)
+      ) %>%
+      cols_align(
+        align = "center",
+        columns = ends_with(c("_est", "_p"))
+        ) %>%
+      tab_options(
+        table.font.size = px(14),
+        data_row.padding = px(2)
+      )
+
+    return(tbl)
+  }
+
+  tbl_top    <- make_gt_subtable(final_table, regions_top)
+  tbl_bottom <- make_gt_subtable(final_table, regions_bottom)
+
+  knit_print(tbl_top)
+}
+```
+
+```{r}
+#| echo: false  
+#| eval: !expr knitr::is_latex_output()
+#| tbl-pos: 'H'
+
+knit_print(tbl_bottom)
+
+```
+
+```{=latex}
+\FloatBarrier
+```
+
+## Dynamic Occupancy Models
+
+Across the 17 bat species modeled over the 9 years, no species showed a clear decline in occupancy in BC. Several species showed increases, and the rest were stable or showed too much uncertainty to draw conclusions regarding trends (E.g., TABR, PAHE).
+
+Species showing clear increases in occupancy (BC models): MYLU. MYEV, MYVO, MYVU, MYCA, MYCI, LABO. LABO showed the strongest increase (0.22 to 0.59). MYLU was the most widespread species overall going from \~89% to 97% occupancy. Increases generally driven by colonization rates exceeding extinction rates–bats showing up at sites faster than they are leaving occupied ones. 
+
+Species with stable or uncertain trends: EPFU, LACI, LANO, EUMA, COTO, MYTH. ANPA is a special case– showing a massive lambda value in the BC-only model (and the BC + AK to some extent), but as per the note below, this is mainly because of an artifact of going from near zero occupancy to still-low occupancy, so the ratio is uncertain, reflected by the wide credible intervals. 
+
+Poorly estimated species: PAHE and TABR had extremely low detection probabilities (0.5-0.7%), leading to poor model convergence and very wide credible intervals-interpret with caution or just state they are data-deficient (models with that low of detection rates are basically meaningless). 
+
+Detection: Temperature was the most consistent detection covariate–warmer nights equate to higher detection for most species. There were some clutter effects on detection probability that were species-specific. Julian date effects were mixed across species. 
+
+![Dynamic occupancy estimates (ψ) for 17 bat species monitored across British Columbia from 2017–2025. Points represent annual mean occupancy estimates and shaded areas indicate 95% credible intervals.](Figures/DOccupancy/ALL_occupancy_panel.png){#fig-dynamicocALL}
+
+# Discussion
+
+## Species Presence
+
+Species ranges across the project period (2016–2025) continue to appear broadly stable, with no grid cells showing conspicuous or sustained absences for previously detected species.
+
+## Trend analyses
+
+### Activity Trends
+
+Overall, results suggest that bat populations remain broadly stable across British Columbia, with no species showing widespread negative trends.
+
+Several species showed statistically significant positive trends in both province-wide and South Coastal regional models. However, these results should be interpreted with caution. Caution is warranted when evaluating the magnitude of the trend estimates. Several models exhibited underdispersion, which, while not unexpected given the structural characteristics of acoustic bat activity data, means that confidence intervals and effect sizes should be interpreted carefully rather than taken at face value.
+
+The significant negative trend detected for Hoary Bat in the South Coastal Region warrants attention and should be monitored closely in coming years to determine whether this represents a genuine localized decline or reflects sampling variability.
+
+More broadly, as threats to bat populations continue to grow, it may be worth exploring complementary analytical approaches alongside activity-based trend models. Acoustic activity metrics carry inherent noise, and detecting meaningful population signals can be challenging, particularly for species with low detection rates or patchy distributions. We recommend exploring occupancy modelling as a complementary approach in future analyses, as it may provide a clearer population signal by reducing the noise inherent in activity-based trend estimates from stationary acoustic data.
+
+### Dynamic Occupancy
+
+The dynamic occupancy estimates suggest that the bat community in BC appears to be generally stable to increasing over 2017-2025, with no species showing evidence of decline. Species showing strongest increases are Myotis species and LABO. Two species can’t be reliably assessed (PAHE, TABR) due to very low detection rates. Distance to road has an effect on colonization and persistence dynamics for several species, with sites closer to roads tending to have higher turnover.
+
+## Challenges and Lessons Learned
+
+#### **Timing of Data Retrieval and Submission**
+
+Field crews across British Columbia continue to reliably collect recordings for their grid cells. However, organizing and submitting these recordings, along with associated metadata, remains a challenge. Delays in data submission from grid leaders extend processing and analysis times, making it difficult to complete reports by the end of the fiscal year. The transition in project management this year further complicated data submission. We anticipate these challenges will be resolved in future years as teams adjust to the new process. To improve efficiency, we plan to increase reminders to grid leaders and provide additional support to address ongoing challenges in data organization and submission.
+
+## Looking Forward
+
+The BC NABat program has yielded a large and robust acoustic dataset that provides solid baseline information on distribution and relative abundance of 12 of 15 resident BC bat species. The data that has been collected so far are an invaluable reference point for BC's bat distributions and activity that improve with each additional year of monitoring. Key considerations for the future of the program include:
+
+- **Manual Verification Efficiency.** This was the first year that the BC monitoring program reduced the proportion of manual vetting carried out in the recordings to \~50% based on the findings from Stratton et al. (2022). Careful consideration of these results compared to previous years will be considered as a guide for future models and analyses.
+
+- **Transect Sampling.** Transects are a relatively high labour/effort source of data than stationary detectors that require participants to work late into the night. They also often do not collect many recordings of bats in BC relative to the stationary detectors. However, transects are still the only source of reliable estimates of relative abundance. While continuing to support current transect sampling efforts, the NNW Bat Hub will work along side other partners to also explore other methods of creating reliable abundance estimates that are less labour intensive.
+
+- **Adding new grid cells.** Efforts will continue to be made to monitor as many of the same grid cells as possible, as the power of the dataset improves with each additional year. Moreover, looking for new opportunities to add new grid cells especially in under sampled regions of the province can help fill knowledge gaps for species distributions. New cells could also be added within ranges of species that are not widespread but easily monitored using acoustics. For example, Fringed Myotis and Spotted Bats are highly suited to acoustic surveillance, but only occur within a small portion of the grid cells being monitored currently
+
+{{< pagebreak >}}
+
+{{< pagebreak >}}
+
+# Appendix A
+
+Species and region specific dynamic occupancy results
+
+![](images/clipboard-1267572074.png)
+
+![](images/clipboard-2381023598.png)
+
+![](images/clipboard-2584432345.png)
+
+![](images/clipboard-4243416049.png)
+
+![](images/clipboard-2768753452.png)
+
+![](images/clipboard-361956783.png)
+
+![](images/clipboard-291564491.png)
+
+![](images/clipboard-2480187280.png)
+
+![](images/clipboard-3844675028.png)
+
+![](images/clipboard-3490882160.png)
+
+![](images/clipboard-390509750.png)
+
+![](images/clipboard-358754788.png)
+
+![](images/clipboard-149203103.png)
+
+![](images/clipboard-3641637788.png)
+
+![](images/clipboard-1886603302.png)
+
+![](images/clipboard-1672079282.png)
+
+![](images/clipboard-2775641908.png)
+
+![](images/clipboard-1239408147.png)
+
+![](images/clipboard-3065992537.png)
+
+![](images/clipboard-1514866696.png)
+
+![](images/clipboard-3067857120.png)
+
+![](images/clipboard-3015708547.png)
+
+![](images/clipboard-1028350744.png)
+
+![](images/clipboard-320766212.png)
+
+![](images/clipboard-3987199258.png)
+
+![](images/clipboard-907181628.png)
+
+![](images/clipboard-3832638027.png)
+
+![](images/clipboard-2996506328.png)
+
+![](images/clipboard-344941766.png)
+
+![](images/clipboard-3743129967.png)
+
+![](images/clipboard-1412688318.png)
+
+![](images/clipboard-2126305700.png)
+
+![](images/clipboard-2549826261.png)
+
+![](images/clipboard-510851895.png)
+
+![](images/clipboard-1650968393.png)
+
+![](images/clipboard-1456309094.png)
+
+![](images/clipboard-3081408464.png)
+
+![](images/clipboard-3203452304.png)
+
+![](images/clipboard-232071095.png)
+
+![](images/clipboard-418757452.png)
+
+![](images/clipboard-1581575649.png)
+
+![](images/clipboard-1840991189.png)
+
+![](images/clipboard-2424367020.png)
+
+![](images/clipboard-1971018695.png)
+
+![](images/clipboard-129444257.png)
+
+![](images/clipboard-3614334769.png)
+
+![](images/clipboard-691748644.png)
+
+![](images/clipboard-1913924916.png)
+
+![](images/clipboard-504246845.png)
+
+![](images/clipboard-2023445701.png)
+
+![](images/clipboard-1719421298.png)
+
+![](images/clipboard-3590729106.png)
+
+![](images/clipboard-1237590987.png)
+
+![](images/clipboard-1282248688.png)
+
+![](images/clipboard-556168714.png)
+
+![](images/clipboard-4101332239.png)
+
+![](images/clipboard-1844903765.png)
+
+![](images/clipboard-1079634519.png)
+
+![](images/clipboard-4094497022.png)
+
+![](images/clipboard-865099794.png)
+
+![](images/clipboard-4088300998.png)
+
+![](images/clipboard-976697193.png)
+
+![](images/clipboard-1099412095.png)
+
+![](images/clipboard-817490926.png)
+
+![](images/clipboard-2183359796.png)
+
+![](images/clipboard-2312598002.png)
+
+![](images/clipboard-1262511847.png)
+
+![](images/clipboard-3386870832.png)
+
+::: {.content-visible when-format="pdf"}
+# Literature Cited
+:::

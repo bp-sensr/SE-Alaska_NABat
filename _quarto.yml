@@ -1,0 +1,10 @@
+project:
+  type: website
+  output-dir: _site
+  resources:
+    - Logos/
+    - styles.css
+
+website:
+  title: "North American Bat Monitoring Program in S.E Alaska"
+  site-url: https://biodiversitypathways.github.io/SE-Alaska_NABat/
