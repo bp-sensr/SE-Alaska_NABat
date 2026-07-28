@@ -43,7 +43,7 @@ nocite: '@*'
 ---
 
 ::: {.content-visible when-format="html"}
-![Deployment in Kamloops Grid Cell 212266 in 2025](images/212266.jpg)
+![Deployment in Petersburg (Grid ID 5006) in 2025](images/5006tlllk2.jpg)
 :::
 
 ```{r}
@@ -559,7 +559,7 @@ col_names <- c("Species", rep(c("Estimate ± 95%CI", "P-value"), length(regions)
 
 # Executive Summary
 
-The North American Bat Monitoring (NABat) program is a multi-agency initiative administered by the US Geological Survey (USGS). In 2024, the North by Northwest (NNW) Bat Hub was formed by combining the former Alberta Hub and the BC and Southeast Alaska (BC-SE_AK) Hub. The NNW Bat Hub leads the NABat program within British Columbia, with key support from provincial and state representatives and WCSC. In 2025, 57 grid cells throughout British Columbia were monitored. Results indicate that bat populations across British Columbia remain stable, with some key species showing small positive trends, including Little Brown Myotis and Eastern Red Bat. Given growing threats to bat populations in BC, continued monitoring is essential to detect any significant changes.
+The North American Bat Monitoring (NABat) program is a multi-agency initiative administered by the US Geological Survey (USGS). In 2024, the North by Northwest (NNW) Bat Hub was formed by combining the former Alberta Hub and the BC and Southeast Alaska (BC-SE_AK) Hub. The NNW Bat Hub leads the NABat program within S.E Alaska, with key support from state and provincial representatives. In 2025, 11 grid cells in S.E. Alaska were monitored. Results indicate that bat populations across S.E. Alaska remain stable, with some key species showing small positive trends, including Little Brown Myotis and Eastern Red Bat. Given growing threats to bat populations in BC, continued monitoring is essential to detect any significant changes.
 
 {{< pagebreak >}}
 
@@ -567,27 +567,25 @@ The North American Bat Monitoring (NABat) program is a multi-agency initiative a
 
 ## Overview of NABat and the NNW Bat Hub
 
-North American Bat Monitoring Program (NABat) is a large-scale coordinated effort to monitor bat species to address gaps in knowledge and lack of long-term studies across North America [@loeb2015Plan].The program is administered by the US Geological Survey (USGS) and implemented by the North by Northwest Bat (NNW) Hub in British Columbia, Alberta and S.E Alaska.
+North American Bat Monitoring Program (NABat) is a large-scale coordinated effort to monitor bat species to address gaps in knowledge and lack of long-term studies across North America [@loeb2015]. The program is administered by the US Geological Survey (USGS) and implemented by the North by Northwest Bat (NNW) Hub in S.E Alaska, Alberta, and British Columbia.
 
-NNW Bat Hub was established in 2024 with collaboration from Government of British Columbia, Government of Alberta, and Government of Alaska. The hub was formed by combining the previous Alberta Hub and the BC and southeast Alaska (BC-SE_AK) Hub. The implementation of the program within British Columbia has key support from Wildlife Conservation Society Canada (WCSC), government staff, other wildlife biologists, Indigenous Nations, community members and naturalists across the province.
-
-The centralization of efforts for the hub will expand exciting programs to coordinate more efficiently across jurisdictions, ensuring consistent and long-term bat monitoring through standardized data collection, and streamlined bioacoustic data management. It also seeks to enhance engagement with NABat, foster collaboration among stakeholders, and produce annual reports on regional monitoring.
+NNW Bat Hub was established in 2024 with collaboration from Government of Alaska, Government of Alberta, and Government of British Columbia. The hub was formed by combining the previous Alberta Hub and the BC and southeast Alaska Hub. The implementation of the program within S.E Alaska has key support from Alaska Department of Fish and Game.
 
 ## Threats to bat populations in Alaska
 
-Bat populations in Alaska face a wide range of threats including forestry practices, anthropogenic expansion, and climate change among others. White-Nose Syndrome and wind energy development have emerged as two of the highest-priority concerns.
+Bat populations in Alaska face a wide range of threats including forestry practices, anthropogenic expansion, and climate change among others. Of these threats, White-Nose Syndrome and wind energy development have emerged as two of the highest-priority concerns.
 
 ### White-Nose Syndrome
 
-White-nose Syndrome (WNS) is a deadly fungal disease caused by the fungus *Pseudogymnoascus destructans* (*Pd*) that affects hibernating bats. As of 2026, WNS has been confirmed in nine Canadian provinces including Alberta, and *Pd* has been detected within British Columbia at two locations ( @fig-WNS: @cwhc-rcsf2024Canadian). Continued monitoring of populations in BC is critical as *Pd* and WNS continue to spread throughout the province.
+White-nose Syndrome (WNS) is a deadly fungal disease caused by the fungus *Pseudogymnoascus destructans* (*Pd*) that affects hibernating bats. As of 2026, WNS has been confirmed in 42 U.S. states, nine Canadian provinces, and the Northwest Territories [@u.s.fishandwidlifeservice; @segers] . *Pd* , but not WNS, has been detected in 5 additional states and within British Columbia( @fig-WNS: @cwhc-rcsf2024Canadian; @u.s.fishandwidlifeservice ). Continued monitoring of populations in Alaska is critical as *Pd* and WNS continue to spread throughout the region.
 
-![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in Canada. Source: CWHC-RCSF (2026)](Figures/20260226%20Pd%20Canada.png){#fig-WNS fig-pos="H"}
+![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in The US and Canada. Source: CWHC-RCSF (2026)](Figures/WNS-USandCanada.png){#fig-WNS fig-pos="H"}
 
 ### Wind Energy Development
 
-Wind energy farms has been linked to high mortality rates across all bat species in Canada, with long distance migratory species accounting for 73% of recorded fatalities [@zimmerling2016Bat]. In British Columbia alone, one estimate predicts an annual mortality rate of 680 bats per wind turbine [@zimmerling2016Bat]. There are currently close to 300 turbines active in the province across 10 different projects with the most turbines found in the Peace region (@fig-turbines). In late 2024, B.C announced nine new wind projects which would require the installation of over 300 new wind turbines across the province [@ministryofenergyandclimatesolutions2024BC]. As of 2023, COSEWIC designated all three of B.C.'s long distance migratory species as endangered due in part to fatalities at wind turbine facilities [@committeeonthestatusofendangeredwildlifeincanada2023Hoary].
+Wind energy development is a substantial source of bat mortality in North America; one 2023 estimate placed U.S. turbine-related deaths at 926,856 [@nasbrst2024]. Migratory tree-roosting species bear the brunt, accounting for roughly 73% of reported carcasses nationally — chiefly the hoary bat (Lasiurus cinereus), eastern red bat (Lasiurus borealis), and silver-haired bat (Lasionycteris noctivagans) [@zimmerling2016]. Two of these, the silver-haired and hoary bats, occur in Southeast Alaska. Modeling suggests turbine collisions alone could reduce the North American hoary bat population by up to 90% over 50 years [@frick2017]. Wind generation in Alaska is concentrated along the Railbelt, on Kodiak Island, and in rural western and northern communities, with little development in the Southeast to date [@hoen]. As renewable energy expands, however, future projects would pose a collision risk to the region's migratory bats, whose distribution and seasonal movements there remain poorly understood.
 
-![Current wind turbines in British Columbia based on the Canadian Wind Turbine Database (Source: https://search.open.canada.ca/openmap/79fdad93-9025-49ad-ba16-c26d718cc070)](Figures/WindTurbinesBC.JPG){#fig-turbines}
+![Current wind turbines across the region. Data from Candain Wind Trubine data base and U.S. Wind Turbine Database [@hoen ; @canadian2025]](Figures/WindTurbines-NNWRegion.JPG){#fig-turbines}
 
 {{< pagebreak >}}
 
@@ -607,7 +605,7 @@ Acoustic recording is a cost-effective method for monitoring bat populations acr
 
 Bat monitoring data can be analyzed using different statistical approaches, each with distinct assumptions and outputs. Activity trend models examine changes in relative acoustic activity over time, providing a straightforward measure of whether bat detections are increasing, decreasing, or remaining stable across the monitoring network.
 
-Dynamic occupancy models take a different approach, estimating the probability that a species occupies a given site, while explicitly accounting for imperfect detection. Rather than treating a non-detection as an absence, these models distinguish between a species being truly absent versus simply going undetected — an important consideration given the variable detectability of bats discussed above. They also track colonization and extinction probabilities across sites over time, providing insight into range shifts and local population dynamics.
+Dynamic occupancy models take a different approach, estimating the probability that a species occupies a given site, while explicitly accounting for imperfect detection. Rather than treating a non-detection as an absence, these models distinguish between a species being truly absent versus simply going undetected, an important consideration given the variable detectability of bats discussed above. They also track colonization and extinction probabilities across sites over time, providing insight into range shifts and local population dynamics.
 
 In 2025, both model types were run to examine differences in results and assess the complementary information each approach provides.
 
