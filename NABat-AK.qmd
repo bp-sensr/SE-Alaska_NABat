@@ -126,70 +126,53 @@ df1 <- df %>%
 target_species <- sort(unique(df1$species))
 
 # ---- 1. Site table (from Sites2025.csv) ------------------------------------
-
 map_sites <- sites %>%
-  filter(!is.na(Location.Name), Location.Name != "") %>%   # drop blank rows
+  filter(!is.na(Location.Name), Location.Name != "") %>%
   transmute(
-    Site    = Location.Name,
-    Lat     = Latitude,
-    Long    = Longitude,
-    Comment = NA_character_   # no comment field in this metadata; kept for parity
+    Site     = Location.Name,
+    Site_key = tolower(trimws(Location.Name)),
+    Lat      = Latitude,
+    Long     = Longitude,
+    Comment  = NA_character_
   ) %>%
-  distinct(Site, .keep_all = TRUE)
-
-# ---- 1b. Join diagnostic ---------------------------------------------------
-# CellName must match Location Name for detections to land on a site. Anything
-# printed here is a detection site with no matching row in Sites2025.csv.
-missing_in_sites <- setdiff(unique(df1$Site), map_sites$Site)
-if (length(missing_in_sites)) {
-  message("Detection sites not found in Sites2025.csv (check CellName vs Location Name):\n  ",
-          paste(missing_in_sites, collapse = ", "))
-}
+  distinct(Site_key, .keep_all = TRUE)
 
 # ---- 2. Aggregate detections to one row per site (sum across days/years) ----
-
 site_species <- df1 %>%
   filter(species %in% target_species) %>%
-  group_by(Site, species) %>%
+  mutate(Site_key = tolower(trimws(Site))) %>%          # <- normalized key
+  group_by(Site_key, species) %>%
   summarise(total = sum(n_files, na.rm = TRUE), .groups = "drop") %>%
   pivot_wider(names_from = species, values_from = total, values_fill = 0)
 
-# guarantee every species column exists, in a fixed order
 for (s in setdiff(target_species, names(site_species))) site_species[[s]] <- 0
-site_species <- site_species[, c("Site", target_species)]
+site_species <- site_species[, c("Site_key", target_species)]  # key + species cols
 
 # ---- 2b. Calendar-day totals per site (for the graph tab) ------------------
-# One "night" = one Site x date. With raw detection data there are no explicit
-# zero rows, so n_distinct(date) counts nights WITH >=1 target detection, not
-# nights surveyed. For a single survey year this equals the nightly total; if
-# you later pool multiple years, divide by true effort instead (you can derive
-# nights surveyed from Survey Start/End Time in Sites2025.csv).
-
 site_day <- df1 %>%
   filter(species %in% target_species) %>%
-  group_by(Site, date) %>%
+  mutate(Site_key = tolower(trimws(Site))) %>%          # <- normalized key
+  group_by(Site_key, date) %>%
   summarise(night_total = sum(n_files, na.rm = TRUE), .groups = "drop") %>%
   mutate(md = format(date, "%m-%d")) %>%
-  group_by(Site, md) %>%
+  group_by(Site_key, md) %>%
   summarise(
     total  = sum(night_total),
     nights = n_distinct(date),
     .groups = "drop"
   ) %>%
   mutate(
-    day   = as.Date(paste0("2001-", md)),   # dummy non-leap year
-    value = total / nights                  # mean recordings per surveyed night
+    day   = as.Date(paste0("2001-", md)),
+    value = total / nights
   ) %>%
-  arrange(Site, day)
+  arrange(Site_key, day)
 
-# common x-range so sites are comparable to one another
 day_xlim <- range(site_day$day)
 day_ylab <- "Recordings / night"
 
 # ---- 3. Join detections onto the site locations ----------------------------
-
 map_data <- map_sites %>%
-  left_join(site_species, by = "Site") %>%
+  left_join(site_species, by = "Site_key") %>%
   mutate(across(all_of(target_species), ~ tidyr::replace_na(.x, 0)))
 
 ```
@@ -371,7 +354,8 @@ map_data$popup <- vapply(seq_len(nrow(map_data)), function(i) {
   site   <- map_data$Site[i]
   counts <- setNames(as.numeric(unlist(map_data[i, target_species])), target_species)
   
-  sd_i    <- site_day[site_day$Site == site, ]
+  site_key <- tolower(trimws(map_data$Site[i]))
+  sd_i     <- site_day[site_day$Site_key == site_key, ]
   sd_i    <- sd_i[order(sd_i$day), ]
   pie_svg <- make_pie_svg(counts)
   ts_svg  <- make_dayseries_svg(sd_i$day, sd_i$value, xlim = day_xlim, ylab = day_ylab)
