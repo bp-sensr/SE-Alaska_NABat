@@ -14,6 +14,7 @@ format:
     toc-location: left
     css: styles.css
   pdf:
+    pdf-engine: xelatex
     tbl-pos: "H"
     toc: true
     toc-depth: 3
@@ -70,12 +71,11 @@ is_pdf  <- !is_html
 
 #Need to specify figure captions based on the rendering type (PDF or HTML)
 cap_sitesummary <- paste0(
-  "Acoustic bat monitoring sites in Banff. ",
-  "Stationary recording stations are shown as blue circular markers and ",
-  "driving transect is in red line. The boundary of the grid cell is shown in dashed grey line.",
+  "Acoustic bat monitoring sites in Alaska in 2025. ",
+  "Stationary recording stations are shown as blue circular markers",
   if (is_html) paste0(
     " Clicking any site opens a summary of species detections, including a ",
-    "table of total detections by species code and a bar chart of means of daily ",
+    "pie chart of total detections by species code and a bar chart of means of daily ",
     "detection totals."
   ) else ""
 )
@@ -174,6 +174,71 @@ day_ylab <- "Recordings / night"
 map_data <- map_sites %>%
   left_join(site_species, by = "Site_key") %>%
   mutate(across(all_of(target_species), ~ tidyr::replace_na(.x, 0)))
+
+```
+
+```{r}
+#| label: Load activity model covariates and format 
+#| include: false
+#| echo: false
+#| eval: true
+#| warning: false
+#| message: false
+
+# Load the model covariates summary table
+model_covariates <- read.csv("Data/Analyzed/ModelVariables.csv")
+transect_covariates <- read.csv("Data/Analyzed/ModelVariables_Transect.csv")
+#this comes from running the ModelSelection.R code where it runs all of the covariates and chooses the best model best on AIC
+
+#format the covariates df 
+
+# Species code to common name lookup
+species_names <- c(
+  ANPA = "Pallid Bat",
+  COTO = "Townsend's Big-eared Bat",
+  EPFU = "Big Brown Bat",
+  EUMA = "Spotted Bat",
+  LABO = "Eastern Red Bat",
+  LACI = "Hoary Bat",
+  LANO = "Silver-haired Bat",
+  MYLU = "Little Brown Myotis",
+  MYYU = "Yuma Myotis",
+  MYEV = "Long-eared Myotis",
+  MYTH = "Fringed Myotis",
+  MYVO = "Long-legged Myotis",
+  MYCA = "California Myotis",
+  MYCI = "Western Small-footed Myotis",
+  PAHE = "Canyon Bat",
+  TABR = "Mexican Free-tailed Bat",
+  MYSE = "Northern Myotis"
+)
+
+# Clean covariate from models and format for report
+clean_covars <- function(x) {
+  x %>%
+    gsub("\\.", " ", .) %>%                          # replace dots with spaces
+    gsub("\\bdd\\b", "Degree Days", .) %>%           # dd -> Degree Days
+    gsub("Temp\\b", "Temperature", .) %>%            # Temp -> Temperature
+    gsub("Windsp\\b", "Wind Speed", .) %>%           # Windsp -> Wind Speed
+    gsub("Clutterdist\\b", "Distance to Clutter", .) %>%  # Clutterdist -> Distance to Clutter
+    gsub("mtime2h mphase", "Moon", .) %>%      # mtime2h mphase -> Moon Phase
+    gsub(",\\s*I\\(YearS\\^2\\)|I\\(YearS\\^2\\),?\\s*", "", .) %>% #remove quadratic term from the reporting 
+    trimws()
+}
+
+model_covariates<- model_covariates %>%
+  mutate(
+    Common_Name = species_names[sp],
+    Covariates = clean_covars(vars)
+  ) %>%
+  select(Common_Name, Species_Code = sp, Covariates)
+
+transect_covariates<- transect_covariates %>%
+  mutate(
+    Common_Name = species_names[sp],
+    Covariates = clean_covars(vars)
+  ) %>%
+  select(Common_Name, Species_Code = sp, Covariates)
 
 ```
 
@@ -390,7 +455,7 @@ m
 
 # Executive Summary
 
-The North American Bat Monitoring (NABat) program is a multi-agency initiative administered by the US Geological Survey (USGS). In 2024, the North by Northwest (NNW) Bat Hub was formed by combining the former Alberta Hub and the BC and Southeast Alaska (BC-SE_AK) Hub. The NNW Bat Hub leads the NABat program within S.E Alaska, with key support from state and provincial representatives. In 2025, 11 grid cells in S.E. Alaska were monitored. Results indicate that bat populations across S.E. Alaska remain stable, with some key species showing small positive trends, including Little Brown Myotis and Eastern Red Bat. Given growing threats to bat populations in BC, continued monitoring is essential to detect any significant changes.
+The North American Bat Monitoring (NABat) program is a multi-agency initiative administered by the US Geological Survey (USGS). In 2024, the North by Northwest (NNW) Bat Hub was formed by combining the former Alberta Hub and the BC and Southeast Alaska (BC-SE_AK) Hub. The NNW Bat Hub leads the NABat program within S.E Alaska, with key support from state representatives. In 2025, 11 grid cells in S.E. Alaska were monitored. Results indicate that bat populations across S.E. Alaska remain stable, with some key species showing small positive trends, including Little Brown Myotis and Eastern Red Bat. Given growing threats to bat populations in BC, continued monitoring is essential to detect any significant changes.
 
 {{< pagebreak >}}
 
@@ -408,15 +473,15 @@ Bat populations in Alaska face a wide range of threats including forestry practi
 
 ### White-Nose Syndrome
 
-White-nose Syndrome (WNS) is a deadly fungal disease caused by the fungus *Pseudogymnoascus destructans* (*Pd*) that affects hibernating bats. As of 2026, WNS has been confirmed in 42 U.S. states, nine Canadian provinces, and the Northwest Territories [@u.s.fishandwidlifeservice; @segers] . *Pd* , but not WNS, has been detected in 5 additional states and within British Columbia( @fig-WNS: @cwhc-rcsf2024Canadian; @u.s.fishandwidlifeservice ). Continued monitoring of populations in Alaska is critical as *Pd* and WNS continue to spread throughout the region.
+White-nose Syndrome (WNS) is a deadly fungal disease caused by the fungus *Pseudogymnoascus destructans* (*Pd*) that affects hibernating bats. As of 2026, WNS has been confirmed in 42 U.S. states, nine Canadian provinces, and the Northwest Territories [@u.s.fishandwidlifeservice; @segers] . *Pd* , but not WNS, has been detected in 5 additional states and within British Columbia( @fig-WNS: @segers ; @u.s.fishandwidlifeservice ). Continued monitoring of populations in Alaska is critical as *Pd* and WNS continue to spread throughout the region.
 
-![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in The US and Canada. Source: CWHC-RCSF (2026)](Figures/WNS-USandCanada.png){#fig-WNS fig-pos="H"}
+![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in The US and Canada. Source: CWHC-RCSF (2026)](Figures/WNS-USandCanada.png){#fig-WNS}
 
 ### Wind Energy Development
 
-Wind energy development is a substantial source of bat mortality in North America; one 2023 estimate placed U.S. turbine-related deaths at 926,856 [@nasbrst2024]. Migratory tree-roosting species bear the brunt, accounting for roughly 73% of reported carcasses nationally — chiefly the hoary bat (Lasiurus cinereus), eastern red bat (Lasiurus borealis), and silver-haired bat (Lasionycteris noctivagans) [@zimmerling2016]. Two of these, the silver-haired and hoary bats, occur in Southeast Alaska. Modeling suggests turbine collisions alone could reduce the North American hoary bat population by up to 90% over 50 years [@frick2017]. Wind generation in Alaska is concentrated along the Railbelt, on Kodiak Island, and in rural western and northern communities, with little development in the Southeast to date [@hoen]. As renewable energy expands, however, future projects would pose a collision risk to the region's migratory bats, whose distribution and seasonal movements there remain poorly understood.
+Wind energy development is a substantial source of bat mortality in North America; one 2023 estimate placed U.S. turbine-related deaths at 926,856 [@nasbrst2024]. Migratory tree-roosting species (the hoary bat *Lasiurus cinereus*, eastern red bat *L. borealis*, and silver-haired bat *Lasionycteris noctivagans*) account for the majority of fatalities, representing roughly 73% of reported carcasses nationally [@zimmerling2016]. Two of these, the silver-haired and hoary bats, occur in Southeast Alaska. Modeling suggests turbine collisions alone could reduce the North American hoary bat population by up to 90% over 50 years [@frick2017]. Wind generation in Alaska is concentrated along the Railbelt, on Kodiak Island, and in rural western and northern communities, with little development in the Southeast to date [@hoen]. As renewable energy expands, however, future projects would pose a collision risk to the region's migratory bats, whose distribution and seasonal movements there remain poorly understood.
 
-![Current wind turbines across the region. Data from Candain Wind Trubine data base and U.S. Wind Turbine Database \[\@hoen; \@canadian2025\]](Figures/WindTurbines-NNWRegion.JPG){#fig-turbines}
+![Current wind turbines across the region. Data from Canadian Wind Turbine database and U.S. Wind Turbine database (Hoen et al., n.d.; Natural Resources Canada, n.d.).](Figures/WindTurbines-NNWRegion.JPG){#fig-turbines}
 
 {{< pagebreak >}}
 
@@ -444,25 +509,27 @@ In 2025, both model types were run to examine differences in results and assess 
 
 ## Data Collection
 
-**Stationary Surveys**
+### **Stationary Surveys**
 
-Two to four stationary detectors were deployed across at least two quadrants per grid cell for a minimum of seven nights. Sites are selected to maximize species detection and recording quality across different habitat types (see [@rae2024] for full site selection criteria). Deployment occurs between mid-May and mid-July, after bats have emerged from hibernation but before young bats are volant. Sites and timing are kept consistent between years to minimize variability in conditions affecting bat activity.
+Two to four stationary detectors were deployed across at least two quadrants per grid cell for a minimum of seven nights. Sites were selected to maximize species detection and recording quality across different habitat types (see [@rae2024] for full site selection criteria). Deployments occured between mid-May and mid-July, after bats have emerged from hibernation but before young bats are volant. Sites and timing are kept consistent between years to minimize variability in conditions affecting bat activity.
 
-**Transect Surveys**
+### **Transect Surveys**
 
 Where possible, driving transects were conducted following @loeb2015. Two replicates of a 30–35 km route are driven at 30–35 km/h with a rooftop detector, using straight roads that minimize switchbacks. Transects are conducted concurrently with stationary deployments.
 
-**Model Covariates**
+### **Landscape and Weather Covariates**
 
-Dynamic occupancy model covariates were based on those established by @rae2024 , with additional exploration of factors influencing colonization and extinction. These included distance to roads and distance to harvest cutblocks, derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways.
+Model covariates for the activity trend models and dynamic occupancy models were based on those established by @rae2024, with additional exploration of factors influencing colonization and extinction in the dynamic occupancy models. For the dynamic occupancy models we included distance to the nearest road, calculated as the distance from each survey location to the closest road feature. Road features for British Columbia were derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways, while those for Southeast Alaska were taken from the [Alaska Department of Transportation and Public Facilities (AKDOT) Roads](Model covariates for the activity trend models and dynamic occupancy models were based on those established by @rae2024, with additional exploration of factors influencing colonization and extinction in the dynamic occupancy models. For the dynamic occupancy models we included distance to the nearest road, calculated as the distance from each survey location to the closest road feature. Road features for British Columbia were derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways, while those for Southeast Alaska were taken from the Alaska Department of Transportation and Public Facilities (AKDOT) Roads layer, a statewide road-centerline dataset distributed through the State of Alaska open-data portal (https://gis.data.alaska.gov/datasets/AKDOT::roads-akdot/about).) layer, a statewide road-centerline dataset distributed through the State of Alaska open-data portal.
 
-Where possible, temperature and relative humidity are recorded in each grid cell using onsite logging devices; otherwise, data are sourced from the nearest climate station. Additional covariates include nightly mean wind speed (km/h), cumulative precipitation since January 1 (mm), degree days above 10°C since January 1, and moon illumination (proportion illuminated × proportion of night above horizon). Site-level covariates — including distance to clutter, percent clutter, distance to water, and water feature type — are recorded by grid leaders during deployment.
+Temperature and relative humidity were recorded in each grid cell using onsite logging devices where possible; where loggers were unavailable, values were drawn from the nearest climate station. For sites in British Columbia, station records were obtained from the Pacific Climate Impacts Consortium (PCIC) Provincial Climate Data Set ([PCDS](https://services.pacificclimate.org/met-data-portal-pcds/)), which aggregates and quality-controls observations from multiple provincial and federal networks. For sites in Southeast Alaska, station records were obtained from NOAA's National Centers for Environmental Information (NCEI) Global Historical Climatology Network-Daily ([GHCNd](https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily))). Additional weather covariates drawn from these station records included nightly mean wind speed (km/h) and cumulative precipitation since January 1 (mm). Degree days above 10°C since January 1 were calculated from daily temperature records, and nightly moon illumination (proportion illuminated × proportion of the night the moon was above the horizon) was calculated for each site-night.
 
-**Manual Verification**
+Site-level covariates, including distance to clutter, percent clutter, distance to water, and water feature type, were recorded by grid leaders during deployment.
+
+### **Manual Verification**
 
 In 2025 acoustic analysis mostly followed the standards set by WCSC in previous years [@rae2024]. This included running all files through two automatic classifiers, Kaleidoscope's Bats of North America 5.4.0 classifier and Sonobat 3.0's Northwestern British Columbia classifier, to remove files that do not contain bat pulses and giving a preliminary bat species identification.
 
-Manual vetting largely follows the protocol of @reichert2018 and previous analysis standards developed by WCSC. The key difference in the 2024 and 2025 acoustic analysis compared to previous years is that not all automatic species identifications were manually verified. Instead, based on findings from @stratton2022Coupling, at least 50% of recordings were selected for manual verification.
+Manual vetting largely follows the protocol of @reichert2018 and previous analysis standards developed by WCSC. The key difference in the 2024 and 2025 acoustic analysis compared to previous years is that not all automatic species identifications were manually verified. Instead, based on findings from @stratton2022 , at least 50% of recordings were selected for manual verification.
 
 *Subsetting of for manual verification*
 
@@ -476,7 +543,28 @@ To ensure data accuracy, manual verification was conducted based on the number o
 
 Statistical analyses followed closely what was established by WCSC and Dr. Carl Schwarz in 2021 [@rae2024]. This includes conducting species-specific trend analyses examining activity patterns in the data collected to date using the (negative binomial GLMM) models and the covariates identified in @tbl-cov.
 
-Species were excluded from the analysis if model fit was not appropriate due to issues including under-dispersion or standard errors that were more than 3 times the estimate. Model results were also excluded if there was less than 150 recordings across all sample years. We conducted our statistical analyses on provincial and regional scales. For the regional analyses, we assigned all sampled grid cells into four geographic regions (Southwestern, Southcentral, Southeastern, and Northern), each roughly corresponding to different species sets ([@fig-map]). Since transects are only conducted in roughly 50% of our grid cells on a typical year and each transect records fewer bats per night than stationary monitoring, we have elected not to conduct regional-scale transect trend analyses due to low sample sizes.
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: true
+#| label: tbl-cov
+#| tbl-cap: Top-performing stationary models selected via AIC-based stepwise selection. Covariates are described as, Moon = moon illumination × proportion of night above horizon; Clutter = distance (m) to nearest object; Nearby Water = detector within 100m of water;RH = mean nightly relative humidity (%); Degree Days = cumulative degree days above 10°C since Jan 1. Source @rae2024North
+#| fig.pos: 'H'
+
+kable(model_covariates,
+      col.names = c("Species", "Species Code", "Top Performing Model Covariates"),
+      label = "model-covariates") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE,
+                position = "left") %>%
+  column_spec(1, width = "15em") %>%
+  column_spec(2, width = "8em") %>%
+  column_spec(3, width = "20em")
+
+```
+
+Species were excluded from the analysis if model fit was not appropriate due to issues including under-dispersion or standard errors that were more than 3 times the estimate. Model results were also excluded if there was less than 150 recordings across all sample years. We conducted our statistical analyses on provincial and regional scales. For the regional analyses, we assigned all sampled grid cells into five geographic regions (Alaska, Southwestern, Southcentral, Southeastern, and Northern), each roughly corresponding to different species sets. Since transects are only conducted in roughly 50% of our grid cells on a typical year and each transect records fewer bats per night than stationary monitoring, we have elected not to conduct regional-scale transect trend analyses due to low sample sizes.
 
 #### Use of Automated Identification Results in Stationary Trend Analyses
 
@@ -490,7 +578,7 @@ Trend analyses are presented only for species confirmed present through manual v
 
 This analysis used nightly acoustic detection/non-detection data from passive bat detectors deployed at GRTS-selected sites in British Columbia (BC) as part of the NABat long-term monitoring program. Data were filtered to the 2017–2025 period, and analysis used an every-other-night subsampling protocol to reduce temporal autocorrelation between consecutive nights, using max 4 visits per site-year. Sites had to have a minimum of 2 visits within a given year and data from at least 2 years total. Models were run separately for all 17 bat species.
 
-Fitted multi-season (dynamic) occupancy models (MacKenzie et al. 2003) to estimate trends in occupancy, colonization, and persistence while accounting for imperfect detection. Initial occupancy (ψ) was modeled as a function of elevation and water nearby, with a random effect for region. Colonization (γ) and persistence (φ) were modeled with time-varying intercepts and distance to road as a covariate. Detection probability (p) was modeled as a function of percent clutter, nightly mean temperature, and Julian date.
+Fitted multi-season (dynamic) occupancy models (MacKenzie et al. 2003) to estimate trends in occupancy, colonization, and persistence while accounting for imperfect detection. Initial occupancy ($\psi$) was modeled as a function of elevation and water nearby, with a random effect for region. Colonization ($\gamma$) and persistence ($\varphi$) were modeled with time-varying intercepts and distance to road as a covariate. Detection probability (p) was modeled as a function of percent clutter, nightly mean temperature, and Juli
 
 Elevation for each site was extracted from AWS terrain tiles (\~30 m resolution, SRTM-based) using the elevatr package in R, distance to road and distance to harvest was extracted using the Biodiversity Pathways Human Footprint Index (not published yet). All continuous covariates were standardized by centering on their mean and dividing by their standard deviation; missing covariate values were imputed with the global mean prior to standardization.
 
@@ -498,7 +586,7 @@ Models were fit in a Bayesian framework using JAGS via the jagsUI package in R, 
 
 # Results
 
-In 2025 a total of 6 grid sites were sampled in SE Alaska and 3 newly established sites were sampled around the Anchorage area @fig-sites.
+In 2025 a total of 6 grid sites were sampled in SE Alaska and 3 newly established sites were sampled around the Anchorage area (@fig-sites).
 
 ```{r}
 #| label: fig-sites
@@ -536,33 +624,37 @@ Coming soon...
 
 ## Dynamic Occupancy
 
-Temperature was the most consistent detection covariate–warmer nights equate to higher detection for most species. There were some clutter effects on detection probability that were species-specific. Julian date effects were mixed across species. 
+Temperature was the most consistent detection covariate–warmer nights equate to higher detection for most species. There were some clutter effects on detection probability that were species-specific. Julian date effects were mixed across species.
 
-# Appendix A
+Species specific results can be found on [Appendix A](#sec-appendix-a)
+
+# Appendix A {#sec-appendix-a}
 
 ## Hoary Bat (*Lasiurus cinereus*)
 
-![](images/clipboard-1678851271.png)![](images/clipboard-539850997.png)![](images/clipboard-4068991790.png)![](images/clipboard-2604002813.png)
+![](images/clipboard-1678851271.png) ![](images/clipboard-2604002813.png) ![](images/clipboard-539850997.png) ![](images/clipboard-4068991790.png)
 
-## Silver-haired Bat (*Lasyonicteris noctivagans*)
+##Silver-haired Bat (*Lasyonicteris noctivagans*)
 
-![](images/clipboard-3190713865.png)![](images/clipboard-4079169987.png)![](images/clipboard-950746085.png)![](images/clipboard-2878420209.png)
+![](images/clipboard-3190713865.png) ![](images/clipboard-2878420209.png) ![](images/clipboard-950746085.png) ![](images/clipboard-4079169987.png)
 
 ## California Myotis (*Myotis californicus*)
 
-![](images/clipboard-2427323019.png)![](images/clipboard-1493695761.png)![](images/clipboard-3695743881.png)![](images/clipboard-359804971.png)
+![](images/clipboard-2427323019.png) ![](images/clipboard-359804971.png) ![](images/clipboard-3695743881.png) ![](images/clipboard-1493695761.png)
 
 ## Long-eared Myotis (*Myotis evotis*)
 
-![](images/clipboard-3941761601.png)![](images/clipboard-3555136292.png)![](images/clipboard-3987187980.png)![](images/clipboard-2730898759.png)
+![](images/clipboard-3941761601.png) ![](images/clipboard-2730898759.png) ![](images/clipboard-3987187980.png) ![](images/clipboard-3555136292.png)
 
 ## Little Brown Myotis (*Myotis lucifugus*)
 
-![](images/clipboard-3750373898.png)![](images/clipboard-79436506.png)![](images/clipboard-2306693806.png)![](images/clipboard-2633679632.png)
+![](images/clipboard-3750373898.png) ![](images/clipboard-2633679632.png) ![](images/clipboard-2306693806.png) ![](images/clipboard-79436506.png)
 
 ## Long-legged Myotis (*Myotis volans*)
 
-![](images/clipboard-378845605.png)![](images/clipboard-4053125643.png)![](images/clipboard-2053734589.png)![](images/clipboard-2874082935.png)
+![](images/clipboard-378845605.png) ![](images/clipboard-2874082935.png) ![](images/clipboard-2053734589.png) ![](images/clipboard-4053125643.png)
+
+{{< pagebreak >}}
 
 ```{r}
 #| label: AppendixB
@@ -579,11 +671,17 @@ if (is_pdf) {
   appx_dir <- "Figures/AppendixB"
   if (!dir.exists(appx_dir)) dir.create(appx_dir, recursive = TRUE)
   
-  # Stationary sites first (alphabetical), then mobile
+  # Alphabetical by site. All 2025 sites are stationary, so every site gets
+  # both a pie and a date chart. The is_mobile guard is kept so the chunk
+  # still works unchanged if a transect/mobile column is ever added.
   ord           <- order(map_data$Site)
   sites_ordered <- map_data$Site[ord]
-  mobile_ordered <- map_data$is_mobile[ord]
-  has_fig       <- !mobile_ordered          # transect gets no date chart
+  is_mobile_ord <- if ("is_mobile" %in% names(map_data)) {
+    map_data$is_mobile[ord]
+  } else {
+    rep(FALSE, length(sites_ordered))
+  }
+  has_fig <- !is_mobile_ord
   
   html_paths <- character(length(sites_ordered))
   pie_pngs   <- character(length(sites_ordered))
@@ -600,12 +698,15 @@ if (is_pdf) {
     
     fig_div <- ""
     if (has_fig[k]) {
-      sd_i    <- site_day[site_day$Site == site, ]
-      sd_i    <- sd_i[order(sd_i$day), ]
-      fig_svg <- make_dayseries_svg(sd_i$day, sd_i$value, xlim = day_xlim,
-                                    width = 520L, height = 320L, font_size = 12,
-                                    ylab = day_ylab)
-      fig_div <- sprintf('<div id="fig">%s</div>', fig_svg)
+      # Match the popup's site_day lookup: keyed on the normalised Site_key,
+      # NOT the raw Site name (otherwise every date chart comes out empty).
+      site_key <- tolower(trimws(site))
+      sd_i     <- site_day[site_day$Site_key == site_key, ]
+      sd_i     <- sd_i[order(sd_i$day), ]
+      fig_svg  <- make_dayseries_svg(sd_i$day, sd_i$value, xlim = day_xlim,
+                                     width = 520L, height = 320L, font_size = 12,
+                                     ylab = day_ylab)
+      fig_div  <- sprintf('<div id="fig">%s</div>', fig_svg)
     }
     
     page_html <- sprintf(
@@ -634,7 +735,6 @@ if (is_pdf) {
   cat("# Appendix B\n\n")
   cat("Species detection summaries for each monitoring site.\n\n")
   for (k in seq_along(sites_ordered)) {
-    # Start each site (except the first) on a fresh page
     if (k > 1) cat("\n\\newpage\n\n")
     cat(sprintf("### %s {.unnumbered .unlisted}\n\n", sites_ordered[k]))
     cat(sprintf("![](%s){width=60%%}\n\n", pie_pngs[k]))
@@ -642,5 +742,7 @@ if (is_pdf) {
   }
 }
 ```
+
+{{< pagebreak >}}
 
 # Literature Cited
