@@ -72,17 +72,25 @@ is_pdf  <- !is_html
 #Need to specify figure captions based on the rendering type (PDF or HTML)
 cap_sitesummary <- paste0(
   "Acoustic bat monitoring sites in Alaska in 2025. ",
-  "Stationary recording stations are shown as blue circular markers",
+  "NABat Grid cells that were monitored (with 2 or more stationary sites) in 2025 and 2024 appear in red and orange. Grids that have been monitored in previous years but not 2024 or 25 appear in grey.",
   if (is_html) paste0(
-    " Clicking any site opens a summary of species detections, including a ",
+    "Zomming in shows specific sites (blue circles) within each grid cell (squares) and clicking any site opens a summary of species detections, including a ",
     "pie chart of total detections by species code and a bar chart of means of daily ",
     "detection totals."
   ) else ""
 )
 
 #load summary and trend model data
-sites <- read.csv("Data/Alaska_Sites_Years_Sampled.csv")
+sites <- read.csv("Data/Sites2025.csv")
 df <- read.csv("Data/2025Raw.csv")
+
+grids <- st_read("Data/AK_GRTS10km_GridsSampled2025.shp", quiet = TRUE)
+grids <- st_transform(grids, 4326)
+grids$border_col <- dplyr::case_when(
+  grids$LastYSamp == 2024 ~ "#ff7f00",   # orange
+  grids$LastYSamp == 2025 ~ "#e31a1c",   # red
+  TRUE                   ~ "#999999"    # grey (any other year / NA)
+)
 
 #Drop codes fro site maps
 drop_codes <- c("NOISE", "FB")
@@ -103,6 +111,29 @@ pal_get <- function(nm) {
   ifelse(is.na(v), "#bbbbbb", v)
 }
 
+# ---- 0a. Per-detection frame for the hour-facet plot -----------------------
+unid_codes <- c("NOID")  #clarify that this is not a species code
+# Keeps individual clock times (df1 is aggregated and can't).
+df_pts <- df %>%
+  filter(!is.na(Final.Species.ID)) %>%
+  mutate(ts = as.POSIXct(Timestamp, format = "%Y-%m-%d %H:%M", tz = "UTC")) %>%
+  transmute(species_raw = Final.Species.ID, Site, ts) %>%
+  separate_rows(species_raw, sep = "\\s*,\\s*") %>%
+  mutate(species = toupper(trimws(species_raw))) %>%
+  filter(!species %in% drop_codes, species != "", !is.na(ts)) %>%
+  mutate(
+    Site_key   = tolower(trimws(Site)),
+    hr         = as.numeric(format(ts, "%H")) + as.numeric(format(ts, "%M")) / 60,
+    nh         = ifelse(hr < 12, hr + 24, hr),               # wrap post-midnight past 24 so 0:00 sits above 23:00
+    night_date = as.Date(ts - 12 * 3600),                    # dusk-to-dawn pooled onto one date (same rule as df1)
+    x          = as.Date(paste0("2001-", format(night_date, "%m-%d"))),  # season-normalised, overlays years
+    facet = ifelse(nchar(species) > 4 | species %in% unid_codes, "Unidentified", species)     # your >4-char rule plus NoID
+  )
+
+# Shared axes across every popup, so panels are comparable site to site
+hour_xlim <- range(df_pts$x,  na.rm = TRUE)
+hour_ylim <- range(df_pts$nh, na.rm = TRUE)
+
 # ---- 0b. Build night x site x species detection counts from raw df ---------
 # species <- Final.Species.ID   Site <- CellName   date <- Timestamp   year <- Year
 df1 <- df %>%
@@ -115,7 +146,7 @@ df1 <- df %>%
     date = as.Date(as.POSIXct(Timestamp, format = "%Y-%m-%d %H:%M", tz = "UTC") - 12 * 3600),     # For biological "nights" (pool dusk-to-dawn onto one date)
     year        = Year
   ) %>%
-    # A recording with two or more bats, e.g. "MYLU,LANO", becomes one row per
+  # A recording with two or more bats, e.g. "MYLU,LANO", becomes one row per
   # species so each identified species is counted (not lumped into a combo code).
   separate_rows(species_raw, sep = "\\s*,\\s*") %>%
   mutate(species = toupper(trimws(species_raw))) %>%
@@ -133,8 +164,6 @@ map_sites <- sites %>%
     Site_key = tolower(trimws(Location.Name)),
     Lat      = Latitude,
     Long     = Longitude,
-    Year1    = First.Year.Sampled,
-    SampleYears = N.Years.Sampled,
     Comment  = NA_character_
   ) %>%
   distinct(Site_key, .keep_all = TRUE)
@@ -177,6 +206,7 @@ map_data <- map_sites %>%
   left_join(site_species, by = "Site_key") %>%
   mutate(across(all_of(target_species), ~ tidyr::replace_na(.x, 0)))
 
+
 ```
 
 ```{r}
@@ -187,60 +217,60 @@ map_data <- map_sites %>%
 #| warning: false
 #| message: false
 
-# Load the model covariates summary table
-model_covariates <- read.csv("Data/Analyzed/ModelVariables.csv")
-transect_covariates <- read.csv("Data/Analyzed/ModelVariables_Transect.csv")
-#this comes from running the ModelSelection.R code where it runs all of the covariates and chooses the best model best on AIC
-
-#format the covariates df 
-
-# Species code to common name lookup
-species_names <- c(
-  ANPA = "Pallid Bat",
-  COTO = "Townsend's Big-eared Bat",
-  EPFU = "Big Brown Bat",
-  EUMA = "Spotted Bat",
-  LABO = "Eastern Red Bat",
-  LACI = "Hoary Bat",
-  LANO = "Silver-haired Bat",
-  MYLU = "Little Brown Myotis",
-  MYYU = "Yuma Myotis",
-  MYEV = "Long-eared Myotis",
-  MYTH = "Fringed Myotis",
-  MYVO = "Long-legged Myotis",
-  MYCA = "California Myotis",
-  MYCI = "Western Small-footed Myotis",
-  PAHE = "Canyon Bat",
-  TABR = "Mexican Free-tailed Bat",
-  MYSE = "Northern Myotis"
-)
-
-# Clean covariate from models and format for report
-clean_covars <- function(x) {
-  x %>%
-    gsub("\\.", " ", .) %>%                          # replace dots with spaces
-    gsub("\\bdd\\b", "Degree Days", .) %>%           # dd -> Degree Days
-    gsub("Temp\\b", "Temperature", .) %>%            # Temp -> Temperature
-    gsub("Windsp\\b", "Wind Speed", .) %>%           # Windsp -> Wind Speed
-    gsub("Clutterdist\\b", "Distance to Clutter", .) %>%  # Clutterdist -> Distance to Clutter
-    gsub("mtime2h mphase", "Moon", .) %>%      # mtime2h mphase -> Moon Phase
-    gsub(",\\s*I\\(YearS\\^2\\)|I\\(YearS\\^2\\),?\\s*", "", .) %>% #remove quadratic term from the reporting 
-    trimws()
-}
-
-model_covariates<- model_covariates %>%
-  mutate(
-    Common_Name = species_names[sp],
-    Covariates = clean_covars(vars)
-  ) %>%
-  select(Common_Name, Species_Code = sp, Covariates)
-
-transect_covariates<- transect_covariates %>%
-  mutate(
-    Common_Name = species_names[sp],
-    Covariates = clean_covars(vars)
-  ) %>%
-  select(Common_Name, Species_Code = sp, Covariates)
+# # Load the model covariates summary table
+# model_covariates <- read.csv("Data/Analyzed/ModelVariables.csv")
+# transect_covariates <- read.csv("Data/Analyzed/ModelVariables_Transect.csv")
+# #this comes from running the ModelSelection.R code where it runs all of the covariates and chooses the best model best on AIC
+# 
+# #format the covariates df 
+# 
+# # Species code to common name lookup
+# species_names <- c(
+#   ANPA = "Pallid Bat",
+#   COTO = "Townsend's Big-eared Bat",
+#   EPFU = "Big Brown Bat",
+#   EUMA = "Spotted Bat",
+#   LABO = "Eastern Red Bat",
+#   LACI = "Hoary Bat",
+#   LANO = "Silver-haired Bat",
+#   MYLU = "Little Brown Myotis",
+#   MYYU = "Yuma Myotis",
+#   MYEV = "Long-eared Myotis",
+#   MYTH = "Fringed Myotis",
+#   MYVO = "Long-legged Myotis",
+#   MYCA = "California Myotis",
+#   MYCI = "Western Small-footed Myotis",
+#   PAHE = "Canyon Bat",
+#   TABR = "Mexican Free-tailed Bat",
+#   MYSE = "Northern Myotis"
+# )
+# 
+# # Clean covariate from models and format for report
+# clean_covars <- function(x) {
+#   x %>%
+#     gsub("\\.", " ", .) %>%                          # replace dots with spaces
+#     gsub("\\bdd\\b", "Degree Days", .) %>%           # dd -> Degree Days
+#     gsub("Temp\\b", "Temperature", .) %>%            # Temp -> Temperature
+#     gsub("Windsp\\b", "Wind Speed", .) %>%           # Windsp -> Wind Speed
+#     gsub("Clutterdist\\b", "Distance to Clutter", .) %>%  # Clutterdist -> Distance to Clutter
+#     gsub("mtime2h mphase", "Moon", .) %>%      # mtime2h mphase -> Moon Phase
+#     gsub(",\\s*I\\(YearS\\^2\\)|I\\(YearS\\^2\\),?\\s*", "", .) %>% #remove quadratic term from the reporting 
+#     trimws()
+# }
+# 
+# model_covariates<- model_covariates %>%
+#   mutate(
+#     Common_Name = species_names[sp],
+#     Covariates = clean_covars(vars)
+#   ) %>%
+#   select(Common_Name, Species_Code = sp, Covariates)
+# 
+# transect_covariates<- transect_covariates %>%
+#   mutate(
+#     Common_Name = species_names[sp],
+#     Covariates = clean_covars(vars)
+#   ) %>%
+#   select(Common_Name, Species_Code = sp, Covariates)
 
 ```
 
@@ -253,7 +283,6 @@ transect_covariates<- transect_covariates %>%
 #| message: false
 
 # ---- 4. Pie chart SVG ------------------------------------------------------
-
 make_pie_svg <- function(counts, width = 340L, height = 200L) {
   
   counts <- counts[counts > 0]
@@ -315,8 +344,7 @@ make_pie_svg <- function(counts, width = 340L, height = 200L) {
 
 make_dayseries_svg <- function(days, values, xlim, width = 340L, height = 237L,
                                font_size = 9, ylab = "Recordings / night",
-                               title = c("Mean nightly detections by date,",
-                                         "averaged across survey years")) {
+                               title = c("Mean nightly detections by date in 2025")) {
   
   ml <- 46; mr <- 12; mt <- 42; mb <- 50
   pw <- width - ml - mr; ph <- height - mt - mb
@@ -381,9 +409,90 @@ make_dayseries_svg <- function(days, values, xlim, width = 340L, height = 237L,
           width, height, width, height, title_txt, grid, axes, bars, xlab, ytitle)
 }
 
-# ---- 6. Build the popup HTML -----------------------------------------------
+# ---- 6. Per-species detection-time facet SVG ------------------------------
+make_hourfacet_svg <- function(dd, ylim, width = 340L,
+                               panel_gap = 4L, ml = 42L, mr = 8L,
+                               mt = 30L, strip_h = 15L, panel_h = 150L,
+                               xlab_h = 30L, point_r = 1.8,
+                               point_fill = "#2c7fb8", font_size = 8L,
+                               title = "Detection time of night by species") {
+  
+  if (is.null(dd) || nrow(dd) == 0) {
+    return(sprintf(
+      '<svg width="%d" height="150" xmlns="http://www.w3.org/2000/svg"><text x="%d" y="75" font-size="12" fill="#666" text-anchor="middle" font-family="sans-serif">No detections</text></svg>',
+      width, width %/% 2L))
+  }
+  
+  facs <- unique(dd$facet)
+  facs <- c(sort(facs[facs != "Unidentified"]),
+            if ("Unidentified" %in% facs) "Unidentified")
+  nf   <- length(facs)
+  
+  panel_w <- max(40L, (width - ml - mr - (nf - 1L) * panel_gap) %/% nf)
+  total_w <- ml + nf * panel_w + (nf - 1L) * panel_gap + mr
+  total_h <- mt + strip_h + panel_h + xlab_h
+  ptop <- mt + strip_h; pbot <- ptop + panel_h
+  
+  # ---- x scale from THIS site's sampled dates (padded); ticks ARE those dates
+  ud    <- sort(unique(dd$x))
+  xr    <- range(ud)
+  xpad  <- max(1, as.numeric(diff(xr)) * 0.08)
+  xlo   <- xr[1] - xpad; xhi <- xr[2] + xpad
+  xspan <- as.numeric(xhi - xlo); if (xspan <= 0) xspan <- 1
+  maxlab <- max(2L, panel_w %/% 22L)                        # thin rotated labels to fit
+  if (length(ud) > maxlab)
+    ud <- ud[unique(round(seq(1, length(ud), length.out = maxlab)))]
+  inpad <- 5
+  xpix <- function(d, px0) px0 + inpad + (as.numeric(d - xlo) / xspan) * (panel_w - 2 * inpad)
+  
+  # ---- y scale: start of night on top (earliest hour at ptop) --------------
+  y0 <- floor(min(ylim)); y1 <- ceiling(max(ylim)); if (y1 - y0 < 1) y1 <- y0 + 1
+  yspan <- y1 - y0
+  ypix <- function(nh) ptop + ((nh - y0) / yspan) * panel_h   # <- flipped vs. before
+  
+  title_txt <- sprintf(
+    '<text x="%f" y="14" font-size="11" font-weight="bold" fill="#2c3e50" text-anchor="middle" font-family="sans-serif">%s</text>',
+    total_w / 2, htmltools::htmlEscape(title))
+  
+  yhours <- y0:y1
+  ygrid_labels <- paste(vapply(yhours, function(h) sprintf(
+    '<text x="%f" y="%f" font-size="%d" fill="#555" text-anchor="end" font-family="sans-serif">%d:00</text>',
+    ml - 4, ypix(h) + 3, font_size, h %% 24), character(1)), collapse = "")
+  
+  panels <- paste(vapply(seq_len(nf), function(k) {
+    fc  <- facs[k]; px0 <- ml + (k - 1L) * (panel_w + panel_gap)
+    sub <- dd[dd$facet == fc, , drop = FALSE]
+    
+    bg   <- sprintf('<rect x="%f" y="%f" width="%d" height="%d" fill="#ebebeb"/>', px0, ptop, panel_w, panel_h)
+    grid <- paste(vapply(yhours, function(h) sprintf(
+      '<line x1="%f" y1="%f" x2="%f" y2="%f" stroke="#ffffff" stroke-width="1"/>',
+      px0, ypix(h), px0 + panel_w, ypix(h)), character(1)), collapse = "")
+    strip <- paste0(
+      sprintf('<rect x="%f" y="%f" width="%d" height="%d" fill="#d9d9d9"/>', px0, mt, panel_w, strip_h),
+      sprintf('<text x="%f" y="%f" font-size="%d" font-weight="bold" fill="#333" text-anchor="middle" font-family="sans-serif">%s</text>',
+              px0 + panel_w / 2, mt + strip_h - 4, font_size, htmltools::htmlEscape(fc)))
+    pts <- if (nrow(sub) == 0) "" else paste(vapply(seq_len(nrow(sub)), function(i) {
+      cxx <- xpix(sub$x[i], px0); cyy <- ypix(sub$nh[i])
+      hh <- floor(sub$nh[i] %% 24); mm <- round((sub$nh[i] - floor(sub$nh[i])) * 60)
+      sprintf('<circle cx="%f" cy="%f" r="%.1f" fill="%s" fill-opacity="0.7"><title>%s  %s  %02d:%02d</title></circle>',
+              cxx, cyy, point_r, point_fill, htmltools::htmlEscape(fc), format(sub$x[i], "%b %d"), hh, mm)
+    }, character(1)), collapse = "")
+    xlab <- paste(vapply(seq_along(ud), function(j) {
+      cxx <- xpix(ud[j], px0)
+      sprintf('<text x="%f" y="%f" font-size="7" fill="#555" text-anchor="middle" font-family="sans-serif" transform="rotate(-40 %f %f)">%s</text>',
+              cxx, pbot + 10, cxx, pbot + 10, format(ud[j], "%m/%d"))
+    }, character(1)), collapse = "")
+    paste0(bg, grid, pts, strip, xlab)
+  }, character(1)), collapse = "")
+  
+  sprintf('<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg">%s%s%s</svg>',
+          total_w, total_h, total_w, total_h, title_txt, ygrid_labels, panels)
+}
 
-build_popup <- function(site_name, counts, comment = NA, pie_svg = "", ts_svg = "",
+# ---- 7. Build the popup HTML -----------------------------------------------
+
+build_popup <- function(site_name, counts, comment = NA,
+                        pie_svg = "", ts_svg = "", hr_svg = "",
                         show_graph = TRUE) {
   
   comment_html <- ""
@@ -393,24 +502,22 @@ build_popup <- function(site_name, counts, comment = NA, pie_svg = "", ts_svg = 
       htmltools::htmlEscape(trimws(comment)))
   }
   
-  # Pie-only popup (no date graph)
   if (!isTRUE(show_graph)) {
     return(sprintf(
       '<div class="bat-popup" style="font-family:sans-serif;min-width:340px;"><div style="font-weight:bold;font-size:14px;margin-bottom:4px;">%s</div>%s<div>%s</div></div>',
       htmltools::htmlEscape(site_name), comment_html, pie_svg))
   }
   
-  # ---- tab switcher (inline handler; no <script> needed) ----
   tab_onclick <- "(function(b){var r=b.closest('.bat-popup');var t=b.getAttribute('data-target');var tabs=r.querySelectorAll('.bat-tab');for(var i=0;i<tabs.length;i++){tabs[i].style.display=(tabs[i].getAttribute('data-tab')===t)?'block':'none';}var bs=r.querySelectorAll('.bat-tabbtn');for(var j=0;j<bs.length;j++){var on=bs[j].getAttribute('data-target')===t;bs[j].style.background=on?'#3498db':'#e8eef4';bs[j].style.color=on?'#fff':'#2c3e50';}})(this)"
-  btn_base <- "flex:1;padding:5px 8px;font-size:12px;font-family:sans-serif;border:1px solid #b8c4d0;cursor:pointer;text-align:center;"
+  btn_base <- "flex:1;padding:5px 6px;font-size:11px;font-family:sans-serif;border:1px solid #b8c4d0;cursor:pointer;text-align:center;"
   
   tabs_html <- sprintf(
-    '<div style="display:flex;margin-bottom:6px;"><div class="bat-tabbtn" data-target="pie" style="%sbackground:#3498db;color:#fff;border-radius:4px 0 0 4px;" onclick="%s">Total Species Composition</div><div class="bat-tabbtn" data-target="graph" style="%sbackground:#e8eef4;color:#2c3e50;border-radius:0 4px 4px 0;" onclick="%s">Mean Detections by Date</div></div>',
-    btn_base, tab_onclick, btn_base, tab_onclick)
+    '<div style="display:flex;margin-bottom:6px;"><div class="bat-tabbtn" data-target="pie" style="%sbackground:#3498db;color:#fff;border-radius:4px 0 0 4px;" onclick="%s">Species</div><div class="bat-tabbtn" data-target="graph" style="%sbackground:#e8eef4;color:#2c3e50;" onclick="%s">By date</div><div class="bat-tabbtn" data-target="hours" style="%sbackground:#e8eef4;color:#2c3e50;border-radius:0 4px 4px 0;" onclick="%s">By hour</div></div>',
+    btn_base, tab_onclick, btn_base, tab_onclick, btn_base, tab_onclick)
   
   content_html <- sprintf(
-    '<div class="bat-tab" data-tab="pie" style="display:block;">%s</div><div class="bat-tab" data-tab="graph" style="display:none;">%s</div>',
-    pie_svg, ts_svg)
+    '<div class="bat-tab" data-tab="pie" style="display:block;">%s</div><div class="bat-tab" data-tab="graph" style="display:none;">%s</div><div class="bat-tab" data-tab="hours" style="display:none;">%s</div>',
+    pie_svg, ts_svg, hr_svg)
   
   sprintf(
     '<div class="bat-popup" style="font-family:sans-serif;min-width:340px;"><div style="font-weight:bold;font-size:14px;margin-bottom:4px;">%s</div>%s%s%s</div>',
@@ -418,46 +525,60 @@ build_popup <- function(site_name, counts, comment = NA, pie_svg = "", ts_svg = 
 }
 
 map_data$popup <- vapply(seq_len(nrow(map_data)), function(i) {
-  site   <- map_data$Site[i]
-  counts <- setNames(as.numeric(unlist(map_data[i, target_species])), target_species)
-  
+  site     <- map_data$Site[i]
+  counts   <- setNames(as.numeric(unlist(map_data[i, target_species])), target_species)
   site_key <- tolower(trimws(map_data$Site[i]))
-  sd_i     <- site_day[site_day$Site_key == site_key, ]
-  sd_i    <- sd_i[order(sd_i$day), ]
-  pie_svg <- make_pie_svg(counts)
-  ts_svg  <- make_dayseries_svg(sd_i$day, sd_i$value, xlim = day_xlim, ylab = day_ylab)
   
-  build_popup(site, counts, map_data$Comment[i], pie_svg, ts_svg, show_graph = TRUE)
+  sd_i  <- site_day[site_day$Site_key == site_key, ]
+  sd_i  <- sd_i[order(sd_i$day), ]
+  pts_i <- df_pts[df_pts$Site_key == site_key, ]
+  
+  # per-site date window for the bar chart -> no more blank space for other sites' dates
+  if (nrow(sd_i) > 0) {
+    xr  <- range(sd_i$day)
+    pad <- max(1, as.numeric(diff(xr)) * 0.06)
+    site_day_xlim <- xr + c(-pad, pad)
+  } else site_day_xlim <- day_xlim
+  
+  pie_svg <- make_pie_svg(counts)
+  ts_svg  <- make_dayseries_svg(sd_i$day, sd_i$value, xlim = site_day_xlim, ylab = day_ylab)
+  hr_svg  <- make_hourfacet_svg(pts_i, ylim = hour_ylim)
+  
+  build_popup(site, counts, map_data$Comment[i], pie_svg, ts_svg, hr_svg, show_graph = TRUE)
 }, character(1))
-
-# ---- 7. Colour palette: dot fill by first year the site was sampled -------
-# Years are ordinal, so viridis reads earliest -> latest as a natural ramp.
-# colorFactor gives one discrete legend swatch per observed year, which handles
-# the gaps cleanly (there is no 2016 or 2018 in the data).
-map_data$Year1 <- as.integer(map_data$Year1)
-years_present <- sort(unique(map_data$Year1[!is.na(map_data$Year1)]))
-year_pal <- colorFactor(palette = "viridis", domain = years_present, ordered = TRUE)
 # ---- 8. Build the map ------------------------------------------------------
 
 m <- leaflet(map_data) %>%
   addProviderTiles(providers$CartoDB.Positron) %>%
+  addPolygons(
+    data        = grids,
+    color       = ~border_col,   # border colour, per cell
+    weight      = 4,
+    opacity     = 1,
+    fill        = FALSE,         # transparent interior, and no click capture
+    group       = "GRTS grid cells",
+    label       =  ~paste0("Cell ", GRTS_ID, "; Last sampled: ", LastYSamp)
+  ) %>%
   addCircleMarkers(
     lng = ~Long, lat = ~Lat,
-    radius = 6, color = "#2c3e50", weight = 1,          # keep dark border so pale (recent) fills stay visible
-    fillColor = ~year_pal(Year1), fillOpacity = 0.9, # <- was fixed "#3498db"
-    popup = ~popup,
-    label = ~sprintf("%s (first sampled %s)", Site, Year1),
-    popupOptions = popupOptions(maxWidth = 400)
-  )  %>%
-  addLegend(
-    position = "bottomright",
-    pal = year_pal, values = ~Year1,
-    title = "First year sampled", opacity = 0.9
-  )
+    radius = 6, color = "#2c3e50", weight = 1,
+    fillColor = "#3498db", fillOpacity = 0.9,
+    popup = ~popup, label = ~Site,
+    popupOptions = popupOptions(maxWidth = 400),
+    group= "sites"
+  ) %>%
   fitBounds(
     min(map_data$Long, na.rm = TRUE), min(map_data$Lat, na.rm = TRUE),
     max(map_data$Long, na.rm = TRUE), max(map_data$Lat, na.rm = TRUE)
-  )
+    )%>%
+  groupOptions("sites", zoomLevels = 7:20) %>%
+addLegend(
+  position = "bottomleft",
+  colors   = c("#e31a1c", "#ff7f00", "#999999"),
+  labels   = c("Last sampled 2025", "Last sampled 2024", "Previous years"),
+  title    = "GRTS cell status",
+  opacity  = 1
+)
 
 m
 ```
@@ -556,16 +677,16 @@ Statistical analyses followed closely what was established by WCSC and Dr. Carl 
 #| label: tbl-cov
 #| tbl-cap: Top-performing stationary models selected via AIC-based stepwise selection. Covariates are described as, Moon = moon illumination × proportion of night above horizon; Clutter = distance (m) to nearest object; Nearby Water = detector within 100m of water;RH = mean nightly relative humidity (%); Degree Days = cumulative degree days above 10°C since Jan 1. Source @rae2024North
 #| fig.pos: 'H'
-
-kable(model_covariates,
-      col.names = c("Species", "Species Code", "Top Performing Model Covariates"),
-      label = "model-covariates") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
-                full_width = FALSE,
-                position = "left") %>%
-  column_spec(1, width = "15em") %>%
-  column_spec(2, width = "8em") %>%
-  column_spec(3, width = "20em")
+# 
+# kable(model_covariates,
+#       col.names = c("Species", "Species Code", "Top Performing Model Covariates"),
+#       label = "model-covariates") %>%
+#   kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+#                 full_width = FALSE,
+#                 position = "left") %>%
+#   column_spec(1, width = "15em") %>%
+#   column_spec(2, width = "8em") %>%
+#   column_spec(3, width = "20em")
 
 ```
 
@@ -611,8 +732,29 @@ if (is_html) {
   if (!dir.exists("Figures")) dir.create("Figures")
   map_png <- "Figures/site_summary_map.png"
   
+  m_static <- leaflet(map_data) %>%
+    addProviderTiles(providers$CartoDB.Positron) %>%
+    addPolygons(
+      data        = grids,
+      color       = ~border_col,
+      weight      = 4,
+      opacity     = 1,
+      fill        = FALSE,
+      group       = "GRTS grid cells")%>%
+    fitBounds(
+      min(map_data$Long, na.rm = TRUE), min(map_data$Lat, na.rm = TRUE),
+      max(map_data$Long, na.rm = TRUE), max(map_data$Lat, na.rm = TRUE)
+    ) %>%
+    addLegend(
+      position = "bottomleft",
+      colors   = c("#e31a1c", "#ff7f00", "#999999"),
+      labels   = c("Last sampled 2025", "Last sampled 2024", "Previous years"),
+      title    = "GRTS cell status",
+      opacity  = 1
+    )
+  
   mapview::mapshot2(
-    m,
+    m_static,
     file    = map_png,
     vwidth  = 900,   # render width in px  (controls aspect ratio)
     vheight = 650,   # render height in px

@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+	<idinfo>
+		<citation>
+			<citeinfo>
+				<origin>Colin Talbert</origin>
+				<origin>Brian Reichert</origin>
+				<pubdate>201810</pubdate>
+				<title>North American Bat Monitoring Program (NABat) Master Sample and Grid-Based Sampling Frame: Alaska and Canada at a 10x10km resolution</title>
+				<geoform>vector digital data</geoform>
+				<pubinfo>
+					<pubplace>Fort Collins, CO</pubplace>
+					<publish>USGS Fort Collins Science Center</publish>
+				</pubinfo>
+				<onlink>https://doi.org/10.5066/P9O75YDV</onlink>
+				<lworkcit>
+					<citeinfo>
+						<origin>Patricia Stevens</origin>
+						<origin>Brian Reichert</origin>
+						<pubdate>20180724</pubdate>
+						<title>North American Bat Monitoring Program</title>
+						<geoform>project</geoform>
+						<pubinfo>
+							<pubplace>Fort Collins, CO</pubplace>
+							<publish>USGS Fort Collins Science Center</publish>
+						</pubinfo>
+						<onlink>https://nabatmonitoring.org/#/home/welcome</onlink>
+					</citeinfo>
+				</lworkcit>
+			</citeinfo>
+		</citation>
+		<descript>
+			<abstract>The NABat sampling frame is a grid-based finite-area frame spanning Canada, the United States, and Mexico consisting of 10-km by 10-km (100-km2) grid cell sample units.  This grain size is biologically appropriate given the scale of movement of most bat species, which routinely travel many kilometers each night between roosts and foraging areas and along foraging routes.  A draw of sample units from a finite sampling frame using the GRTS design produces an ordered list of units such that any ordered subset of that list is also randomized and spatially balanced. 
+
+This vector dataset is the individual grid-based sampling grid for Alaska and Canada at a 10x10km resolution.</abstract>
+			<purpose>The GRTS design provides solutions to several practical challenges faced by bat surveyors that are not provided by more familiar designs such as simple random, stratified, and systematic sampling. The GRTS design allows for sample site additions and deletions, supports unequal-probability selection of survey locations, and provides an approximately unbiased neighborhood-weighted variance estimator that takes advantage of the spatial structure present in the surveyed population.</purpose>
+		</descript>
+		<timeperd>
+			<timeinfo>
+				<sngdate>
+					<caldate>2018</caldate>
+				</sngdate>
+			</timeinfo>
+			<current>publication date</current>
+		</timeperd>
+		<status>
+			<progress>Complete</progress>
+			<update>None planned</update>
+		</status>
+		<spdom>
+			<bounding>
+				<westbc>-179.2969</westbc>
+				<eastbc>-49.9219</eastbc>
+				<northbc>83.6200</northbc>
+				<southbc>40.7140</southbc>
+			</bounding>
+			<descgeog>Alaska and Canada</descgeog>
+		</spdom>
+		<keywords>
+			<theme>
+				<themekt>ISO 19115 Topic Category</themekt>
+				<themekey>biota</themekey>
+				<themekey>location</themekey>
+			</theme>
+			<theme>
+				<themekt>USGS Thesaurus</themekt>
+				<themekey>ecosystem monitoring</themekey>
+			</theme>
+			<theme>
+				<themekt>USGS Metadata Identifier</themekt>
+				<themekey>USGS:5b7753a8e4b0f5d578820452</themekey>
+			</theme>
+			<place>
+				<placekt>Common geographic areas</placekt>
+				<placekey>Alaska</placekey>
+				<placekey>Canada</placekey>
+			</place>
+		</keywords>
+		<accconst>None.  Please see 'Distribution Info' for details.</accconst>
+		<useconst>None.  Users are advised to read the data set's metadata thoroughly to understand appropriate use and data limitations.</useconst>
+		<ptcontac>
+			<cntinfo>
+				<cntperp>
+					<cntper>Brian E Reichert</cntper>
+					<cntorg>U.S. Geological Survey, SOUTHWEST REGION</cntorg>
+				</cntperp>
+				<cntpos>Ecologist</cntpos>
+				<cntaddr>
+					<addrtype>mailing address</addrtype>
+					<address>2150 Centre Avenue Bldg C</address>
+					<city>Fort Collins</city>
+					<state>CO</state>
+					<postal>80526</postal>
+					<country>US</country>
+				</cntaddr>
+				<cntvoice>970-226-9245</cntvoice>
+				<cntfax>970-226-9230</cntfax>
+				<cntemail>breichert@usgs.gov</cntemail>
+			</cntinfo>
+		</ptcontac>
+		<crossref>
+			<citeinfo>
+				<origin>Susan C. Loeb</origin>
+				<origin>Thomas J. Rodhouse</origin>
+				<origin>Laura E. Ellison</origin>
+				<origin>Cori L. Lausen</origin>
+				<origin>Jonathan D. Reichard</origin>
+				<origin>Kathryn M. Irvine</origin>
+				<origin>Thomas E. Ingersoll</origin>
+				<origin>Jeremy T. H. Coleman</origin>
+				<origin>Wayne E. Thogmartin</origin>
+				<origin>John R. Sauer</origin>
+				<origin>Charles M. Francis</origin>
+				<origin>Mylea L. Bayless</origin>
+				<origin>Thomas R. Stanley</origin>
+				<origin>Douglas H. Johnson</origin>
+				<pubdate>201506</pubdate>
+				<title>A Plan for the North American Bat Monitoring Program (NABat)</title>
+				<geoform>publication</geoform>
+				<onlink>https://www.srs.fs.usda.gov/pubs/gtr/gtr_srs208.pdf</onlink>
+			</citeinfo>
+			<citeinfo>
+				<origin>Patricia Stevens</origin>
+				<origin>Brian Reichert</origin>
+				<origin>Colin Talbert</origin>
+				<pubdate>201810</pubdate>
+				<title>Attributed North American Bat Monitoring Program (NABat) Master Sample and Grid-Based Sampling Frame</title>
+				<geoform>vector digital data</geoform>
+				<pubinfo>
+					<pubplace>Fort Collins, CO</pubplace>
+					<publish>USGS Fort Collins Science Center</publish>
+				</pubinfo>
+				<onlink>https://doi.org/10.5066/P9RRWXL6</onlink>
+			</citeinfo>
+		</crossref>
+	</idinfo>
+	<dataqual>
+		<attracc>
+			<attraccr>GRTS IDs were checked for consistent spatial distribution.</attraccr>
+		</attracc>
+		<logic>Values were manually checked for minimum and maximum values within expected ranges.</logic>
+		<complete>None</complete>
+		<posacc>
+			<horizpa>
+				<horizpar>Positional accuracy was manually checked in ArcMap</horizpar>
+			</horizpa>
+			<vertacc>
+				<vertaccr>NA</vertaccr>
+			</vertacc>
+		</posacc>
+		<lineage>
+			<srcinfo>
+				<srccite>
+					<citeinfo>
+						<origin>Patricia Stevens</origin>
+						<origin>Brian Reichert</origin>
+						<origin>Colin Talbert</origin>
+						<pubdate>201807</pubdate>
+						<title>North American Grid-Based Sampling Frame</title>
+						<geoform>vector digital data</geoform>
+						<pubinfo>
+							<pubplace>Fort Collins, CO</pubplace>
+							<publish>USGS Fort Collins Science Center</publish>
+						</pubinfo>
+						<onlink>https://doi.org/10.5066/P9M00P17</onlink>
+					</citeinfo>
+				</srccite>
+				<typesrc>Digital and/or Hardcopy</typesrc>
+				<srctime>
+					<timeinfo>
+						<sngdate>
+							<caldate>2018</caldate>
+						</sngdate>
+					</timeinfo>
+					<srccurr>publication date</srccurr>
+				</srctime>
+				<srccitea>NASamplingFrame</srccitea>
+				<srccontr>The geometry and unique IDs for the 10km cells.</srccontr>
+			</srcinfo>
+			<procstep>
+				<procdesc>The spsurvey package in R was used to generate a Generalized Random-Tessellation Stratified (GRTS) Survey Design draw on the 10km North American Grid-Based Sampling Frame.  The 'grts' function was used with an equal design and a finite frame.  8675309 was used as the seed.</procdesc>
+				<srcused>NASamplingFrame</srcused>
+				<procdate>201807</procdate>
+			</procstep>
+		</lineage>
+	</dataqual>
+	<eainfo>
+		<detailed Name="AK_GRTS10km_GridsSampled2025">
+			<enttyp>
+				<enttypl>akcan_mastersample_10km_GRTS.shp</enttypl>
+				<enttypd>Table containing attribute information associated with the data set.</enttypd>
+				<enttypds>Producer defined</enttypds>
+				<enttypt Sync="TRUE">Feature Class</enttypt><enttypc Sync="TRUE">0</enttypc></enttyp>
+			<attr>
+				<attrlabl>FID</attrlabl>
+				<attrdef>Internal feature number.</attrdef>
+				<attrdefs>ESRI</attrdefs>
+				<attrdomv>
+					<udom>Sequential unique whole numbers that are automatically generated.</udom>
+				</attrdomv>
+				<attalias Sync="TRUE">FID</attalias><attrtype Sync="TRUE">OID</attrtype><attwidth Sync="TRUE">4</attwidth><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale></attr>
+			<attr>
+				<attrlabl>Shape</attrlabl>
+				<attrdef>Feature geometry type.</attrdef>
+				<attrdefs>ESRI</attrdefs>
+				<attrdomv>
+					<udom>String description of feature geometry type.</udom>
+				</attrdomv>
+				<attalias Sync="TRUE">Shape</attalias><attrtype Sync="TRUE">Geometry</attrtype><attwidth Sync="TRUE">0</attwidth><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale></attr>
+			<attr>
+				<attrlabl>AKCAN_10KM</attrlabl>
+				<attrdef>The unique ID of this 10x10km grid cell</attrdef>
+				<attrdefs>Producer defined</attrdefs>
+				<attrdomv>
+					<rdom>
+						<rdommin>1</rdommin>
+						<rdommax>340425</rdommax>
+					</rdom>
+				</attrdomv>
+				<attalias Sync="TRUE">AKCAN_10KM</attalias><attrtype Sync="TRUE">Integer</attrtype><attwidth Sync="TRUE">9</attwidth><atprecis Sync="TRUE">9</atprecis><attscale Sync="TRUE">0</attscale></attr>
+			<attr>
+				<attrlabl>lat</attrlabl>
+				<attrdef>The geographic WGS84 decimal degree latitude of the grid cell centroid.</attrdef>
+				<attrdefs>Producer defined</attrdefs>
+				<attrdomv>
+					<rdom>
+						<rdommin>29.50184281915405</rdommin>
+						<rdommax>85.80142998547711</rdommax>
+					</rdom>
+				</attrdomv>
+				<attalias Sync="TRUE">lat</attalias><attrtype Sync="TRUE">Double</attrtype><attwidth Sync="TRUE">19</attwidth><atprecis Sync="TRUE">18</atprecis><attscale Sync="TRUE">15</attscale></attr>
+			<attr>
+				<attrlabl>long</attrlabl>
+				<attrdef>The geographic WGS84 decimal degree longitude of the grid cell centroid.</attrdef>
+				<attrdefs>Producer defined</attrdefs>
+				<attrdomv>
+					<rdom>
+						<rdommin>179.96122442612676</rdommin>
+						<rdommax>-179.9891832632117</rdommax>
+					</rdom>
+				</attrdomv>
+				<attalias Sync="TRUE">long</attalias><attrtype Sync="TRUE">Double</attrtype><attwidth Sync="TRUE">19</attwidth><atprecis Sync="TRUE">18</atprecis><attscale Sync="TRUE">15</attscale></attr>
+			<attr>
+				<attrlabl>GRTS_ID</attrlabl>
+				<attrdef>Generalized Random-Tessellation Stratified (GRTS) Survey Design draw.</attrdef>
+				<attrdefs>Producer defined</attrdefs>
+				<attrdomv>
+					<rdom>
+						<rdommin>1</rdommin>
+						<rdommax>340425</rdommax>
+					</rdom>
+				</attrdomv>
+				<attalias Sync="TRUE">GRTS_ID</attalias><attrtype Sync="TRUE">Integer</attrtype><attwidth Sync="TRUE">9</attwidth><atprecis Sync="TRUE">9</atprecis><attscale Sync="TRUE">0</attscale></attr>
+			<attr><attrlabl Sync="TRUE">LastYSamp</attrlabl><attalias Sync="TRUE">LastYSamp</attalias><attrtype Sync="TRUE">Integer</attrtype><attwidth Sync="TRUE">10</attwidth><atprecis Sync="TRUE">10</atprecis><attscale Sync="TRUE">0</attscale></attr><attr><attrlabl Sync="TRUE">TotalYears</attrlabl><attalias Sync="TRUE">TotalYears</attalias><attrtype Sync="TRUE">Integer</attrtype><attwidth Sync="TRUE">10</attwidth><atprecis Sync="TRUE">10</atprecis><attscale Sync="TRUE">0</attscale></attr><attr><attrlabl Sync="TRUE">TotalYear</attrlabl><attalias Sync="TRUE">TotalYear</attalias><attrtype Sync="TRUE">Integer</attrtype><attwidth Sync="TRUE">10</attwidth><atprecis Sync="TRUE">10</atprecis><attscale Sync="TRUE">0</attscale></attr><attr><attrlabl Sync="TRUE">Shape_Leng</attrlabl><attalias Sync="TRUE">Shape_Leng</attalias><attrtype Sync="TRUE">Double</attrtype><attwidth Sync="TRUE">19</attwidth><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale></attr><attr><attrlabl Sync="TRUE">Shape_Area</attrlabl><attalias Sync="TRUE">Shape_Area</attalias><attrtype Sync="TRUE">Double</attrtype><attwidth Sync="TRUE">19</attwidth><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale><attrdef Sync="TRUE">Area of feature in internal units squared.</attrdef><attrdefs Sync="TRUE">Esri</attrdefs><attrdomv><udom Sync="TRUE">Positive real numbers that are automatically generated.</udom></attrdomv></attr></detailed>
+	</eainfo>
+	<distinfo>
+		<distrib>
+			<cntinfo>
+				<cntorgp>
+					<cntorg>U.S. Geological Survey</cntorg>
+					<cntper>GS ScienceBase</cntper>
+				</cntorgp>
+				<cntaddr>
+					<addrtype>mailing address</addrtype>
+					<address>Denver Federal Center, Building 810, Mail Stop 302</address>
+					<city>Denver</city>
+					<state>CO</state>
+					<postal>80225</postal>
+					<country>United States</country>
+				</cntaddr>
+				<cntvoice>1-888-275-8747</cntvoice>
+				<cntemail>sciencebase@usgs.gov</cntemail>
+			</cntinfo>
+		</distrib>
+		<distliab>Unless otherwise stated, all data, metadata and related materials are considered to satisfy the quality standards relative to the purpose for which the data were collected. Although these data and associated metadata have been reviewed for accuracy and completeness and approved for release by the U.S. Geological Survey (USGS), no warranty expressed or implied is made regarding the display or utility of the data on any other system or for general or scientific purposes, nor shall the act of distribution constitute any such warranty.</distliab>
+		<stdorder>
+			<digform>
+				<digtinfo>
+					<formname>Digital Data</formname>
+				</digtinfo>
+				<digtopt>
+					<onlinopt>
+						<computer>
+							<networka>
+								<networkr>https://doi.org/10.5066/P9O75YDV</networkr>
+							</networka>
+						</computer>
+					</onlinopt>
+				</digtopt>
+			</digform>
+			<fees>None</fees>
+		</stdorder>
+	</distinfo>
+	<metainfo>
+		<metd>20200911</metd>
+		<metc>
+			<cntinfo>
+				<cntperp>
+					<cntper>Colin Talbert</cntper>
+					<cntorg>U.S. Geological Survey, Southwest Region</cntorg>
+				</cntperp>
+				<cntpos>IT SPEC (DATAMGT)</cntpos>
+				<cntaddr>
+					<addrtype>mailing address</addrtype>
+					<address>2150 Centre Avenue Bldg C</address>
+					<city>Fort Collins</city>
+					<state>CO</state>
+					<postal>80526</postal>
+					<country>United States</country>
+				</cntaddr>
+				<cntvoice>970-226-9425</cntvoice>
+				<cntfax>970-226-9230</cntfax>
+				<cntemail>talbertc@usgs.gov</cntemail>
+			</cntinfo>
+		</metc>
+		<metstdn>FGDC Biological Data Profile of the Content Standard for Digital Geospatial Metadata</metstdn>
+		<metstdv>FGDC-STD-001.1-1999</metstdv>
+	</metainfo>
+	<dataIdInfo><envirDesc Sync="TRUE">Microsoft Windows 10 Version 10.0 (Build 26200) ; Esri ArcGIS 13.2.0.49743</envirDesc><dataLang><languageCode value="eng" Sync="TRUE"></languageCode><countryCode value="USA" Sync="TRUE"></countryCode></dataLang><idCitation><resTitle Sync="TRUE">AK_GRTS10km_GridsSampled2025</resTitle><presForm><PresFormCd value="005" Sync="TRUE"></PresFormCd></presForm></idCitation><spatRpType><SpatRepTypCd value="001" Sync="TRUE"></SpatRepTypCd></spatRpType></dataIdInfo><mdLang><languageCode value="eng" Sync="TRUE"></languageCode><countryCode value="USA" Sync="TRUE"></countryCode></mdLang><mdChar><CharSetCd value="004" Sync="TRUE"></CharSetCd></mdChar><Esri><DataProperties><itemProps><itemName Sync="TRUE">AK_GRTS10km_GridsSampled2025</itemName><imsContentType Sync="TRUE">002</imsContentType><itemSize Sync="TRUE">0.000</itemSize><itemLocation><linkage Sync="TRUE">file://\\ABMI1005\C$\Users\cami\Documents\NABatMaps\AK_GRTS10km_GridsSampled2025.shp</linkage><protocol Sync="TRUE">Local Area Network</protocol></itemLocation></itemProps><coordRef><type Sync="TRUE">Projected</type><geogcsn Sync="TRUE">GCS_North_American_1983</geogcsn><csUnits Sync="TRUE">Linear Unit: Meter (1.000000)</csUnits><projcsn Sync="TRUE">Albers</projcsn><peXml Sync="TRUE">&lt;ProjectedCoordinateSystem xsi:type='typens:ProjectedCoordinateSystem' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns:xs='http://www.w3.org/2001/XMLSchema' xmlns:typens='http://www.esri.com/schemas/ArcGIS/3.2.0'&gt;&lt;WKT&gt;PROJCS[&amp;quot;Albers&amp;quot;,GEOGCS[&amp;quot;GCS_North_American_1983&amp;quot;,DATUM[&amp;quot;D_North_American_1983&amp;quot;,SPHEROID[&amp;quot;GRS_1980&amp;quot;,6378137.0,298.257222101]],PRIMEM[&amp;quot;Greenwich&amp;quot;,0.0],UNIT[&amp;quot;Degree&amp;quot;,0.0174532925199433]],PROJECTION[&amp;quot;Albers&amp;quot;],PARAMETER[&amp;quot;false_easting&amp;quot;,0.0],PARAMETER[&amp;quot;false_northing&amp;quot;,0.0],PARAMETER[&amp;quot;central_meridian&amp;quot;,-100.0],PARAMETER[&amp;quot;standard_parallel_1&amp;quot;,55.0],PARAMETER[&amp;quot;standard_parallel_2&amp;quot;,65.0],PARAMETER[&amp;quot;latitude_of_origin&amp;quot;,50.0],UNIT[&amp;quot;Meter&amp;quot;,1.0]]&lt;/WKT&gt;&lt;XOrigin&gt;-13752200&lt;/XOrigin&gt;&lt;YOrigin&gt;-8948200&lt;/YOrigin&gt;&lt;XYScale&gt;327482121.21482342&lt;/XYScale&gt;&lt;ZOrigin&gt;-100000&lt;/ZOrigin&gt;&lt;ZScale&gt;10000&lt;/ZScale&gt;&lt;MOrigin&gt;-100000&lt;/MOrigin&gt;&lt;MScale&gt;10000&lt;/MScale&gt;&lt;XYTolerance&gt;0.001&lt;/XYTolerance&gt;&lt;ZTolerance&gt;0.001&lt;/ZTolerance&gt;&lt;MTolerance&gt;0.001&lt;/MTolerance&gt;&lt;HighPrecision&gt;true&lt;/HighPrecision&gt;&lt;/ProjectedCoordinateSystem&gt;</peXml></coordRef><lineage><Process ToolSource="c:\program files\arcgis\pro\Resources\ArcToolbox\toolboxes\Conversion Tools.tbx\ExportFeatures" Date="20260812" Time="103030">ExportFeatures "akcan_mastersample_10km_GRTS selection 1" C:\Users\cami\Documents\NABatMaps\SEAK_GRTS10km.shp # NOT_USE_ALIAS "AKCAN_10KM "AKCAN_10KM" true true false 9 Long 0 9,First,#,akcan_mastersample_10km_GRTS selection 1,AKCAN_10KM,-1,-1;lat "lat" true true false 24 Double 15 23,First,#,akcan_mastersample_10km_GRTS selection 1,lat,-1,-1;long "long" true true false 24 Double 15 23,First,#,akcan_mastersample_10km_GRTS selection 1,long,-1,-1;GRTS_ID "GRTS_ID" true true false 9 Long 0 9,First,#,akcan_mastersample_10km_GRTS selection 1,GRTS_ID,-1,-1;TotalYears "TotalYears" true true false 10 Long 0 10,First,#,akcan_mastersample_10km_GRTS selection 1,TotalYears,-1,-1;TotalYear "TotalYear" true true false 10 Long 0 10,First,#,akcan_mastersample_10km_GRTS selection 1,TotalYear,-1,-1;LastYSamp "LastYSamp" true true false 10 Long 0 10,First,#,akcan_mastersample_10km_GRTS selection 1,LastYSamp,-1,-1" #</Process><Process ToolSource="c:\program files\arcgis\pro\Resources\ArcToolbox\toolboxes\Conversion Tools.tbx\ExportFeatures" Date="20260812" Time="103740">ExportFeatures SEAK_GRTS10km C:\Users\cami\Documents\NABatMaps\SEAK_GRTS10km_SampleGrids.shp # NOT_USE_ALIAS "AKCAN_10KM "AKCAN_10KM" true true false 9 Long 0 9,First,#,SEAK_GRTS10km,AKCAN_10KM,-1,-1;lat "lat" true true false 19 Double 15 18,First,#,SEAK_GRTS10km,lat,-1,-1;long "long" true true false 19 Double 15 18,First,#,SEAK_GRTS10km,long,-1,-1;GRTS_ID "GRTS_ID" true true false 9 Long 0 9,First,#,SEAK_GRTS10km,GRTS_ID,-1,-1;TotalYears "TotalYears" true true false 10 Long 0 10,First,#,SEAK_GRTS10km,TotalYears,-1,-1;TotalYear "TotalYear" true true false 10 Long 0 10,First,#,SEAK_GRTS10km,TotalYear,-1,-1;LastYSamp "LastYSamp" true true false 10 Long 0 10,First,#,SEAK_GRTS10km,LastYSamp,-1,-1" #</Process><Process ToolSource="c:\program files\arcgis\pro\Resources\ArcToolbox\toolboxes\Data Management Tools.tbx\UpdateSchema" Date="20260812" Time="104344">UpdateSchema "CIMDATA=&lt;CIMStandardDataConnection xsi:type='typens:CIMStandardDataConnection' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns:xs='http://www.w3.org/2001/XMLSchema' xmlns:typens='http://www.esri.com/schemas/ArcGIS/3.2.0'&gt;&lt;WorkspaceConnectionString&gt;DATABASE=C:\Users\cami\Documents\NABatMaps&lt;/WorkspaceConnectionString&gt;&lt;WorkspaceFactory&gt;Shapefile&lt;/WorkspaceFactory&gt;&lt;Dataset&gt;SEAK_GRTS10km_SampleGrids&lt;/Dataset&gt;&lt;DatasetType&gt;esriDTFeatureClass&lt;/DatasetType&gt;&lt;/CIMStandardDataConnection&gt;" &lt;operationSequence&gt;&lt;workflow&gt;&lt;DeleteField&gt;&lt;field_name&gt;TotalYears&lt;/field_name&gt;&lt;field_name&gt;TotalYear&lt;/field_name&gt;&lt;/DeleteField&gt;&lt;/workflow&gt;&lt;/operationSequence&gt;</Process><Process ToolSource="c:\program files\arcgis\pro\Resources\ArcToolbox\toolboxes\Conversion Tools.tbx\ExportFeatures" Date="20260812" Time="104431">ExportFeatures SEAK_GRTS10km_SampleGrids C:\Users\cami\Documents\NABatMaps\SEAK_GRTS10km_GridsSampled.shp # NOT_USE_ALIAS "AKCAN_10KM "AKCAN_10KM" true true false 9 Long 0 9,First,#,SEAK_GRTS10km_SampleGrids,AKCAN_10KM,-1,-1;lat "lat" true true false 19 Double 15 18,First,#,SEAK_GRTS10km_SampleGrids,lat,-1,-1;long "long" true true false 19 Double 15 18,First,#,SEAK_GRTS10km_SampleGrids,long,-1,-1;GRTS_ID "GRTS_ID" true true false 9 Long 0 9,First,#,SEAK_GRTS10km_SampleGrids,GRTS_ID,-1,-1;LastYSamp "LastYSamp" true true false 10 Long 0 10,First,#,SEAK_GRTS10km_SampleGrids,LastYSamp,-1,-1" #</Process><Process ToolSource="c:\program files\arcgis\pro\Resources\ArcToolbox\toolboxes\Data Management Tools.tbx\Merge" Date="20260812" Time="122418">Merge SEAK_GRTS10km_GridsSampled;akcan_mastersample_10km_GRTS_AnchorageGrids C:\Users\cami\Documents\NABatMaps\AK_GRTS10km_GridsSampled2025.shp "AKCAN_10KM "AKCAN_10KM" true true false 9 Long 0 9,First,#,SEAK_GRTS10km_GridsSampled,AKCAN_10KM,-1,-1,akcan_mastersample_10km_GRTS_AnchorageGrids,AKCAN_10KM,-1,-1;lat "lat" true true false 19 Double 15 18,First,#,SEAK_GRTS10km_GridsSampled,lat,-1,-1,akcan_mastersample_10km_GRTS_AnchorageGrids,lat,-1,-1;long "long" true true false 19 Double 15 18,First,#,SEAK_GRTS10km_GridsSampled,long,-1,-1,akcan_mastersample_10km_GRTS_AnchorageGrids,long,-1,-1;GRTS_ID "GRTS_ID" true true false 9 Long 0 9,First,#,SEAK_GRTS10km_GridsSampled,GRTS_ID,-1,-1,akcan_mastersample_10km_GRTS_AnchorageGrids,GRTS_ID,-1,-1;LastYSamp "LastYSamp" true true false 10 Long 0 10,First,#,SEAK_GRTS10km_GridsSampled,LastYSamp,-1,-1,akcan_mastersample_10km_GRTS_AnchorageGrids,LastYSamp,-1,-1;TotalYears "TotalYears" true true false 4 Long 0 0,First,#,akcan_mastersample_10km_GRTS_AnchorageGrids,TotalYears,-1,-1;TotalYear "TotalYear" true true false 4 Long 0 0,First,#,akcan_mastersample_10km_GRTS_AnchorageGrids,TotalYear,-1,-1;Shape_Length "Shape_Length" false true true 8 Double 0 0,First,#,akcan_mastersample_10km_GRTS_AnchorageGrids,Shape_Length,-1,-1;Shape_Area "Shape_Area" false true true 8 Double 0 0,First,#,akcan_mastersample_10km_GRTS_AnchorageGrids,Shape_Area,-1,-1" NO_SOURCE_INFO</Process><Process ToolSource="c:\program files\arcgis\pro\Resources\ArcToolbox\toolboxes\Data Management Tools.tbx\UpdateSchema" Date="20260812" Time="122531">UpdateSchema "CIMDATA=&lt;CIMStandardDataConnection xsi:type='typens:CIMStandardDataConnection' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns:xs='http://www.w3.org/2001/XMLSchema' xmlns:typens='http://www.esri.com/schemas/ArcGIS/3.2.0'&gt;&lt;WorkspaceConnectionString&gt;DATABASE=C:\Users\cami\Documents\NABatMaps&lt;/WorkspaceConnectionString&gt;&lt;WorkspaceFactory&gt;Shapefile&lt;/WorkspaceFactory&gt;&lt;Dataset&gt;AK_GRTS10km_GridsSampled2025&lt;/Dataset&gt;&lt;DatasetType&gt;esriDTFeatureClass&lt;/DatasetType&gt;&lt;/CIMStandardDataConnection&gt;" &lt;operationSequence&gt;&lt;workflow&gt;&lt;DeleteField&gt;&lt;field_name&gt;TotalYears&lt;/field_name&gt;&lt;field_name&gt;TotalYear&lt;/field_name&gt;&lt;field_name&gt;Shape_Leng&lt;/field_name&gt;&lt;field_name&gt;Shape_Area&lt;/field_name&gt;&lt;/DeleteField&gt;&lt;/workflow&gt;&lt;/operationSequence&gt;</Process></lineage></DataProperties><SyncDate>20260812</SyncDate><SyncTime>12241800</SyncTime><ModDate>20260812</ModDate><ModTime>12241800</ModTime></Esri><distInfo><distFormat><formatName Sync="TRUE">Shapefile</formatName></distFormat><distTranOps><transSize Sync="TRUE">0.000</transSize></distTranOps></distInfo><mdHrLv><ScopeCd value="005" Sync="TRUE"></ScopeCd></mdHrLv><mdHrLvName Sync="TRUE">dataset</mdHrLvName><refSysInfo><RefSystem><refSysID><identCode code="0" Sync="TRUE"></identCode></refSysID></RefSystem></refSysInfo><spatRepInfo><VectSpatRep><geometObjs Name="AK_GRTS10km_GridsSampled2025"><geoObjTyp><GeoObjTypCd value="002" Sync="TRUE"></GeoObjTypCd></geoObjTyp><geoObjCnt Sync="TRUE">0</geoObjCnt></geometObjs><topLvl><TopoLevCd value="001" Sync="TRUE"></TopoLevCd></topLvl></VectSpatRep></spatRepInfo><spdoinfo><ptvctinf><esriterm Name="AK_GRTS10km_GridsSampled2025"><efeatyp Sync="TRUE">Simple</efeatyp><efeageom code="4" Sync="TRUE"></efeageom><esritopo Sync="TRUE">FALSE</esritopo><efeacnt Sync="TRUE">0</efeacnt><spindex Sync="TRUE">FALSE</spindex><linrefer Sync="TRUE">FALSE</linrefer></esriterm></ptvctinf></spdoinfo><mdDateSt Sync="TRUE">20260812</mdDateSt></metadata>
