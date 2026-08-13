@@ -53,7 +53,7 @@ nocite: '@*'
 #| message: false
 
 # #This is just here to show how the summaries for df_pt and df1 were done
-# df <- read.csv("Data/2025Raw.csv")
+# df <- read.csv("V:/ARU/SENSR-BAT/NABat/2024/Processed_V2/AK/Combined.csv")
 # keep_grids <- c(18318, 206, 47310)  # Wrangell, POW, Ketchikan have actual confirmed MYVO. Any other grids need to get MYVO tags downgraded
 # 
 # df <- df %>%
@@ -104,8 +104,8 @@ nocite: '@*'
 #   filter(!species %in% drop_codes) %>%    # removes Noise, FB, blanks, junk buckets
 #   count(species, year, date, Site, name = "n_files")
 # 
-# write.csv(df_pts,"Data/hourlySppDetection.csv")
-# write.csv(df1, "Data/dailytotaldetection.csv")
+# write.csv(df_pts,"Data/hourlySppDetection-2024.csv")
+# write.csv(df1, "Data/dailytotaldetection-2024.csv")
 ```
 
 ```{r}
@@ -248,60 +248,50 @@ map_data <- map_sites %>%
 #| warning: false
 #| message: false
 
-# # Load the model covariates summary table
-# model_covariates <- read.csv("Data/Analyzed/ModelVariables.csv")
-# transect_covariates <- read.csv("Data/Analyzed/ModelVariables_Transect.csv")
-# #this comes from running the ModelSelection.R code where it runs all of the covariates and chooses the best model best on AIC
-# 
-# #format the covariates df 
-# 
-# # Species code to common name lookup
-# species_names <- c(
-#   ANPA = "Pallid Bat",
-#   COTO = "Townsend's Big-eared Bat",
-#   EPFU = "Big Brown Bat",
-#   EUMA = "Spotted Bat",
-#   LABO = "Eastern Red Bat",
-#   LACI = "Hoary Bat",
-#   LANO = "Silver-haired Bat",
-#   MYLU = "Little Brown Myotis",
-#   MYYU = "Yuma Myotis",
-#   MYEV = "Long-eared Myotis",
-#   MYTH = "Fringed Myotis",
-#   MYVO = "Long-legged Myotis",
-#   MYCA = "California Myotis",
-#   MYCI = "Western Small-footed Myotis",
-#   PAHE = "Canyon Bat",
-#   TABR = "Mexican Free-tailed Bat",
-#   MYSE = "Northern Myotis"
-# )
-# 
-# # Clean covariate from models and format for report
-# clean_covars <- function(x) {
-#   x %>%
-#     gsub("\\.", " ", .) %>%                          # replace dots with spaces
-#     gsub("\\bdd\\b", "Degree Days", .) %>%           # dd -> Degree Days
-#     gsub("Temp\\b", "Temperature", .) %>%            # Temp -> Temperature
-#     gsub("Windsp\\b", "Wind Speed", .) %>%           # Windsp -> Wind Speed
-#     gsub("Clutterdist\\b", "Distance to Clutter", .) %>%  # Clutterdist -> Distance to Clutter
-#     gsub("mtime2h mphase", "Moon", .) %>%      # mtime2h mphase -> Moon Phase
-#     gsub(",\\s*I\\(YearS\\^2\\)|I\\(YearS\\^2\\),?\\s*", "", .) %>% #remove quadratic term from the reporting 
-#     trimws()
-# }
-# 
-# model_covariates<- model_covariates %>%
-#   mutate(
-#     Common_Name = species_names[sp],
-#     Covariates = clean_covars(vars)
-#   ) %>%
-#   select(Common_Name, Species_Code = sp, Covariates)
-# 
-# transect_covariates<- transect_covariates %>%
-#   mutate(
-#     Common_Name = species_names[sp],
-#     Covariates = clean_covars(vars)
-#   ) %>%
-#   select(Common_Name, Species_Code = sp, Covariates)
+# Load the model covariates summary table
+model_covariates <- read.csv("Data/Analyzed/ModelVariables.csv")
+#transect_covariates <- read.csv("Data/Analyzed/ModelVariables_Transect.csv")
+#this comes from running the ModelSelection.R code where it runs all of the covariates and chooses the best model best on AIC
+
+#format the covariates df
+
+# Species code to common name lookup
+species_names <- c(
+  LACI = "Hoary Bat",
+  LANO = "Silver-haired Bat",
+  MYLU = "Little Brown Myotis",
+  MYYU = "Yuma Myotis",
+  MYEV = "Long-eared Myotis",
+  MYVO = "Long-legged Myotis",
+  MYCA = "California Myotis"
+)
+
+# Clean covariate from models and format for report
+clean_covars <- function(x) {
+  x %>%
+    gsub("\\.", " ", .) %>%                          # replace dots with spaces
+    gsub("\\bdd\\b", "Degree Days", .) %>%           # dd -> Degree Days
+    gsub("Temp\\b", "Temperature", .) %>%            # Temp -> Temperature
+    gsub("Windsp\\b", "Wind Speed", .) %>%           # Windsp -> Wind Speed
+    gsub("Clutterdist\\b", "Distance to Clutter", .) %>%  # Clutterdist -> Distance to Clutter
+    gsub("mtime2h mphase", "Moon", .) %>%      # mtime2h mphase -> Moon Phase
+    gsub(",\\s*I\\(YearS\\^2\\)|I\\(YearS\\^2\\),?\\s*", "", .) %>% #remove quadratic term from the reporting
+    trimws()
+}
+
+model_covariates<- model_covariates %>%
+  mutate(
+    Common_Name = species_names[sp],
+    Covariates = clean_covars(vars)
+  ) %>%
+  select(Common_Name, Species_Code = sp, Covariates)
+
+#transect_covariates<- transect_covariates %>%
+ # mutate(
+  #  Common_Name = species_names[sp],
+   # Covariates = clean_covars(vars)
+#  ) %>%
+#  select(Common_Name, Species_Code = sp, Covariates)
 
 ```
 
@@ -683,6 +673,101 @@ addLegend(
 m
 ```
 
+```{r}
+#| label: Load activity model results and format
+#| include: false
+#| echo: false
+#| eval: true
+#| warning: false
+#| message: false
+ak.cov.slope.summary.singlet <- read.csv("Data/Analyzed/AK.cov.estimates.singlet.csv")
+#ak.cov.slope.transect <- read.csv("Data/Analyzed/bc.transect.cov.estimates.csv")
+
+# Species excluded from stationary reporting due to insufficient precision
+excluded_stationary <- c("MYVO", "MYYU")
+
+# Prepare stationary data
+stationary <- ak.cov.slope.summary.singlet %>%
+  filter(!SpeciesGroup %in% excluded_stationary) %>%
+  select(SpeciesGroup, Estimate, SE, p.value) %>%
+  mutate(
+    trend_ci = sprintf("%.2f ± %.2f", Estimate, 1.96 * SE),
+    p_val = case_when(
+      p.value < 0.001 ~ "<0.001",
+      TRUE ~ sprintf("%.3f", p.value)
+    )
+  ) %>%
+  select(SpeciesGroup, trend_ci, p_val, p.value) %>%
+  dplyr::rename(stationary_trend = trend_ci, stationary_p = p_val, stationary_pval = p.value)
+
+# # Prepare transect data
+# transect <- ak.cov.slope.transect %>%
+#   mutate(
+#     p_numeric = as.numeric(gsub("p = ", "", p.value)),
+#     trend_ci = sprintf("%.2f ± %.2f", Estimate, 1.96 * SE),
+#     p_val = case_when(
+#       is.na(p_numeric) ~ NA_character_,
+#       p_numeric < 0.001 ~ "<0.001",
+#       TRUE ~ sprintf("%.3f", p_numeric)
+#     )
+#   ) %>%
+#   select(SpeciesGroup, trend_ci, p_val, p_numeric) %>%
+#   rename(transect_trend = trend_ci, transect_p = p_val, transect_pval = p_numeric)
+
+# Merge datasets
+#merged_table <- full_join(stationary, transect, by = "SpeciesGroup")
+merged_table <- stationary
+merged_table <- merged_table %>%
+  mutate(Species = species_names[SpeciesGroup]) %>%
+  mutate(
+    stationary_trend = ifelse(SpeciesGroup %in% excluded_stationary, "", stationary_trend),
+    stationary_p = ifelse(SpeciesGroup %in% excluded_stationary, "", stationary_p),
+    stationary_pval = ifelse(SpeciesGroup %in% excluded_stationary, NA, stationary_pval)
+  ) %>%
+  select(Species, stationary_trend, stationary_p, stationary_pval)#,
+         #transect_trend, transect_p, transect_pval)
+
+# Add excluded species back as empty rows so they still appear in the table
+excluded_rows <- tibble(
+  SpeciesCode = excluded_stationary,
+  Species = species_names[excluded_stationary],
+  stationary_trend = "",
+  stationary_p = "",
+  stationary_pval = NA_real_,
+  #transect_trend = "",
+  #transect_p = "",
+  #transect_pval = NA_real_
+)
+
+# Bind and sort alphabetically by species code
+merged_table <- merged_table %>%
+  mutate(SpeciesCode = names(species_names)[match(Species, species_names)]) %>%
+  bind_rows(excluded_rows) %>%
+  arrange(SpeciesCode) %>%
+  select(-SpeciesCode)
+
+# Replace NA with empty strings for display columns only
+merged_table <- merged_table %>%
+  mutate(SpeciesCode = names(species_names)[match(Species, species_names)]) %>%
+  bind_rows(excluded_rows) %>%
+  group_by(SpeciesCode) %>%
+  arrange(
+    desc(!is.na(stationary_pval) | stationary_trend != "")#,
+    #desc(!is.na(transect_pval) | transect_trend != "")
+  ) %>%
+  slice(1) %>%
+  ungroup() %>%
+  arrange(SpeciesCode) %>%
+  select(-SpeciesCode) %>%
+  mutate(
+    stationary_trend = ifelse(is.na(stationary_trend), "", stationary_trend),
+    stationary_p     = ifelse(is.na(stationary_p), "", stationary_p) #,
+   # transect_trend   = ifelse(is.na(transect_trend), "", transect_trend),
+    #transect_p       = ifelse(is.na(transect_p), "", transect_p)
+
+)
+```
+
 ::: {.content-visible when-format="html"}
 ![Deployment in Petersburg (Grid ID 5006) in 2025](images/5006tlllk2.jpg)
 :::
@@ -775,18 +860,18 @@ Statistical analyses followed closely what was established by WCSC and Dr. Carl 
 #| message: false
 #| include: true
 #| label: tbl-cov
-#| tbl-cap: Top-performing stationary models selected via AIC-based stepwise selection. Covariates are described as, Moon = moon illumination × proportion of night above horizon; Clutter = distance (m) to nearest object; Nearby Water = detector within 100m of water;RH = mean nightly relative humidity (%); Degree Days = cumulative degree days above 10°C since Jan 1. Source @raeBlejwas2024Alaska
+#| tbl-cap: Top-performing stationary models selected via AIC-based stepwise selection. Covariates are described as, Distance to Clutter = distance (m) to nearest object; Percent Clutter = estimated percentage of space within a 50m radius obstructed by objects; Water Nearby = detector within 100m of water; WaterDist = distance (m) to nearest water feature; Nightly Temperature = nightly air temperature (°C); RH = nightly relative humidity (%); Nightly Mean Wind Speed = mean nightly wind speed (m/s); Nightly Precipitation = total nightly precipitation (mm); jNight = Julian date (day of year) of the survey night.
 #| fig.pos: 'H'
-# 
-# kable(model_covariates,
-#       col.names = c("Species", "Species Code", "Top Performing Model Covariates"),
-#       label = "model-covariates") %>%
-#   kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
-#                 full_width = FALSE,
-#                 position = "left") %>%
-#   column_spec(1, width = "15em") %>%
-#   column_spec(2, width = "8em") %>%
-#   column_spec(3, width = "20em")
+
+kable(model_covariates,
+      col.names = c("Species", "Species Code", "Top Performing Model Covariates"),
+      label = "model-covariates") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE,
+                position = "left") %>%
+  column_spec(1, width = "15em") %>%
+  column_spec(2, width = "8em") %>%
+  column_spec(3, width = "20em")
 
 ```
 
@@ -867,7 +952,37 @@ if (is_html) {
 
 ## Activity Trends
 
-Coming soon...
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: tbl-modelcov
+#| tbl-cap:  Stationary trend estimates from 2015-2025 NABat monitoring in S.E. Alaska adjusted for covariates. Trends estimated on a logarithmic scale, thus a trend estimate of 0.05 corresponds to an annual change of 5%. Significant results (p value < 0.05) are highlighted in bold.
+#| tbl-pos: 'H'
+
+#Temporary table with only stationary results
+kable(merged_table %>% select(Species, stationary_trend, stationary_p),
+      col.names = c("Species", "Trend Estimate ± 95%CI", "P-value"),
+      align = c("l", "r", "r"),
+      booktabs = TRUE) %>%
+  kable_styling(latex_table_env = "tabular") %>%
+  add_header_above(c(" " = 1, "Stationary Models" = 2)) %>%
+  column_spec(2, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE)) %>%
+  column_spec(3, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE))
+
+# # Display table with conditional bolding for both stationary and transect
+# kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_trend, transect_p),
+#       col.names = c("Species", "Trend Estimate ± 95%CI", "P-value",
+#                     "Trend Estimate ± 95%CI", "P-value"),
+#       align = c("l", "r", "r", "r", "r"),
+#       booktabs = TRUE) %>%
+#   kable_styling(latex_table_env = "tabular") %>%
+#   add_header_above(c(" " = 1, "Stationary Models" = 2, "Transect Models" = 2)) %>%
+#   column_spec(2, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE)) %>%
+#   column_spec(3, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE)) %>%
+#   column_spec(4, bold = ifelse(!is.na(merged_table$transect_pval) & merged_table$transect_pval < 0.05, TRUE, FALSE)) %>%
+#   column_spec(5, bold = ifelse(!is.na(merged_table$transect_pval) & merged_table$transect_pval < 0.05, TRUE, FALSE))
+```
 
 ## Dynamic Occupancy
 
