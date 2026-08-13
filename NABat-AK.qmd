@@ -45,6 +45,70 @@ nocite: '@*'
 ---
 
 ```{r}
+#| label: make summary from raw combined df
+#| include: false
+#| echo: false
+#| eval: true
+#| warning: false
+#| message: false
+
+# #This is just here to show how the summaries for df_pt and df1 were done
+# df <- read.csv("Data/2025Raw.csv")
+# keep_grids <- c(18318, 206, 47310)  # Wrangell, POW, Ketchikan have actual confirmed MYVO. Any other grids need to get MYVO tags downgraded
+# 
+# df <- df %>%
+#   mutate(
+#     Final.Species.ID = if_else(
+#       Final.Species.ID == "MYVO" & !(GRTS.Cell.ID %in% keep_grids),
+#       "MYLUMYVO",
+#       Final.Species.ID
+#     )
+#   )
+# 
+# #Drop codes fro site maps
+# drop_codes <- c("NOISE", "FB")
+# 
+# unid_codes <- c("NOID")  #clarify that this is not a species code
+# # Keeps individual clock times (df1 is aggregated and can't).
+# df_pts <- df %>%
+#   filter(!is.na(Final.Species.ID)) %>%
+#   mutate(ts = as.POSIXct(Timestamp, format = "%Y-%m-%d %H:%M", tz = "UTC")) %>%
+#   transmute(species_raw = Final.Species.ID, SiteName, ts) %>%
+#   separate_rows(species_raw, sep = "\\s*,\\s*") %>%
+#   mutate(species = toupper(trimws(species_raw))) %>%
+#   filter(!species %in% drop_codes, species != "", !is.na(ts)) %>%
+#   mutate(
+#     Site_key   = tolower(trimws(SiteName)),
+#     hr         = as.numeric(format(ts, "%H")) + as.numeric(format(ts, "%M")) / 60,
+#     nh         = ifelse(hr < 12, hr + 24, hr),               # wrap post-midnight past 24 so 0:00 sits above 23:00
+#     night_date = as.Date(ts - 12 * 3600),                    # dusk-to-dawn pooled onto one date (same rule as df1)
+#     x          = as.Date(paste0("2001-", format(night_date, "%m-%d"))),  # season-normalised, overlays years
+#     facet = ifelse(nchar(species) > 4 | species %in% unid_codes, "Unidentified", species)     # your >4-char rule plus NoID
+#   )
+# 
+# # species <- Final.Species.ID   Site <- CellName   date <- Timestamp   year <- Year
+# df1 <- df %>%
+#   filter(!is.na(Final.Species.ID)) %>%
+#   mutate(rec_id = row_number()) %>%       # one row of df == one recording
+#   transmute(
+#     rec_id,
+#     species_raw = Final.Species.ID,
+#     Site        = SiteName,
+#     date = as.Date(as.POSIXct(Timestamp, format = "%Y-%m-%d %H:%M", tz = "UTC") - 12 * 3600),     # For biological "nights" (pool dusk-to-dawn onto one date)
+#     year        = Year
+#   ) %>%
+#   # A recording with two or more bats, e.g. "MYLU,LANO", becomes one row per
+#   # species so each identified species is counted (not lumped into a combo code).
+#   separate_rows(species_raw, sep = "\\s*,\\s*") %>%
+#   mutate(species = toupper(trimws(species_raw))) %>%
+#   filter(!species %in% drop_codes) %>%    # removes Noise, FB, blanks, junk buckets
+#   count(species, year, date, Site, name = "n_files")
+# 
+# write.csv(df_pts,"Data/hourlySppDetection.csv")
+# write.csv(df1, "Data/dailytotaldetection.csv")
+```
+
+```{r}
 #| label: Load packages and summary data
 #| include: false
 #| echo: false
@@ -65,24 +129,28 @@ library(knitr)
 library(ggplot2)
 library(htmltools)
 library(sf)
+library(lubridate)
 #set these so that the document can render both html and pdf
 is_html <- knitr::pandoc_to("html")
 is_pdf  <- !is_html
 
 #Need to specify figure captions based on the rendering type (PDF or HTML)
 cap_sitesummary <- paste0(
-  "Acoustic bat monitoring sites in Alaska in 2025. ",
-  "NABat Grid cells that were monitored (with 2 or more stationary sites) in 2025 and 2024 appear in red and orange. Grids that have been monitored in previous years but not 2024 or 25 appear in grey.",
+  "Acoustic bat monitoring sites in Alaska in 2025.",
+  "NABat grid cells monitored (with two or more stationary sites) in 2025 appear in red and those monitored in 2024 in orange. Cells monitored in previous years but not in 2024 or 2025 appear in grey.",
   if (is_html) paste0(
-    "Zomming in shows specific sites (blue circles) within each grid cell (squares) and clicking any site opens a summary of species detections, including a ",
-    "pie chart of total detections by species code and a bar chart of means of daily ",
-    "detection totals."
+    "Zooming in shows monitoring sites (blue circles) within each grid cell. Clicking any site opens a summary of species detections, including a pie chart of total detections by species code, bar chart of means of daily detection totals, and figure with hourly detections by species."
   ) else ""
 )
 
 #load summary and trend model data
 sites <- read.csv("Data/Sites2025.csv")
-df <- read.csv("Data/2025Raw.csv")
+df_pts <- read.csv("Data/hourlySppDetection.csv")
+df_pts$x <- ymd(df_pts$x)
+df_pts$night_date <- ymd(df_pts$night_date)
+df_pts$ts <- ymd_hms(df_pts$ts)
+df1 <- read.csv("Data/dailytotaldetection.csv")
+df1$date <- ymd(df1$date)
 
 grids <- st_read("Data/AK_GRTS10km_GridsSampled2025.shp", quiet = TRUE)
 grids <- st_transform(grids, 4326)
@@ -92,8 +160,6 @@ grids$border_col <- dplyr::case_when(
   TRUE                   ~ "#999999"    # grey (any other year / NA)
 )
 
-#Drop codes fro site maps
-drop_codes <- c("NOISE", "FB")
 
 #--------------Clean up data to create site map------------
 # ---- 0. Settings -----------------------------------------------------------
@@ -112,46 +178,11 @@ pal_get <- function(nm) {
 }
 
 # ---- 0a. Per-detection frame for the hour-facet plot -----------------------
-unid_codes <- c("NOID")  #clarify that this is not a species code
-# Keeps individual clock times (df1 is aggregated and can't).
-df_pts <- df %>%
-  filter(!is.na(Final.Species.ID)) %>%
-  mutate(ts = as.POSIXct(Timestamp, format = "%Y-%m-%d %H:%M", tz = "UTC")) %>%
-  transmute(species_raw = Final.Species.ID, Site, ts) %>%
-  separate_rows(species_raw, sep = "\\s*,\\s*") %>%
-  mutate(species = toupper(trimws(species_raw))) %>%
-  filter(!species %in% drop_codes, species != "", !is.na(ts)) %>%
-  mutate(
-    Site_key   = tolower(trimws(Site)),
-    hr         = as.numeric(format(ts, "%H")) + as.numeric(format(ts, "%M")) / 60,
-    nh         = ifelse(hr < 12, hr + 24, hr),               # wrap post-midnight past 24 so 0:00 sits above 23:00
-    night_date = as.Date(ts - 12 * 3600),                    # dusk-to-dawn pooled onto one date (same rule as df1)
-    x          = as.Date(paste0("2001-", format(night_date, "%m-%d"))),  # season-normalised, overlays years
-    facet = ifelse(nchar(species) > 4 | species %in% unid_codes, "Unidentified", species)     # your >4-char rule plus NoID
-  )
-
 # Shared axes across every popup, so panels are comparable site to site
 hour_xlim <- range(df_pts$x,  na.rm = TRUE)
 hour_ylim <- range(df_pts$nh, na.rm = TRUE)
 
 # ---- 0b. Build night x site x species detection counts from raw df ---------
-# species <- Final.Species.ID   Site <- CellName   date <- Timestamp   year <- Year
-df1 <- df %>%
-  filter(!is.na(Final.Species.ID)) %>%
-  mutate(rec_id = row_number()) %>%       # one row of df == one recording
-  transmute(
-    rec_id,
-    species_raw = Final.Species.ID,
-    Site        = Site,
-    date = as.Date(as.POSIXct(Timestamp, format = "%Y-%m-%d %H:%M", tz = "UTC") - 12 * 3600),     # For biological "nights" (pool dusk-to-dawn onto one date)
-    year        = Year
-  ) %>%
-  # A recording with two or more bats, e.g. "MYLU,LANO", becomes one row per
-  # species so each identified species is counted (not lumped into a combo code).
-  separate_rows(species_raw, sep = "\\s*,\\s*") %>%
-  mutate(species = toupper(trimws(species_raw))) %>%
-  filter(!species %in% drop_codes) %>%    # removes Noise, FB, blanks, junk buckets
-  count(species, year, date, Site, name = "n_files")
 
 # Species actually present drive the pies/legend (nothing is silently dropped).
 target_species <- sort(unique(df1$species))
@@ -415,12 +446,12 @@ make_hourfacet_svg <- function(dd, ylim, width = 340L,
                                mt = 30L, strip_h = 15L, panel_h = 150L,
                                xlab_h = 30L, point_r = 1.8,
                                point_fill = "#2c7fb8", font_size = 8L,
+                               site_cols = NULL,
                                title = "Detection time of night by species") {
   
   if (is.null(dd) || nrow(dd) == 0) {
-    return(sprintf(
-      '<svg width="%d" height="150" xmlns="http://www.w3.org/2000/svg"><text x="%d" y="75" font-size="12" fill="#666" text-anchor="middle" font-family="sans-serif">No detections</text></svg>',
-      width, width %/% 2L))
+    return(sprintf('<svg width="%d" height="150" xmlns="http://www.w3.org/2000/svg"><text x="%d" y="75" font-size="12" fill="#666" text-anchor="middle" font-family="sans-serif">No detections</text></svg>',
+                   width, width %/% 2L))
   }
   
   facs <- unique(dd$facet)
@@ -428,31 +459,35 @@ make_hourfacet_svg <- function(dd, ylim, width = 340L,
             if ("Unidentified" %in% facs) "Unidentified")
   nf   <- length(facs)
   
+  by_site   <- !is.null(site_cols) && "Site" %in% names(dd)
+  leg_sites <- if (by_site) names(site_cols)[names(site_cols) %in% dd$Site] else character(0)
+  leg_h     <- if (length(leg_sites)) 18L else 0L
+  
   panel_w <- max(40L, (width - ml - mr - (nf - 1L) * panel_gap) %/% nf)
   total_w <- ml + nf * panel_w + (nf - 1L) * panel_gap + mr
-  total_h <- mt + strip_h + panel_h + xlab_h
-  ptop <- mt + strip_h; pbot <- ptop + panel_h
+  total_h <- mt + leg_h + strip_h + panel_h + xlab_h
+  strip_y <- mt + leg_h; ptop <- strip_y + strip_h; pbot <- ptop + panel_h
   
-  # ---- x scale from THIS site's sampled dates (padded); ticks ARE those dates
-  ud    <- sort(unique(dd$x))
-  xr    <- range(ud)
-  xpad  <- max(1, as.numeric(diff(xr)) * 0.08)
-  xlo   <- xr[1] - xpad; xhi <- xr[2] + xpad
+  ud    <- sort(unique(dd$x)); xr <- range(ud)
+  xpad  <- max(1, as.numeric(diff(xr)) * 0.08); xlo <- xr[1] - xpad; xhi <- xr[2] + xpad
   xspan <- as.numeric(xhi - xlo); if (xspan <= 0) xspan <- 1
-  maxlab <- max(2L, panel_w %/% 22L)                        # thin rotated labels to fit
-  if (length(ud) > maxlab)
-    ud <- ud[unique(round(seq(1, length(ud), length.out = maxlab)))]
+  maxlab <- max(2L, panel_w %/% 22L)
+  if (length(ud) > maxlab) ud <- ud[unique(round(seq(1, length(ud), length.out = maxlab)))]
   inpad <- 5
   xpix <- function(d, px0) px0 + inpad + (as.numeric(d - xlo) / xspan) * (panel_w - 2 * inpad)
   
-  # ---- y scale: start of night on top (earliest hour at ptop) --------------
   y0 <- floor(min(ylim)); y1 <- ceiling(max(ylim)); if (y1 - y0 < 1) y1 <- y0 + 1
   yspan <- y1 - y0
-  ypix <- function(nh) ptop + ((nh - y0) / yspan) * panel_h   # <- flipped vs. before
+  ypix <- function(nh) ptop + ((nh - y0) / yspan) * panel_h
   
-  title_txt <- sprintf(
-    '<text x="%f" y="14" font-size="11" font-weight="bold" fill="#2c3e50" text-anchor="middle" font-family="sans-serif">%s</text>',
-    total_w / 2, htmltools::htmlEscape(title))
+  title_txt <- sprintf('<text x="%f" y="14" font-size="11" font-weight="bold" fill="#2c3e50" text-anchor="middle" font-family="sans-serif">%s</text>',
+                       total_w / 2, htmltools::htmlEscape(title))
+  
+  legend_txt <- if (!length(leg_sites)) "" else paste(vapply(seq_along(leg_sites), function(j) {
+    lx <- ml + (j - 1) * 110
+    paste0(sprintf('<rect x="%f" y="%f" width="11" height="11" rx="2" fill="%s"/>', lx, mt + 4, unname(site_cols[leg_sites[j]])),
+           sprintf('<text x="%f" y="%f" font-size="%d" fill="#333" font-family="sans-serif">%s</text>', lx + 15, mt + 13, font_size, htmltools::htmlEscape(leg_sites[j])))
+  }, character(1)), collapse = "")
   
   yhours <- y0:y1
   ygrid_labels <- paste(vapply(yhours, function(h) sprintf(
@@ -462,20 +497,20 @@ make_hourfacet_svg <- function(dd, ylim, width = 340L,
   panels <- paste(vapply(seq_len(nf), function(k) {
     fc  <- facs[k]; px0 <- ml + (k - 1L) * (panel_w + panel_gap)
     sub <- dd[dd$facet == fc, , drop = FALSE]
-    
     bg   <- sprintf('<rect x="%f" y="%f" width="%d" height="%d" fill="#ebebeb"/>', px0, ptop, panel_w, panel_h)
     grid <- paste(vapply(yhours, function(h) sprintf(
       '<line x1="%f" y1="%f" x2="%f" y2="%f" stroke="#ffffff" stroke-width="1"/>',
       px0, ypix(h), px0 + panel_w, ypix(h)), character(1)), collapse = "")
     strip <- paste0(
-      sprintf('<rect x="%f" y="%f" width="%d" height="%d" fill="#d9d9d9"/>', px0, mt, panel_w, strip_h),
+      sprintf('<rect x="%f" y="%f" width="%d" height="%d" fill="#d9d9d9"/>', px0, strip_y, panel_w, strip_h),
       sprintf('<text x="%f" y="%f" font-size="%d" font-weight="bold" fill="#333" text-anchor="middle" font-family="sans-serif">%s</text>',
-              px0 + panel_w / 2, mt + strip_h - 4, font_size, htmltools::htmlEscape(fc)))
+              px0 + panel_w / 2, strip_y + strip_h - 4, font_size, htmltools::htmlEscape(fc)))
     pts <- if (nrow(sub) == 0) "" else paste(vapply(seq_len(nrow(sub)), function(i) {
       cxx <- xpix(sub$x[i], px0); cyy <- ypix(sub$nh[i])
-      hh <- floor(sub$nh[i] %% 24); mm <- round((sub$nh[i] - floor(sub$nh[i])) * 60)
-      sprintf('<circle cx="%f" cy="%f" r="%.1f" fill="%s" fill-opacity="0.7"><title>%s  %s  %02d:%02d</title></circle>',
-              cxx, cyy, point_r, point_fill, htmltools::htmlEscape(fc), format(sub$x[i], "%b %d"), hh, mm)
+      pf  <- if (by_site) unname(site_cols[sub$Site[i]]) else point_fill
+      hh  <- floor(sub$nh[i] %% 24); mm <- round((sub$nh[i] - floor(sub$nh[i])) * 60)
+      sprintf('<circle cx="%f" cy="%f" r="%.1f" fill="%s" fill-opacity="0.75"><title>%s  %s  %02d:%02d</title></circle>',
+              cxx, cyy, point_r, pf, htmltools::htmlEscape(fc), format(sub$x[i], "%b %d"), hh, mm)
     }, character(1)), collapse = "")
     xlab <- paste(vapply(seq_along(ud), function(j) {
       cxx <- xpix(ud[j], px0)
@@ -485,8 +520,73 @@ make_hourfacet_svg <- function(dd, ylim, width = 340L,
     paste0(bg, grid, pts, strip, xlab)
   }, character(1)), collapse = "")
   
-  sprintf('<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg">%s%s%s</svg>',
-          total_w, total_h, total_w, total_h, title_txt, ygrid_labels, panels)
+  sprintf('<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg">%s%s%s%s</svg>',
+          total_w, total_h, total_w, total_h, title_txt, legend_txt, ygrid_labels, panels)
+}
+
+# ---- 6b. Combined per-cell bar chart, dodged & coloured by site ------------
+make_multisite_dayseries_svg <- function(dd, site_cols, width = 700L, height = 360L,
+                                         font_size = 12,
+                                         ylab = "Recordings / night",
+                                         title = "Mean nightly detections by site") {
+  if (is.null(dd) || nrow(dd) == 0) {
+    return(sprintf('<svg width="%d" height="%d" xmlns="http://www.w3.org/2000/svg"><text x="%d" y="%d" font-size="14" fill="#666" text-anchor="middle" font-family="sans-serif">No sampling data</text></svg>',
+                   width, height, width %/% 2L, height %/% 2L))
+  }
+  sites <- names(site_cols); sites <- sites[sites %in% dd$Site]; ns <- length(sites)
+  
+  ml <- 54; mr <- 16; mt <- 54; mb <- 54
+  pw <- width - ml - mr; ph <- height - mt - mb
+  
+  maxv  <- max(dd$value, na.rm = TRUE); if (!is.finite(maxv) || maxv <= 0) maxv <- 1
+  ticks <- pretty(c(0, maxv), n = 5); ytop <- max(ticks); if (ytop == 0) ytop <- 1
+  
+  days_u <- sort(unique(dd$day)); xr <- range(days_u); span <- as.numeric(diff(xr))
+  pad <- max(1, span * 0.06); xlo <- xr[1] - pad; xhi <- xr[2] + pad
+  xspan <- as.numeric(xhi - xlo); if (xspan <= 0) xspan <- 1
+  xpos <- function(d) ml + (as.numeric(d - xlo) / xspan) * pw
+  
+  gaps    <- if (length(days_u) > 1) diff(as.numeric(days_u)) else span
+  min_gap <- if (length(gaps)) min(gaps) else 1
+  group_w <- max(8, min((min_gap / xspan) * pw * 0.85, 46)); sub_w <- group_w / max(ns, 1)
+  
+  title_txt <- sprintf('<text x="%f" y="20" font-size="15" font-weight="bold" fill="#2c3e50" text-anchor="middle" font-family="sans-serif">%s</text>', width / 2, htmltools::htmlEscape(title))
+  leg <- paste(vapply(seq_len(ns), function(j) {
+    lx <- ml + (j - 1) * 130
+    paste0(sprintf('<rect x="%f" y="30" width="12" height="12" rx="2" fill="%s"/>', lx, unname(site_cols[sites[j]])),
+           sprintf('<text x="%f" y="40" font-size="%d" fill="#333" font-family="sans-serif">%s</text>', lx + 16, font_size, htmltools::htmlEscape(sites[j])))
+  }, character(1)), collapse = "")
+  
+  grid <- ""
+  for (t in ticks) {
+    yy <- mt + ph - (t / ytop) * ph
+    grid <- paste0(grid,
+                   sprintf('<line x1="%f" y1="%f" x2="%f" y2="%f" stroke="#e6e6e6" stroke-width="1"/>', ml, yy, ml + pw, yy),
+                   sprintf('<text x="%f" y="%f" font-size="%d" fill="#555" text-anchor="end" font-family="sans-serif">%s</text>', ml - 6, yy + 3, font_size, format(t, big.mark = ",")))
+  }
+  axes <- sprintf('<line x1="%f" y1="%f" x2="%f" y2="%f" stroke="#888"/><line x1="%f" y1="%f" x2="%f" y2="%f" stroke="#888"/>',
+                  ml, mt, ml, mt + ph, ml, mt + ph, ml + pw, mt + ph)
+  
+  bars <- paste(vapply(seq_len(nrow(dd)), function(i) {
+    s <- dd$Site[i]; j <- match(s, sites); if (is.na(j)) return("")
+    center <- xpos(dd$day[i]); scx <- center - group_w / 2 + (j - 0.5) * sub_w
+    bh <- (dd$value[i] / ytop) * ph; by <- mt + ph - bh
+    sprintf('<rect x="%f" y="%f" width="%f" height="%f" fill="%s"><title>%s  %s: %s</title></rect>',
+            scx - sub_w * 0.45, by, sub_w * 0.9, bh, unname(site_cols[s]),
+            htmltools::htmlEscape(s), format(dd$day[i], "%b %d"), formatC(dd$value[i], format = "f", digits = 1))
+  }, character(1)), collapse = "")
+  
+  lab_i <- if (length(days_u) <= 8) seq_along(days_u) else unique(round(seq(1, length(days_u), length.out = 8)))
+  xlab <- paste(vapply(lab_i, function(i) {
+    cxx <- xpos(days_u[i])
+    sprintf('<text x="%f" y="%f" font-size="%d" fill="#555" text-anchor="end" font-family="sans-serif" transform="rotate(-40 %f %f)">%s</text>',
+            cxx, mt + ph + 14, font_size, cxx, mt + ph + 14, format(days_u[i], "%b %d"))
+  }, character(1)), collapse = "")
+  ytitle <- sprintf('<text x="14" y="%f" font-size="%d" fill="#555" text-anchor="middle" font-family="sans-serif" transform="rotate(-90 14 %f)">%s</text>',
+                    mt + ph / 2, font_size, mt + ph / 2, ylab)
+  
+  sprintf('<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg">%s%s%s%s%s%s%s</svg>',
+          width, height, width, height, title_txt, leg, grid, axes, bars, xlab, ytitle)
 }
 
 # ---- 7. Build the popup HTML -----------------------------------------------
@@ -607,7 +707,7 @@ NNW Bat Hub was established in 2024 with collaboration from the governments of A
 
 Bat populations in Alaska face a wide range of threats including forestry practices, anthropogenic expansion, climate change, and disease. One of the most concerning threats is White-Nose Syndrome (WNS), a deadly fungal disease caused by the fungus *Pseudogymnoascus destructans (Pd)* that affects hibernating bats. As of 2026, WNS has been confirmed in 42 U.S. states, nine Canadian provinces, and the Northwest Territories ( @fig-WNS: @segers ; @u.s.fishandwidlifeservice ). The fungus*,* but not the disease, has been detected in 5 additional states and within British Columbia. Continued monitoring of bat populations in Alaska is critical as *Pd* and WNS continue to spread throughout the region.
 
-![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in The US and Canada. Source: CWHC-RCSF (2026)](Figures/WNS-USandCanada.png){#fig-WNS}
+![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in The US and Canada. Source: CWHC-RCSF (2026)](Figures/WNS-USandCanada.png){#fig-WNS width="100%"}
 
 {{< pagebreak >}}
 
@@ -635,25 +735,25 @@ In 2025, both model types were run to examine differences in results and assess 
 
 ## Data Collection
 
-### **Stationary Surveys**
+### Stationary Surveys
 
 Two to four stationary detectors were deployed across at least two quadrants per grid cell for a minimum of seven nights. Sites were selected to maximize species detection and recording quality across different habitat types (see AK report for details). Deployment occurred between mid-May and mid-July, after bats have emerged from hibernation but before young bats are volant. Sites and timing should be kept consistent between years to minimize variability in conditions affecting bat activity.
 
-### **Transect Surveys**
+### Transect Surveys
 
 Where possible, driving transects were conducted following @loeb2015. Bats were recorded along the road by driving at \~32km/h with a microphone mounted vertically inside a magnetic pvc pipe holder on the vehicle’s roof. Transects were 30-45 km long and were surveyed twice during the stationary deployment period whenever possible.
 
-### **Landscape and Weather Covariates**
+### Landscape and Weather Covariates
 
-Model covariates for the activity trend models and dynamic occupancy models were based on those established by @rae2024, with additional exploration of factors influencing colonization and extinction in the dynamic occupancy models. For the dynamic occupancy models we included distance to the nearest road, calculated as the distance from each survey location to the closest road feature. Road features for British Columbia were derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways, while those for Southeast Alaska were taken from the [Alaska Department of Transportation and Public Facilities (AKDOT) Roads](Model%20covariates%20for%20the%20activity%20trend%20models%20and%20dynamic%20occupancy%20models%20were%20based%20on%20those%20established%20by%20@rae2024,%20with%20additional%20exploration%20of%20factors%20influencing%20colonization%20and%20extinction%20in%20the%20dynamic%20occupancy%20models.%20For%20the%20dynamic%20occupancy%20models%20we%20included%20distance%20to%20the%20nearest%20road,%20calculated%20as%20the%20distance%20from%20each%20survey%20location%20to%20the%20closest%20road%20feature.%20Road%20features%20for%20British%20Columbia%20were%20derived%20from%20the%20unpublished%20Human%20Footprint%20Index%20(HFI)%20layer%20currently%20being%20developed%20by%20the%20Geospatial%20Centre%20within%20Biodiversity%20Pathways,%20while%20those%20for%20Southeast%20Alaska%20were%20taken%20from%20the%20Alaska%20Department%20of%20Transportation%20and%20Public%20Facilities%20(AKDOT)%20Roads%20layer,%20a%20statewide%20road-centerline%20dataset%20distributed%20through%20the%20State%20of%20Alaska%20open-data%20portal%20(https://gis.data.alaska.gov/datasets/AKDOT::roads-akdot/about).) layer, a statewide road-centerline dataset distributed through the State of Alaska open-data portal.
+Model covariates for the activity trend models and dynamic occupancy models were based on those established by @raeBlejwas2024Alaska , with additional exploration of factors influencing colonization and extinction in the dynamic occupancy models. For the dynamic occupancy models we included distance to the nearest road, calculated as the distance from each survey location to the closest road feature. Road features for British Columbia were derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways, while those for Southeast Alaska were taken from the [Alaska Department of Transportation and Public Facilities (AKDOT) Roads](Model%20covariates%20for%20the%20activity%20trend%20models%20and%20dynamic%20occupancy%20models%20were%20based%20on%20those%20established%20by%20@rae2024,%20with%20additional%20exploration%20of%20factors%20influencing%20colonization%20and%20extinction%20in%20the%20dynamic%20occupancy%20models.%20For%20the%20dynamic%20occupancy%20models%20we%20included%20distance%20to%20the%20nearest%20road,%20calculated%20as%20the%20distance%20from%20each%20survey%20location%20to%20the%20closest%20road%20feature.%20Road%20features%20for%20British%20Columbia%20were%20derived%20from%20the%20unpublished%20Human%20Footprint%20Index%20(HFI)%20layer%20currently%20being%20developed%20by%20the%20Geospatial%20Centre%20within%20Biodiversity%20Pathways,%20while%20those%20for%20Southeast%20Alaska%20were%20taken%20from%20the%20Alaska%20Department%20of%20Transportation%20and%20Public%20Facilities%20(AKDOT)%20Roads%20layer,%20a%20statewide%20road-centerline%20dataset%20distributed%20through%20the%20State%20of%20Alaska%20open-data%20portal%20(https://gis.data.alaska.gov/datasets/AKDOT::roads-akdot/about).) layer.
 
-Temperature and relative humidity were recorded in each grid cell using onsite logging devices where possible; where loggers were unavailable, values were drawn from the nearest climate station. For sites in British Columbia, station records were obtained from the Pacific Climate Impacts Consortium (PCIC) Provincial Climate Data Set ([PCDS](https://services.pacificclimate.org/met-data-portal-pcds/)), which aggregates and quality-controls observations from multiple provincial and federal networks. For sites in Southeast Alaska, station records were obtained from NOAA's National Centers for Environmental Information (NCEI) Global Historical Climatology Network-Daily ([GHCNd](https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily))). Additional weather covariates drawn from these station records included nightly mean wind speed (km/h) and cumulative precipitation since January 1 (mm). Degree days above 10°C since January 1 were calculated from daily temperature records, and nightly moon illumination (proportion illuminated × proportion of the night the moon was above the horizon) was calculated for each site-night.
+Temperature and relative humidity were recorded in each grid cell using onsite logging devices where possible; where loggers were unavailable, values were drawn from the nearest climate station. For sites in British Columbia, station records were obtained from the Pacific Climate Impacts Consortium (PCIC) Provincial Climate Data Set ([PCDS](https://services.pacificclimate.org/met-data-portal-pcds/)), which aggregates and quality-controls observations from multiple provincial and federal networks. For sites in Southeast Alaska, station records were obtained using the meteostat library in python, which aggregates weather station records from multiple agencies. Additional weather covariates drawn from these station records included nightly mean wind speed (km/h) and cumulative precipitation since January 1 (mm). Degree days above 10°C since January 1 were calculated from daily temperature records, and nightly moon illumination (proportion illuminated × proportion of the night the moon was above the horizon) was calculated for each site-night.
 
 Site-level covariates, including distance to clutter, percent clutter, distance to water, and water feature type, were recorded by grid leaders during deployment.
 
-### **Manual Verification**
+### Manual Verification
 
-In 2025 acoustic analysis mostly followed the standards set by WCSC in previous years [@rae2024]. This included running all files through two automatic classifiers, Kaleidoscope's Bats of North America 5.4.0 classifier and Sonobat 3.0's Northwestern British Columbia classifier, to remove files that do not contain bat pulses and giving a preliminary bat species identification.
+In 2025 acoustic analysis mostly followed the standards set by WCSC in previous years [@raeBlejwas2024Alaska]. This included running all files through two automatic classifiers, Kaleidoscope's Bats of North America 5.4.0 classifier and Sonobat 3.0's southeast Alaska classifier, to remove files that do not contain bat pulses and giving a preliminary bat species identification.
 
 Manual vetting largely follows the protocol of @reichert2018 and previous analysis standards developed by WCSC. The key difference in the 2024 and 2025 acoustic analysis compared to previous years is that not all automatic species identifications were manually verified. Instead, based on findings from @stratton2022 , at least 50% of recordings were selected for manual verification.
 
@@ -661,13 +761,13 @@ Manual vetting largely follows the protocol of @reichert2018 and previous analys
 
 Starting in 2024, the NNW Bat Hub implemented manual vetting of only a subset of all the bioacoustic data collected under the NABat program. Given the project's large scale, manually vetting all recordings is not feasible long-term. To address this, the NNW Bat Hub, in collaboration with WCSC and Brian Paterson, developed procedures to ensure that selecting a subset of recordings for manual review minimizes biases in analytical results. These standards prioritize the accurate identification of rare and difficult-to-recognize species to maintain the integrity of models and analyses.
 
-To ensure data accuracy, manual verification was conducted based on the number of tagged recordings at each site. For sites with 200 or fewer tagged recordings, all non-noise recordings were manually reviewed. For sites with more than 200 tagged recordings, verification depended on the proportion of recordings assigned a species label. All tags for rare species (comprising ≤10% of prior years' identifications) and commonly misidentified species were fully vetted. Additionally, recordings of common species were randomly selected for verification until 50% of total recordings were reviewed. If fewer than 50% of recordings had species tags, all classifier-assigned tags were manually verified, and "NoID" recordings were randomly selected until 50% of all recordings were reviewed.
+To ensure data accuracy, manual verification was conducted based on the number of recordings that received an autoID tag at each site. For sites with 200 or fewer tagged recordings, all non-noise recordings were manually reviewed. For sites with more than 200 tagged recordings, verification depended on the proportion of recordings assigned a species label. All tags for rare species (comprising ≤10% of prior years' identifications) and commonly misidentified species were fully vetted. Specifically, all Hoary Bat (*Lasiurus cinereus*) and Silver-haired Bat (*Lasyonicteris noctivagans*) were reviewed due to the frequent misclassification of noise files that are tagged as these species. Additionally, recordings of common species were randomly selected for verification until 50% of total recordings were reviewed. If fewer than 50% of recordings had species tags, all classifier-assigned tags were manually verified, and "NoID" recordings were randomly selected until 50% of all recordings were reviewed.
 
 ## Statistical Analyses
 
 ### Activity Trends
 
-Statistical analyses followed closely what was established by WCSC and Dr. Carl Schwarz in 2021 [@rae2024]. This includes conducting species-specific trend analyses examining activity patterns in the data collected to date using the (negative binomial GLMM) models and the covariates identified in @tbl-cov.
+Statistical analyses followed closely what was established by WCSC and Dr. Carl Schwarz in 2021 [@raeBlejwas2024Alaska]. This includes conducting species-specific trend analyses examining activity patterns in the data collected to date using the (negative binomial GLMM) models and the covariates identified in @tbl-cov.
 
 ```{r}
 #| echo: false
@@ -675,7 +775,7 @@ Statistical analyses followed closely what was established by WCSC and Dr. Carl 
 #| message: false
 #| include: true
 #| label: tbl-cov
-#| tbl-cap: Top-performing stationary models selected via AIC-based stepwise selection. Covariates are described as, Moon = moon illumination × proportion of night above horizon; Clutter = distance (m) to nearest object; Nearby Water = detector within 100m of water;RH = mean nightly relative humidity (%); Degree Days = cumulative degree days above 10°C since Jan 1. Source @rae2024North
+#| tbl-cap: Top-performing stationary models selected via AIC-based stepwise selection. Covariates are described as, Moon = moon illumination × proportion of night above horizon; Clutter = distance (m) to nearest object; Nearby Water = detector within 100m of water;RH = mean nightly relative humidity (%); Degree Days = cumulative degree days above 10°C since Jan 1. Source @raeBlejwas2024Alaska
 #| fig.pos: 'H'
 # 
 # kable(model_covariates,
@@ -694,7 +794,7 @@ Species were excluded from the analysis if model fit was not appropriate due to 
 
 #### Use of Automated Identification Results in Stationary Trend Analyses
 
-Stationary trend analyses used AutoID classifications from Kaleidoscope Pro and Sonobat 3.0. Manual verification was applied only to flag non-bat noise; where manual review suggested a different species than the AutoID label, the original AutoID classification was retained.
+For stationary trend analyses, species identifications came from AutoID (Kaleidoscope Pro and Sonobat 3.0), not from manual verification. Manual review was used only to remove non-bat noise. Specifically, files that manual review flagged as noise were excluded, but where manual review suggested a different species than the AutoID label, the AutoID classification was retained.
 
 This approach was first identified as necessary in 2023 [@rae2024], when analyses of manually verified data revealed a consistent positive trend across all species, this was interpreted as an artifact of reviewer learning over time rather than a true biological signal. As verifier experience increased across years, calls were increasingly assigned to specific species rather than left unidentified, producing an apparent increase in detections independent of actual bat activity. Because this observer effect is difficult to control for statistically, AutoID classifications are now used as the standard for all activity trend analyses, as automated classifiers apply consistent criteria across all years. While AutoID is subject to some misclassification, the error rate is consistent across years and does not confound detection of genuine temporal trends.
 
@@ -818,74 +918,83 @@ if (is_pdf) {
   appx_dir <- "Figures/AppendixB"
   if (!dir.exists(appx_dir)) dir.create(appx_dir, recursive = TRUE)
   
-  # Alphabetical by site. All 2025 sites are stationary, so every site gets
-  # both a pie and a date chart. The is_mobile guard is kept so the chunk
-  # still works unchanged if a transect/mobile column is ever added.
-  ord           <- order(map_data$Site)
-  sites_ordered <- map_data$Site[ord]
-  is_mobile_ord <- if ("is_mobile" %in% names(map_data)) {
-    map_data$is_mobile[ord]
-  } else {
-    rep(FALSE, length(sites_ordered))
+  # ---- Assign each site to a GRTS cell by the polygon its point falls in ----
+  pts_sf    <- sf::st_as_sf(map_data, coords = c("Long", "Lat"), crs = 4326, remove = FALSE)
+  cell_join <- sf::st_join(pts_sf, grids["GRTS_ID"], left = TRUE)
+  md        <- sf::st_drop_geometry(cell_join)          # map_data cols + GRTS_ID
+  
+  cell_lookup <- md[, c("Site_key", "GRTS_ID")]
+  site_names  <- md[, c("Site_key", "Site")]
+  
+  sd_all <- site_day %>%
+    dplyr::left_join(cell_lookup, by = "Site_key") %>%
+    dplyr::left_join(site_names,  by = "Site_key")
+  
+  pts_all <- df_pts %>%
+    dplyr::select(-SiteName) %>%                            # drop raw (all-caps) name
+    dplyr::left_join(cell_lookup, by = "Site_key") %>%
+    dplyr::left_join(site_names,  by = "Site_key")
+  
+  site_palette <- c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3",
+                    "#ff7f00", "#a65628", "#f781bf", "#666666")
+  
+  cells <- sort(unique(md$GRTS_ID[!is.na(md$GRTS_ID)]))
+  
+  pie_html <- pie_png <- bar_html <- bar_png <- hr_html <- hr_png <- cell_tag <- character(0)
+  
+  for (cell in cells) {
+    cell_sites <- sort(unique(md$Site[!is.na(md$GRTS_ID) & md$GRTS_ID == cell]))
+    if (length(cell_sites) == 0) next
+    cols <- setNames(site_palette[((seq_along(cell_sites) - 1) %% length(site_palette)) + 1], cell_sites)
+    tag  <- gsub("[^A-Za-z0-9]+", "_", as.character(cell))
+    
+    # Page 1: one titled pie per site
+    pie_items <- vapply(cell_sites, function(s) {
+      counts <- setNames(as.numeric(unlist(map_data[map_data$Site == s, target_species])), target_species)
+      sprintf('<div class="pieItem"><div class="pieTitle">%s</div>%s</div>', htmltools::htmlEscape(s), make_pie_svg(counts))
+    }, character(1))
+    pies_page <- sprintf('<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:12px;background:#fff;}#pies{width:740px;}.pieItem{display:inline-block;vertical-align:top;text-align:center;margin:8px;}.pieTitle{font-family:sans-serif;font-weight:bold;font-size:14px;color:#2c3e50;margin-bottom:2px;}</style></head><body><div id="pies">%s</div></body></html>',
+                         paste(pie_items, collapse = ""))
+    
+    # Page 2: combined bar (site-coloured)
+    sd_cell  <- sd_all[!is.na(sd_all$GRTS_ID) & sd_all$GRTS_ID == cell, ]
+    bar_svg  <- make_multisite_dayseries_svg(sd_cell, cols, width = 700L, height = 360L)
+    bar_page <- sprintf('<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:12px;background:#fff;}#bar{display:inline-block;}</style></head><body><div id="bar">%s</div></body></html>', bar_svg)
+    
+    # Page 3: combined hour facets (site-coloured dots)
+    pts_cell <- pts_all[!is.na(pts_all$GRTS_ID) & pts_all$GRTS_ID == cell, ]
+    hr_svg   <- make_hourfacet_svg(pts_cell, ylim = hour_ylim, site_cols = cols,
+                                   width = 700L, panel_h = 380L, panel_gap = 6L,
+                                   ml = 44L, mr = 10L, strip_h = 17L, point_r = 2.6, font_size = 11L)
+    hr_page  <- sprintf('<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:12px;background:#fff;}#hr{display:inline-block;}</style></head><body><div id="hr">%s</div></body></html>', hr_svg)
+    
+    ph <- normalizePath(file.path(appx_dir, paste0(tag, "_pies.html")), mustWork = FALSE)
+    bh <- normalizePath(file.path(appx_dir, paste0(tag, "_bar.html")),  mustWork = FALSE)
+    hh <- normalizePath(file.path(appx_dir, paste0(tag, "_hour.html")), mustWork = FALSE)
+    writeLines(pies_page, ph); writeLines(bar_page, bh); writeLines(hr_page, hh)
+    
+    pie_html <- c(pie_html, ph); pie_png <- c(pie_png, file.path(appx_dir, paste0(tag, "_pies.png")))
+    bar_html <- c(bar_html, bh); bar_png <- c(bar_png, file.path(appx_dir, paste0(tag, "_bar.png")))
+    hr_html  <- c(hr_html,  hh); hr_png  <- c(hr_png,  file.path(appx_dir, paste0(tag, "_hour.png")))
+    cell_tag <- c(cell_tag, as.character(cell))
   }
-  has_fig <- !is_mobile_ord
   
-  html_paths <- character(length(sites_ordered))
-  pie_pngs   <- character(length(sites_ordered))
-  fig_pngs   <- character(length(sites_ordered))
-  
-  for (k in seq_along(sites_ordered)) {
-    site   <- sites_ordered[k]
-    counts <- setNames(as.numeric(unlist(map_data[map_data$Site == site, target_species])),
-                       target_species)
-    
-    # Pie at its native 340x200 — cx/r/legend x are hardcoded, so don't resize.
-    # zoom = 3 carries the resolution instead.
-    pie_svg <- make_pie_svg(counts)
-    
-    fig_div <- ""
-    if (has_fig[k]) {
-      # Match the popup's site_day lookup: keyed on the normalised Site_key,
-      # NOT the raw Site name (otherwise every date chart comes out empty).
-      site_key <- tolower(trimws(site))
-      sd_i     <- site_day[site_day$Site_key == site_key, ]
-      sd_i     <- sd_i[order(sd_i$day), ]
-      fig_svg  <- make_dayseries_svg(sd_i$day, sd_i$value, xlim = day_xlim,
-                                     width = 520L, height = 320L, font_size = 12,
-                                     ylab = day_ylab)
-      fig_div  <- sprintf('<div id="fig">%s</div>', fig_svg)
-    }
-    
-    page_html <- sprintf(
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:10px;background:#fff;}#pie,#fig{display:inline-block;}</style></head><body><div id="pie">%s</div>%s</body></html>',
-      pie_svg, fig_div)
-    
-    safe          <- gsub("[^A-Za-z0-9]+", "_", site)
-    html_paths[k] <- normalizePath(file.path(appx_dir, paste0(safe, ".html")), mustWork = FALSE)
-    pie_pngs[k]   <- file.path(appx_dir, paste0(safe, "_pie.png"))
-    fig_pngs[k]   <- file.path(appx_dir, paste0(safe, "_chart.png"))
-    writeLines(page_html, html_paths[k])
-  }
-  
-  # Two headless-Chrome sessions total: one for all pies, one for all charts.
-  # webshot2 prints a "... screenshot completed" line per file to stdout, which
-  # under `output: asis` leaks into the document — capture and discard it.
   invisible(utils::capture.output(suppressMessages({
-    webshot2::webshot(url = html_paths, file = pie_pngs, selector = "#pie", zoom = 3)
-    if (any(has_fig)) {
-      webshot2::webshot(url = html_paths[has_fig], file = fig_pngs[has_fig],
-                        selector = "#fig", zoom = 2)
-    }
+    if (length(pie_html)) webshot2::webshot(url = pie_html, file = pie_png, selector = "#pies", zoom = 3)
+    if (length(bar_html)) webshot2::webshot(url = bar_html, file = bar_png, selector = "#bar",  zoom = 2)
+    if (length(hr_html))  webshot2::webshot(url = hr_html,  file = hr_png,  selector = "#hr",   zoom = 2)
   })))
   
-  # Emit the appendix as markdown
   cat("# Appendix B\n\n")
-  cat("Species detection summaries for each monitoring site.\n\n")
-  for (k in seq_along(sites_ordered)) {
+  cat("2025 Species detection summaries by GRTS cell.\n\n")
+  for (k in seq_along(cell_tag)) {
     if (k > 1) cat("\n\\newpage\n\n")
-    cat(sprintf("### %s {.unnumbered .unlisted}\n\n", sites_ordered[k]))
-    cat(sprintf("![](%s){width=60%%}\n\n", pie_pngs[k]))
-    if (has_fig[k]) cat(sprintf("![](%s){width=60%%}\n\n", fig_pngs[k]))
+    cat(sprintf("## Grid cell %s {.unnumbered .unlisted}\n\n", cell_tag[k]))
+    cat(sprintf("![](%s){width=100%%}\n\n", pie_png[k]))
+    cat("\n\\newpage\n\n")
+    cat(sprintf("![2025 Nightly activity by site, cell %s](%s){width=100%%}\n\n", cell_tag[k], bar_png[k]))
+    cat("\n\\newpage\n\n")
+    cat(sprintf("![2025 Detection times by species and site, cell %s](%s){width=100%%}\n\n", cell_tag[k], hr_png[k]))
   }
 }
 ```
