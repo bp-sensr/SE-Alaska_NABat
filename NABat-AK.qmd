@@ -160,6 +160,18 @@ grids$border_col <- dplyr::case_when(
   TRUE                   ~ "#999999"    # grey (any other year / NA)
 )
 
+#add common grid cell name
+cell_name_vec <- sites %>%
+  dplyr::filter(!is.na(GridCellName), nzchar(trimws(GridCellName))) %>%
+  dplyr::transmute(
+    key  = trimws(as.character(GRTS.Cell.Id)),   # read.csv form of "GRTS Cell Id"
+    name = trimws(GridCellName)
+  ) %>%
+  dplyr::distinct(key, .keep_all = TRUE)
+
+grids$CellName <- cell_name_vec$name[
+  match(trimws(as.character(grids$GRTS_ID)), cell_name_vec$key)
+]
 
 #--------------Clean up data to create site map------------
 # ---- 0. Settings -----------------------------------------------------------
@@ -176,6 +188,10 @@ pal_get <- function(nm) {
   v <- unname(species_pal[nm])
   ifelse(is.na(v), "#bbbbbb", v)
 }
+
+# Fixed colour per YEAR (matches the GRTS cell legend: 2024 orange, 2025 red)
+year_cols <- c(`2024` = "#ff7f00", `2025` = "#e31a1c")
+plot_years <- as.integer(names(year_cols))
 
 # ---- 0a. Per-detection frame for the hour-facet plot -----------------------
 # Shared axes across every popup, so panels are comparable site to site
@@ -210,14 +226,28 @@ site_species <- df1 %>%
 for (s in setdiff(target_species, names(site_species))) site_species[[s]] <- 0
 site_species <- site_species[, c("Site_key", target_species)]  # key + species cols
 
-# ---- 2b. Calendar-day totals per site (for the graph tab) ------------------
+# ---- 2a. Per-site x year species counts (for the two pies) ------------------
+site_species_year <- df1 %>%
+  filter(species %in% target_species) %>%
+  mutate(Site_key = tolower(trimws(Site))) %>%          # <- normalized key
+  group_by(Site_key, year, species) %>%
+  summarise(total = sum(n_files, na.rm = TRUE), .groups = "drop")
+
+# helper: named count vector for one site/year (only species present)
+counts_year <- function(sk, yr) {
+  sub <- site_species_year[site_species_year$Site_key == sk &
+                             site_species_year$year == yr, ]
+  setNames(sub$total, sub$species)
+}
+
+# ---- 2b. Calendar-day totals per site x year (for the by-date tab) ----------
 site_day <- df1 %>%
   filter(species %in% target_species) %>%
   mutate(Site_key = tolower(trimws(Site))) %>%          # <- normalized key
-  group_by(Site_key, date) %>%
+  group_by(Site_key, year, date) %>%
   summarise(night_total = sum(n_files, na.rm = TRUE), .groups = "drop") %>%
   mutate(md = format(date, "%m-%d")) %>%
-  group_by(Site_key, md) %>%
+  group_by(Site_key, year, md) %>%
   summarise(
     total  = sum(night_total),
     nights = n_distinct(date),
@@ -227,7 +257,7 @@ site_day <- df1 %>%
     day   = as.Date(paste0("2001-", md)),
     value = total / nights
   ) %>%
-  arrange(Site_key, day)
+  arrange(Site_key, year, day)
 
 day_xlim <- range(site_day$day)
 day_ylab <- "Recordings / night"
@@ -361,30 +391,46 @@ make_pie_svg <- function(counts, width = 340L, height = 200L) {
           width, height, width, height, slices, legend, total_txt)
 }
 
-# ---- 5. Calendar-day bar chart SVG -----------------------------------------
-
-make_dayseries_svg <- function(days, values, xlim, width = 340L, height = 237L,
-                               font_size = 9, ylab = "Recordings / night",
-                               title = c("Mean nightly detections by date in 2025")) {
+# ---- 5. Calendar-day bar chart SVG (dodged by year) ------------------------
+make_dayseries_year_svg <- function(dd, year_cols, xlim,
+                                    width = 340L, height = 237L,
+                                    font_size = 9, ylab = "Recordings / night",
+                                    title = "Mean nightly detections by date") {
   
-  ml <- 46; mr <- 12; mt <- 42; mb <- 50
+  ml <- 46; mr <- 12; mt <- 46; mb <- 50
   pw <- width - ml - mr; ph <- height - mt - mb
-  n  <- length(values)
   
-  title_txt <- paste(vapply(seq_along(title), function(i) sprintf(
-    '<text x="%f" y="%f" font-size="11" font-weight="bold" fill="#2c3e50" text-anchor="middle" font-family="sans-serif">%s</text>',
-    width / 2, 15 + (i - 1) * 13, htmltools::htmlEscape(title[i])), character(1)), collapse = "")
+  title_txt <- sprintf(
+    '<text x="%f" y="15" font-size="11" font-weight="bold" fill="#2c3e50" text-anchor="middle" font-family="sans-serif">%s</text>',
+    width / 2, htmltools::htmlEscape(title))
   
-  if (n == 0) {
+  if (!is.null(dd) && nrow(dd) > 0) {
+    dd <- dd[as.character(dd$year) %in% names(year_cols), , drop = FALSE]
+  }
+  if (is.null(dd) || nrow(dd) == 0) {
     return(sprintf(
       '<svg width="%d" height="%d" xmlns="http://www.w3.org/2000/svg">%s<text x="%d" y="%d" font-size="12" fill="#666" text-anchor="middle" font-family="sans-serif">No sampling data</text></svg>',
       width, height, title_txt, width %/% 2L, height %/% 2L))
   }
   
+  dd$yr <- as.character(dd$year)
+  years <- names(year_cols)[names(year_cols) %in% dd$yr]
+  ny    <- length(years)
+  
+  # year legend (top, under the title)
+  legend <- paste(vapply(seq_along(years), function(j) {
+    lx <- ml + (j - 1) * 74
+    paste0(
+      sprintf('<rect x="%f" y="26" width="11" height="11" rx="2" fill="%s"/>',
+              lx, unname(year_cols[years[j]])),
+      sprintf('<text x="%f" y="35" font-size="%d" fill="#333" font-family="sans-serif">%s</text>',
+              lx + 15, font_size, years[j]))
+  }, character(1)), collapse = "")
+  
   fmt <- function(v) formatC(v, format = "f", digits = 1, big.mark = ",")
   
   # y scale
-  maxv  <- max(values)
+  maxv  <- max(dd$value, na.rm = TRUE)
   ticks <- if (maxv == 0) c(0, 1) else pretty(c(0, maxv), n = 4)
   ytop  <- max(ticks); if (ytop == 0) ytop <- 1
   
@@ -405,53 +451,70 @@ make_dayseries_svg <- function(days, values, xlim, width = 340L, height = 237L,
   # x scale: true calendar spacing on a shared range, so gaps read as gaps
   span <- as.numeric(xlim[2] - xlim[1]); if (span <= 0) span <- 1
   xpos <- function(d) ml + (as.numeric(d - xlim[1]) / span) * pw
-  bw   <- max(2, (pw / (span + 1)) * 0.8)
   
-  bars <- paste(vapply(seq_len(n), function(i) {
-    cxx <- xpos(days[i]); bx <- cxx - bw / 2
-    bh  <- (values[i] / ytop) * ph; by <- mt + ph - bh
-    sprintf('<rect x="%f" y="%f" width="%f" height="%f" fill="#2c7fb8"><title>%s: %s</title></rect>',
-            bx, by, bw, bh, format(days[i], "%b %d"), fmt(values[i]))
+  days_u  <- sort(unique(dd$day))
+  gaps    <- if (length(days_u) > 1) diff(as.numeric(days_u)) else span
+  min_gap <- if (length(gaps)) min(gaps) else 1
+  group_w <- max(3, min((min_gap / span) * pw * 0.85, 22))
+  sub_w   <- group_w / max(ny, 1)
+  
+  bars <- paste(vapply(seq_len(nrow(dd)), function(i) {
+    j <- match(dd$yr[i], years); if (is.na(j)) return("")
+    center <- xpos(dd$day[i]); scx <- center - group_w / 2 + (j - 0.5) * sub_w
+    bh  <- (dd$value[i] / ytop) * ph; by <- mt + ph - bh
+    sprintf('<rect x="%f" y="%f" width="%f" height="%f" fill="%s"><title>%s  %s: %s</title></rect>',
+            scx - sub_w * 0.45, by, sub_w * 0.9, bh, unname(year_cols[dd$yr[i]]),
+            format(dd$day[i], "%b %d"), dd$yr[i], fmt(dd$value[i]))
   }, character(1)), collapse = "")
   
   # thin the x labels so ~8 fit without colliding
-  lab_i <- seq(1, n, by = max(1, ceiling(n / 8)))
+  lab_i <- if (length(days_u) <= 8) seq_along(days_u) else
+    unique(round(seq(1, length(days_u), length.out = 8)))
   xlab  <- paste(vapply(lab_i, function(i) {
-    cxx <- xpos(days[i])
+    cxx <- xpos(days_u[i])
     sprintf('<text x="%f" y="%f" font-size="%d" fill="#555" text-anchor="end" font-family="sans-serif" transform="rotate(-40 %f %f)">%s</text>',
-            cxx, mt + ph + 12, font_size, cxx, mt + ph + 12, format(days[i], "%b %d"))
+            cxx, mt + ph + 12, font_size, cxx, mt + ph + 12, format(days_u[i], "%b %d"))
   }, character(1)), collapse = "")
   
   ytitle <- sprintf(
     '<text x="11" y="%f" font-size="%d" fill="#555" text-anchor="middle" font-family="sans-serif" transform="rotate(-90 11 %f)">%s</text>',
     mt + ph / 2, font_size, mt + ph / 2, ylab)
   
-  sprintf('<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg">%s%s%s%s%s%s</svg>',
-          width, height, width, height, title_txt, grid, axes, bars, xlab, ytitle)
+  sprintf('<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg">%s%s%s%s%s%s%s</svg>',
+          width, height, width, height, title_txt, legend, grid, axes, bars, xlab, ytitle)
 }
-
-# ---- 6. Per-species detection-time facet SVG ------------------------------
+# ---- 6. Per-species detection-time facet SVG (points coloured by year) -----
 make_hourfacet_svg <- function(dd, ylim, width = 340L,
                                panel_gap = 4L, ml = 42L, mr = 8L,
                                mt = 30L, strip_h = 15L, panel_h = 150L,
                                xlab_h = 30L, point_r = 1.8,
                                point_fill = "#2c7fb8", font_size = 8L,
-                               site_cols = NULL,
+                               site_cols = NULL, year_cols = NULL,
                                title = "Detection time of night by species") {
+  
+  by_year <- !is.null(year_cols) && "year" %in% names(dd)
+  if (by_year && !is.null(dd) && nrow(dd) > 0) {
+    dd <- dd[as.character(dd$year) %in% names(year_cols), , drop = FALSE]
+  }
   
   if (is.null(dd) || nrow(dd) == 0) {
     return(sprintf('<svg width="%d" height="150" xmlns="http://www.w3.org/2000/svg"><text x="%d" y="75" font-size="12" fill="#666" text-anchor="middle" font-family="sans-serif">No detections</text></svg>',
                    width, width %/% 2L))
   }
   
+  if (by_year) dd$yr <- as.character(dd$year)
+  
   facs <- unique(dd$facet)
   facs <- c(sort(facs[facs != "Unidentified"]),
             if ("Unidentified" %in% facs) "Unidentified")
   nf   <- length(facs)
   
-  by_site   <- !is.null(site_cols) && "Site" %in% names(dd)
-  leg_sites <- if (by_site) names(site_cols)[names(site_cols) %in% dd$Site] else character(0)
-  leg_h     <- if (length(leg_sites)) 18L else 0L
+  by_site <- !by_year && !is.null(site_cols) && "Site" %in% names(dd)
+  
+  leg_keys <- if (by_year) names(year_cols)[names(year_cols) %in% dd$yr]
+  else if (by_site) names(site_cols)[names(site_cols) %in% dd$Site]
+  else character(0)
+  leg_h    <- if (length(leg_keys)) 18L else 0L
   
   panel_w <- max(40L, (width - ml - mr - (nf - 1L) * panel_gap) %/% nf)
   total_w <- ml + nf * panel_w + (nf - 1L) * panel_gap + mr
@@ -473,10 +536,11 @@ make_hourfacet_svg <- function(dd, ylim, width = 340L,
   title_txt <- sprintf('<text x="%f" y="14" font-size="11" font-weight="bold" fill="#2c3e50" text-anchor="middle" font-family="sans-serif">%s</text>',
                        total_w / 2, htmltools::htmlEscape(title))
   
-  legend_txt <- if (!length(leg_sites)) "" else paste(vapply(seq_along(leg_sites), function(j) {
-    lx <- ml + (j - 1) * 110
-    paste0(sprintf('<rect x="%f" y="%f" width="11" height="11" rx="2" fill="%s"/>', lx, mt + 4, unname(site_cols[leg_sites[j]])),
-           sprintf('<text x="%f" y="%f" font-size="%d" fill="#333" font-family="sans-serif">%s</text>', lx + 15, mt + 13, font_size, htmltools::htmlEscape(leg_sites[j])))
+  legend_txt <- if (!length(leg_keys)) "" else paste(vapply(seq_along(leg_keys), function(j) {
+    lx  <- ml + (j - 1) * (if (by_year) 60 else 110)
+    col <- if (by_year) unname(year_cols[leg_keys[j]]) else unname(site_cols[leg_keys[j]])
+    paste0(sprintf('<rect x="%f" y="%f" width="11" height="11" rx="2" fill="%s"/>', lx, mt + 4, col),
+           sprintf('<text x="%f" y="%f" font-size="%d" fill="#333" font-family="sans-serif">%s</text>', lx + 15, mt + 13, font_size, htmltools::htmlEscape(leg_keys[j])))
   }, character(1)), collapse = "")
   
   yhours <- y0:y1
@@ -497,7 +561,9 @@ make_hourfacet_svg <- function(dd, ylim, width = 340L,
               px0 + panel_w / 2, strip_y + strip_h - 4, font_size, htmltools::htmlEscape(fc)))
     pts <- if (nrow(sub) == 0) "" else paste(vapply(seq_len(nrow(sub)), function(i) {
       cxx <- xpix(sub$x[i], px0); cyy <- ypix(sub$nh[i])
-      pf  <- if (by_site) unname(site_cols[sub$Site[i]]) else point_fill
+      pf  <- if (by_year) unname(year_cols[sub$yr[i]])
+      else if (by_site) unname(site_cols[sub$Site[i]])
+      else point_fill
       hh  <- floor(sub$nh[i] %% 24); mm <- round((sub$nh[i] - floor(sub$nh[i])) * 60)
       sprintf('<circle cx="%f" cy="%f" r="%.1f" fill="%s" fill-opacity="0.75"><title>%s  %s  %02d:%02d</title></circle>',
               cxx, cyy, point_r, pf, htmltools::htmlEscape(fc), format(sub$x[i], "%b %d"), hh, mm)
@@ -513,7 +579,6 @@ make_hourfacet_svg <- function(dd, ylim, width = 340L,
   sprintf('<svg width="%d" height="%d" viewBox="0 0 %d %d" xmlns="http://www.w3.org/2000/svg">%s%s%s%s</svg>',
           total_w, total_h, total_w, total_h, title_txt, legend_txt, ygrid_labels, panels)
 }
-
 # ---- 6b. Combined per-cell bar chart, dodged & coloured by site ------------
 make_multisite_dayseries_svg <- function(dd, site_cols, width = 700L, height = 360L,
                                          font_size = 12,
@@ -616,25 +681,33 @@ build_popup <- function(site_name, counts, comment = NA,
 
 map_data$popup <- vapply(seq_len(nrow(map_data)), function(i) {
   site     <- map_data$Site[i]
-  counts   <- setNames(as.numeric(unlist(map_data[i, target_species])), target_species)
   site_key <- tolower(trimws(map_data$Site[i]))
   
-  sd_i  <- site_day[site_day$Site_key == site_key, ]
+  # by-date data for this site, restricted to the years we plot
+  sd_i  <- site_day[site_day$Site_key == site_key & site_day$year %in% plot_years, ]
   sd_i  <- sd_i[order(sd_i$day), ]
   pts_i <- df_pts[df_pts$Site_key == site_key, ]
   
-  # per-site date window for the bar chart -> no more blank space for other sites' dates
+  # per-site date window for the bar chart -> no blank space for other sites' dates
   if (nrow(sd_i) > 0) {
     xr  <- range(sd_i$day)
     pad <- max(1, as.numeric(diff(xr)) * 0.06)
     site_day_xlim <- xr + c(-pad, pad)
   } else site_day_xlim <- day_xlim
   
-  pie_svg <- make_pie_svg(counts)
-  ts_svg  <- make_dayseries_svg(sd_i$day, sd_i$value, xlim = site_day_xlim, ylab = day_ylab)
-  hr_svg  <- make_hourfacet_svg(pts_i, ylim = hour_ylim)
+  # ---- Species tab: one labelled pie per year with data ----
+  yrs_here <- plot_years[vapply(plot_years, function(y) sum(counts_year(site_key, y)) > 0, logical(1))]
+  if (length(yrs_here) == 0) yrs_here <- plot_years
+  pie_svg <- paste(vapply(yrs_here, function(y) {
+    sprintf('<div style="font-weight:bold;font-size:12px;color:#2c3e50;margin:6px 0 2px;">%s</div>%s',
+            y, make_pie_svg(counts_year(site_key, y)))
+  }, character(1)), collapse = "")
   
-  build_popup(site, counts, map_data$Comment[i], pie_svg, ts_svg, hr_svg, show_graph = TRUE)
+  ts_svg <- make_dayseries_year_svg(sd_i, year_cols = year_cols,
+                                    xlim = site_day_xlim, ylab = day_ylab)
+  hr_svg <- make_hourfacet_svg(pts_i, ylim = hour_ylim, year_cols = year_cols)
+  
+  build_popup(site, NULL, map_data$Comment[i], pie_svg, ts_svg, hr_svg, show_graph = TRUE)
 }, character(1))
 # ---- 8. Build the map ------------------------------------------------------
 
@@ -647,8 +720,11 @@ m <- leaflet(map_data) %>%
     opacity     = 1,
     fill        = FALSE,         # transparent interior, and no click capture
     group       = "GRTS grid cells",
-    label       =  ~paste0("Cell ", GRTS_ID, "; Last sampled: ", LastYSamp)
-  ) %>%
+    label       = ~ifelse(
+      !is.na(CellName) & nzchar(CellName),
+      paste0("Cell ", GRTS_ID, " - ", CellName, "; Last sampled: ", LastYSamp),
+      paste0("Cell ", GRTS_ID, "; Last sampled: ", LastYSamp))
+    )%>%
   addCircleMarkers(
     lng = ~Long, lat = ~Lat,
     radius = 6, color = "#2c3e50", weight = 1,
@@ -1033,6 +1109,12 @@ if (is_pdf) {
   appx_dir <- "Figures/AppendixB"
   if (!dir.exists(appx_dir)) dir.create(appx_dir, recursive = TRUE)
   
+  # years to show, top to bottom
+  appx_years <- c(2025, 2024)
+  
+  # shared CSS for the year subheadings
+  year_css <- ".yearBlock{margin-bottom:16px;}.yearHdr{font-family:sans-serif;font-weight:bold;font-size:16px;color:#2c3e50;border-bottom:2px solid #ccc;margin:6px 0 8px;padding-bottom:2px;}"
+  
   # ---- Assign each site to a GRTS cell by the polygon its point falls in ----
   pts_sf    <- sf::st_as_sf(map_data, coords = c("Long", "Lat"), crs = 4326, remove = FALSE)
   cell_join <- sf::st_join(pts_sf, grids["GRTS_ID"], left = TRUE)
@@ -1040,6 +1122,23 @@ if (is_pdf) {
   
   cell_lookup <- md[, c("Site_key", "GRTS_ID")]
   site_names  <- md[, c("Site_key", "Site")]
+  
+  # grid cell name per site (new column in Sites2025.csv)
+  name_lookup <- sites %>%
+    dplyr::transmute(
+      Site_key     = tolower(trimws(Location.Name)),
+      GridCellName = GridCellName                     # <- adjust if header differs
+    ) %>%
+    dplyr::distinct(Site_key, .keep_all = TRUE)
+  
+  md <- dplyr::left_join(md, name_lookup, by = "Site_key")
+  
+  # one name per GRTS cell (first non-empty among that cell's sites)
+  cell_name_for <- function(cl) {
+    nm <- md$GridCellName[!is.na(md$GRTS_ID) & md$GRTS_ID == cl]
+    nm <- nm[!is.na(nm) & nzchar(trimws(nm))]
+    if (length(nm)) trimws(nm[1]) else NA_character_
+  }
   
   sd_all <- site_day %>%
     dplyr::left_join(cell_lookup, by = "Site_key") %>%
@@ -1055,33 +1154,64 @@ if (is_pdf) {
   
   cells <- sort(unique(md$GRTS_ID[!is.na(md$GRTS_ID)]))
   
-  pie_html <- pie_png <- bar_html <- bar_png <- hr_html <- hr_png <- cell_tag <- character(0)
+  pie_html <- pie_png <- bar_html <- bar_png <- hr_html <- hr_png <- cell_tag <- cell_title <- character(0) 
   
   for (cell in cells) {
     cell_sites <- sort(unique(md$Site[!is.na(md$GRTS_ID) & md$GRTS_ID == cell]))
     if (length(cell_sites) == 0) next
+    cell_keys <- tolower(trimws(cell_sites))
     cols <- setNames(site_palette[((seq_along(cell_sites) - 1) %% length(site_palette)) + 1], cell_sites)
     tag  <- gsub("[^A-Za-z0-9]+", "_", as.character(cell))
+    cname    <- cell_name_for(cell)
+    cell_lab <- if (!is.na(cname)) paste0(cell, " - ", cname) else as.character(cell)
     
-    # Page 1: one titled pie per site
-    pie_items <- vapply(cell_sites, function(s) {
-      counts <- setNames(as.numeric(unlist(map_data[map_data$Site == s, target_species])), target_species)
-      sprintf('<div class="pieItem"><div class="pieTitle">%s</div>%s</div>', htmltools::htmlEscape(s), make_pie_svg(counts))
-    }, character(1))
-    pies_page <- sprintf('<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:12px;background:#fff;}#pies{width:740px;}.pieItem{display:inline-block;vertical-align:top;text-align:center;margin:8px;}.pieTitle{font-family:sans-serif;font-weight:bold;font-size:14px;color:#2c3e50;margin-bottom:2px;}</style></head><body><div id="pies">%s</div></body></html>',
-                         paste(pie_items, collapse = ""))
-    
-    # Page 2: combined bar (site-coloured)
-    sd_cell  <- sd_all[!is.na(sd_all$GRTS_ID) & sd_all$GRTS_ID == cell, ]
-    bar_svg  <- make_multisite_dayseries_svg(sd_cell, cols, width = 700L, height = 360L)
-    bar_page <- sprintf('<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:12px;background:#fff;}#bar{display:inline-block;}</style></head><body><div id="bar">%s</div></body></html>', bar_svg)
-    
-    # Page 3: combined hour facets (site-coloured dots)
+    sd_cell  <- sd_all[!is.na(sd_all$GRTS_ID)  & sd_all$GRTS_ID  == cell, ]
     pts_cell <- pts_all[!is.na(pts_all$GRTS_ID) & pts_all$GRTS_ID == cell, ]
-    hr_svg   <- make_hourfacet_svg(pts_cell, ylim = hour_ylim, site_cols = cols,
+    
+    # which years actually have data for this cell, per artifact
+    pie_years <- appx_years[appx_years %in%
+                              site_species_year$year[site_species_year$Site_key %in% cell_keys]]
+    bar_years <- appx_years[appx_years %in% sd_cell$year]
+    hr_years  <- appx_years[appx_years %in% pts_cell$year]
+    if (!length(pie_years)) pie_years <- appx_years
+    if (!length(bar_years)) bar_years <- appx_years
+    if (!length(hr_years))  hr_years  <- appx_years
+    
+    # Page 1: one titled pie per site, one year block per year
+    pies_inner <- paste(vapply(pie_years, function(y) {
+      items <- vapply(cell_sites, function(s) {
+        counts <- counts_year(tolower(trimws(s)), y)
+        sprintf('<div class="pieItem"><div class="pieTitle">%s</div>%s</div>',
+                htmltools::htmlEscape(s), make_pie_svg(counts))
+      }, character(1))
+      sprintf('<div class="yearBlock"><div class="yearHdr">%s</div>%s</div>',
+              y, paste(items, collapse = ""))
+    }, character(1)), collapse = "")
+    
+    pies_page <- sprintf('<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:12px;background:#fff;}#pies{width:740px;}%s.pieItem{display:inline-block;vertical-align:top;text-align:center;margin:8px;}.pieTitle{font-family:sans-serif;font-weight:bold;font-size:14px;color:#2c3e50;margin-bottom:2px;}</style></head><body><div id="pies">%s</div></body></html>',
+                         year_css, pies_inner)
+    
+    # Page 2: combined bar (site-coloured), one year block per year
+    bar_inner <- paste(vapply(bar_years, function(y) {
+      sd_cy   <- sd_cell[sd_cell$year == y, ]
+      bar_svg <- make_multisite_dayseries_svg(sd_cy, cols, width = 700L, height = 360L)
+      sprintf('<div class="yearBlock"><div class="yearHdr">%s</div>%s</div>', y, bar_svg)
+    }, character(1)), collapse = "")
+    
+    bar_page <- sprintf('<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:12px;background:#fff;}#bar{display:inline-block;}%s</style></head><body><div id="bar">%s</div></body></html>',
+                        year_css, bar_inner)
+    
+    # Page 3: combined hour facets (site-coloured dots), one year block per year
+    hr_inner <- paste(vapply(hr_years, function(y) {
+      pts_cy <- pts_cell[pts_cell$year == y, ]
+      hr_svg <- make_hourfacet_svg(pts_cy, ylim = hour_ylim, site_cols = cols,
                                    width = 700L, panel_h = 380L, panel_gap = 6L,
                                    ml = 44L, mr = 10L, strip_h = 17L, point_r = 2.6, font_size = 11L)
-    hr_page  <- sprintf('<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:12px;background:#fff;}#hr{display:inline-block;}</style></head><body><div id="hr">%s</div></body></html>', hr_svg)
+      sprintf('<div class="yearBlock"><div class="yearHdr">%s</div>%s</div>', y, hr_svg)
+    }, character(1)), collapse = "")
+    
+    hr_page <- sprintf('<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:12px;background:#fff;}#hr{display:inline-block;}%s</style></head><body><div id="hr">%s</div></body></html>',
+                       year_css, hr_inner)
     
     ph <- normalizePath(file.path(appx_dir, paste0(tag, "_pies.html")), mustWork = FALSE)
     bh <- normalizePath(file.path(appx_dir, paste0(tag, "_bar.html")),  mustWork = FALSE)
@@ -1092,6 +1222,7 @@ if (is_pdf) {
     bar_html <- c(bar_html, bh); bar_png <- c(bar_png, file.path(appx_dir, paste0(tag, "_bar.png")))
     hr_html  <- c(hr_html,  hh); hr_png  <- c(hr_png,  file.path(appx_dir, paste0(tag, "_hour.png")))
     cell_tag <- c(cell_tag, as.character(cell))
+    cell_title <- c(cell_title, cell_lab)
   }
   
   invisible(utils::capture.output(suppressMessages({
@@ -1101,17 +1232,16 @@ if (is_pdf) {
   })))
   
   cat("# Appendix B\n\n")
-  cat("2025 Species detection summaries by GRTS cell.\n\n")
+  cat("Species detection summaries by GRTS cell. For each cell, 2025 plots appear first, with the 2024 equivalents below where the cell was sampled in 2024.\n\n")
   for (k in seq_along(cell_tag)) {
     if (k > 1) cat("\n\\newpage\n\n")
-    cat(sprintf("## Grid cell %s {.unnumbered .unlisted}\n\n", cell_tag[k]))
+    cat(sprintf("## Grid cell %s {.unnumbered .unlisted}\n\n", cell_title[k]))
     cat(sprintf("![](%s){width=100%%}\n\n", pie_png[k]))
     cat("\n\\newpage\n\n")
-    cat(sprintf("![2025 Nightly activity by site, cell %s](%s){width=100%%}\n\n", cell_tag[k], bar_png[k]))
+    cat(sprintf("![Nightly activity by site (2025 top, 2024 below), cell %s](%s){width=100%%}\n\n", cell_title[k], bar_png[k]))
     cat("\n\\newpage\n\n")
-    cat(sprintf("![2025 Detection times by species and site, cell %s](%s){width=100%%}\n\n", cell_tag[k], hr_png[k]))
-  }
-}
+    cat(sprintf("![Detection times by species and site (2025 top, 2024 below), cell %s](%s){width=100%%}\n\n", cell_title[k], hr_png[k]))
+  }}
 ```
 
 {{< pagebreak >}}
