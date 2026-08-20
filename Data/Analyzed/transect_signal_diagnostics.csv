@@ -1,0 +1,8 @@
+Species,Convergence,N_GRTS_cells,N_observations,RE_variance_GRTS,YearS_estimate,YearS_SE,YearS_wald_p,SE_ratio,Boot_LRT_obs,Boot_p,Boot_valid_reps,LOCO_YearS_min,LOCO_YearS_max,LOCO_sign_stable,LOCO_max_rel_change,Profile_CI_lo,Profile_CI_hi,Profile_method,Profile_excludes_zero,Profile_asymmetry,NB_dispersion,AIC_NB,AIC_Poisson,Poisson_preferred,Overall_flag
+LACI,Converged cleanly,5,29,0,1.0706,1.2113,0.3768,1.13,NA,NA,0,0.9688,4.841,TRUE,3.522,-0.4084,5.8085,profile,FALSE,0.524,0,18.93,16.93,TRUE,Do Not Report
+LANO,Converged cleanly,5,29,0,0.396,0.103,1e-04,0.26,12.592,0.0053,189,0.2709,0.5008,TRUE,0.316,0.1882,0.6005,profile,TRUE,0.008,0.292,101.35,99.95,TRUE,Interpret Direction Only
+MYCA,Converged cleanly,5,29,0,0.0099,0.1524,0.9484,15.45,0.004,0.9669,120,-0.0623,0.1265,FALSE,11.818,-0.2623,0.3625,profile,FALSE,0.129,0.184,74.43,72.64,TRUE,Do Not Report
+MYEV,Converged cleanly,5,29,0.8294,-0.0706,0.1049,0.5008,1.49,0.449,0.5922,102,-0.1823,0.0288,FALSE,1.581,-0.2835,0.148,profile,FALSE,0.013,0.022,100.71,98.71,TRUE,Do Not Report
+MYLU,Converged cleanly,5,29,0.4385,0.0048,0.0613,0.9371,12.66,0.006,0.94,199,-0.0442,0.059,FALSE,11.187,-0.12,0.1301,profile,FALSE,0.001,2.133,182.96,202.99,FALSE,Do Not Report
+MYVO,Converged cleanly,5,29,1.0044,0.0962,0.0712,0.1771,0.74,1.707,0.2568,182,-0.0825,0.2248,FALSE,1.858,-0.054,0.2462,profile,FALSE,0,0.822,147.38,148.4,TRUE,Do Not Report
+MYYU,Model failed to fit (NULL),NA,NA,NA,NA,NA,NA,NA,NA,NA,0,NA,NA,NA,NA,NA,NA,none,NA,NA,NA,NA,NA,NA,Do Not Report

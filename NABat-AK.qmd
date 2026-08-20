@@ -280,7 +280,7 @@ map_data <- map_sites %>%
 
 # Load the model covariates summary table
 model_covariates <- read.csv("Data/Analyzed/ModelVariables.csv")
-#transect_covariates <- read.csv("Data/Analyzed/ModelVariables_Transect.csv")
+transect_covariates <- read.csv("Data/Analyzed/ModelVariables_Transect.csv")
 #this comes from running the ModelSelection.R code where it runs all of the covariates and chooses the best model best on AIC
 
 #format the covariates df
@@ -316,12 +316,16 @@ model_covariates<- model_covariates %>%
   ) %>%
   select(Common_Name, Species_Code = sp, Covariates)
 
-#transect_covariates<- transect_covariates %>%
- # mutate(
-  #  Common_Name = species_names[sp],
-   # Covariates = clean_covars(vars)
-#  ) %>%
-#  select(Common_Name, Species_Code = sp, Covariates)
+transect_covariates<- transect_covariates %>%
+mutate(
+ Common_Name = species_names[sp],
+Covariates = clean_covars(vars)
+ ) %>%
+ select(Common_Name, Species_Code = sp, Covariates)
+#remove these covariates since the model didnt converge
+transect_covariates$Covariates[transect_covariates$Species_Code=="MYYU"] <- "" 
+#remove these covariates since the model had too few detections to be reliable
+transect_covariates$Covariates[transect_covariates$Species_Code %in% c("LACI", "MYEV", "MYVO","MYCA")] <- "" 
 
 ```
 
@@ -757,7 +761,7 @@ m
 #| warning: false
 #| message: false
 ak.cov.slope.summary.singlet <- read.csv("Data/Analyzed/AK.cov.estimates.singlet.csv")
-#ak.cov.slope.transect <- read.csv("Data/Analyzed/bc.transect.cov.estimates.csv")
+ak.cov.slope.transect <- read.csv("Data/Analyzed/AK.transect.cov.estimates.csv")
 
 # Species excluded from stationary reporting due to insufficient precision
 excluded_stationary <- c("MYVO", "MYYU")
@@ -776,22 +780,22 @@ stationary <- ak.cov.slope.summary.singlet %>%
   select(SpeciesGroup, trend_ci, p_val, p.value) %>%
   dplyr::rename(stationary_trend = trend_ci, stationary_p = p_val, stationary_pval = p.value)
 
-# # Prepare transect data
-# transect <- ak.cov.slope.transect %>%
-#   mutate(
-#     p_numeric = as.numeric(gsub("p = ", "", p.value)),
-#     trend_ci = sprintf("%.2f ± %.2f", Estimate, 1.96 * SE),
-#     p_val = case_when(
-#       is.na(p_numeric) ~ NA_character_,
-#       p_numeric < 0.001 ~ "<0.001",
-#       TRUE ~ sprintf("%.3f", p_numeric)
-#     )
-#   ) %>%
-#   select(SpeciesGroup, trend_ci, p_val, p_numeric) %>%
-#   rename(transect_trend = trend_ci, transect_p = p_val, transect_pval = p_numeric)
+# Prepare transect data
+transect <- ak.cov.slope.transect %>%
+  mutate(
+    p_numeric = as.numeric(gsub("p = ", "", p.value)),
+    trend_ci = sprintf("%.2f ± %.2f", Estimate, 1.96 * SE),
+    p_val = case_when(
+      is.na(p_numeric) ~ NA_character_,
+      p_numeric < 0.001 ~ "<0.001",
+      TRUE ~ sprintf("%.3f", p_numeric)
+    )
+  ) %>%
+  select(SpeciesGroup, trend_ci, p_val, p_numeric) %>%
+  rename(transect_trend = trend_ci, transect_p = p_val, transect_pval = p_numeric)
 
 # Merge datasets
-#merged_table <- full_join(stationary, transect, by = "SpeciesGroup")
+merged_table <- full_join(stationary, transect, by = "SpeciesGroup")
 merged_table <- stationary
 merged_table <- merged_table %>%
   mutate(Species = species_names[SpeciesGroup]) %>%
@@ -810,9 +814,9 @@ excluded_rows <- tibble(
   stationary_trend = "",
   stationary_p = "",
   stationary_pval = NA_real_,
-  #transect_trend = "",
-  #transect_p = "",
-  #transect_pval = NA_real_
+  transect_trend = "",
+  transect_p = "",
+  transect_pval = NA_real_
 )
 
 # Bind and sort alphabetically by species code
@@ -828,8 +832,8 @@ merged_table <- merged_table %>%
   bind_rows(excluded_rows) %>%
   group_by(SpeciesCode) %>%
   arrange(
-    desc(!is.na(stationary_pval) | stationary_trend != "")#,
-    #desc(!is.na(transect_pval) | transect_trend != "")
+    desc(!is.na(stationary_pval) | stationary_trend != ""),
+    desc(!is.na(transect_pval) | transect_trend != "")
   ) %>%
   slice(1) %>%
   ungroup() %>%
@@ -837,9 +841,9 @@ merged_table <- merged_table %>%
   select(-SpeciesCode) %>%
   mutate(
     stationary_trend = ifelse(is.na(stationary_trend), "", stationary_trend),
-    stationary_p     = ifelse(is.na(stationary_p), "", stationary_p) #,
-   # transect_trend   = ifelse(is.na(transect_trend), "", transect_trend),
-    #transect_p       = ifelse(is.na(transect_p), "", transect_p)
+    stationary_p     = ifelse(is.na(stationary_p), "", stationary_p),
+    transect_trend   = ifelse(is.na(transect_trend), "", transect_trend),
+    transect_p       = ifelse(is.na(transect_p), "", transect_p)
 
 )
 ```
@@ -906,11 +910,11 @@ Where possible, driving transects were conducted following @loeb2015. Bats were 
 
 ### Landscape and Weather Covariates
 
-Model covariates for the activity trend models and dynamic occupancy models were based on those established by @raeBlejwas2024Alaska , with additional exploration of factors influencing colonization and extinction in the dynamic occupancy models. For the dynamic occupancy models we included distance to the nearest road, calculated as the distance from each survey location to the closest road feature. Road features for British Columbia were derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways, while those for Southeast Alaska were taken from the [Alaska Department of Transportation and Public Facilities (AKDOT) Roads](Model%20covariates%20for%20the%20activity%20trend%20models%20and%20dynamic%20occupancy%20models%20were%20based%20on%20those%20established%20by%20@rae2024,%20with%20additional%20exploration%20of%20factors%20influencing%20colonization%20and%20extinction%20in%20the%20dynamic%20occupancy%20models.%20For%20the%20dynamic%20occupancy%20models%20we%20included%20distance%20to%20the%20nearest%20road,%20calculated%20as%20the%20distance%20from%20each%20survey%20location%20to%20the%20closest%20road%20feature.%20Road%20features%20for%20British%20Columbia%20were%20derived%20from%20the%20unpublished%20Human%20Footprint%20Index%20(HFI)%20layer%20currently%20being%20developed%20by%20the%20Geospatial%20Centre%20within%20Biodiversity%20Pathways,%20while%20those%20for%20Southeast%20Alaska%20were%20taken%20from%20the%20Alaska%20Department%20of%20Transportation%20and%20Public%20Facilities%20(AKDOT)%20Roads%20layer,%20a%20statewide%20road-centerline%20dataset%20distributed%20through%20the%20State%20of%20Alaska%20open-data%20portal%20(https://gis.data.alaska.gov/datasets/AKDOT::roads-akdot/about).) layer.
+Model covariates for the activity trend models and dynamic occupancy models were based on those established by @raeBlejwas2024Alaska , with additional exploration of factors influencing colonization and extinction in the dynamic occupancy models. For the dynamic occupancy models we included distance to the nearest road, calculated as the distance from each survey location to the closest road feature, and distance to neasrest harvest including the harvest year. Road features and harvest data for British Columbia were derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways, while those for Southeast Alaska were taken from the [Alaska Department of Transportation and Public Facilities (AKDOT) Roads](Model%20covariates%20for%20the%20activity%20trend%20models%20and%20dynamic%20occupancy%20models%20were%20based%20on%20those%20established%20by%20@rae2024,%20with%20additional%20exploration%20of%20factors%20influencing%20colonization%20and%20extinction%20in%20the%20dynamic%20occupancy%20models.%20For%20the%20dynamic%20occupancy%20models%20we%20included%20distance%20to%20the%20nearest%20road,%20calculated%20as%20the%20distance%20from%20each%20survey%20location%20to%20the%20closest%20road%20feature.%20Road%20features%20for%20British%20Columbia%20were%20derived%20from%20the%20unpublished%20Human%20Footprint%20Index%20(HFI)%20layer%20currently%20being%20developed%20by%20the%20Geospatial%20Centre%20within%20Biodiversity%20Pathways,%20while%20those%20for%20Southeast%20Alaska%20were%20taken%20from%20the%20Alaska%20Department%20of%20Transportation%20and%20Public%20Facilities%20(AKDOT)%20Roads%20layer,%20a%20statewide%20road-centerline%20dataset%20distributed%20through%20the%20State%20of%20Alaska%20open-data%20portal%20(https://gis.data.alaska.gov/datasets/AKDOT::roads-akdot/about).) layer. The harvest data and distance to water was derived from unpublished Alaska Fish and Wiflide datasets.
 
-Temperature and relative humidity were recorded in each grid cell using onsite logging devices where possible; where loggers were unavailable, values were drawn from the nearest climate station. For sites in British Columbia, station records were obtained from the Pacific Climate Impacts Consortium (PCIC) Provincial Climate Data Set ([PCDS](https://services.pacificclimate.org/met-data-portal-pcds/)), which aggregates and quality-controls observations from multiple provincial and federal networks. For sites in Southeast Alaska, station records were obtained using the meteostat library in python, which aggregates weather station records from multiple agencies. Additional weather covariates drawn from these station records included nightly mean wind speed (km/h) and cumulative precipitation since January 1 (mm). Degree days above 10°C since January 1 were calculated from daily temperature records, and nightly moon illumination (proportion illuminated × proportion of the night the moon was above the horizon) was calculated for each site-night.
+Temperature and relative humidity were recorded in each grid cell using onsite logging devices where possible; where loggers were unavailable, values were drawn from the nearest climate station. For sites in British Columbia, station records were obtained from the Pacific Climate Impacts Consortium (PCIC) Provincial Climate Data Set ([PCDS](https://services.pacificclimate.org/met-data-portal-pcds/)), which aggregates and quality-controls observations from multiple provincial and federal networks. For sites in Southeast Alaska, station records were obtained using the meteostat library in python, which aggregates weather station records from multiple agencies. Additional weather covariates drawn from these station records included nightly mean wind speed (km/h) and nightly precipitation. Degree days above 10°C since January 1 were calculated from daily temperature records, and nightly moon illumination (proportion illuminated × proportion of the night the moon was above the horizon) was calculated for each site-night.
 
-Site-level covariates, including distance to clutter, percent clutter, distance to water, and water feature type, were recorded by grid leaders during deployment.
+Site-level covariates, including distance to clutter, percent clutter, were recorded by grid leaders during deployment.
 
 ### Manual Verification
 
@@ -928,7 +932,9 @@ To ensure data accuracy, manual verification was conducted based on the number o
 
 ### Activity Trends
 
-Statistical analyses followed closely what was established by WCSC and Dr. Carl Schwarz in 2021 [@raeBlejwas2024Alaska]. This includes conducting species-specific trend analyses examining activity patterns in the data collected to date using the (negative binomial GLMM) models and the covariates identified in @tbl-cov.
+Statistical analyses followed closely what was established by WCSC and Dr. Carl Schwarz in 2021 [@raeBlejwas2024Alaska]. This includes conducting species-specific trend analyses examining activity patterns in the data collected to date using the (negative binomial GLMM) models and the covariates identified in @tbl-cov. We only included data from 2019 onwards since only a few of the grid cells had 2015 data, and it mostly didnt have data poitns between 2015-2019 (only a couple had 2017). This made the data more clean and the trend estimates more reliable. Also only inlcuded grid cell that had at least 5 years of data.
+
+Model selection was done by looking at the running model with a combination of up to 4 distinct covariables. First we made sure to prevent colinearity in corabiables. and then ran each species mdoel through 387 combinations of the models. we then selected the lowest AIC across all the models fro each species to get the final covariables included in the models [@tbl-cov].
 
 ```{r}
 #| echo: false
@@ -951,7 +957,7 @@ kable(model_covariates,
 
 ```
 
-Species were excluded from the analysis if model fit was not appropriate due to issues including under-dispersion or standard errors that were more than 3 times the estimate. Model results were also excluded if there was less than 150 recordings across all sample years. We conducted our statistical analyses on provincial and regional scales. For the regional analyses, we assigned all sampled grid cells into five geographic regions (Alaska, Southwestern, Southcentral, Southeastern, and Northern), each roughly corresponding to different species sets. Since transects are only conducted in roughly 50% of our grid cells on a typical year and each transect records fewer bats per night than stationary monitoring, we have elected not to conduct regional-scale transect trend analyses due to low sample sizes.
+Post-hoc test where the final models to ensure proper model fit. Species were excluded from the analysis if model fit was not appropriate due to issues including under-dispersion or standard errors that were more than 3 times the estimate. Model results were also excluded if there was less than 150 recordings across all sample years. We conducted our statistical analyses on provincial and regional scales. For the regional analyses, we assigned all sampled grid cells into five geographic regions (Alaska, Southwestern, Southcentral, Southeastern, and Northern), each roughly corresponding to different species sets. Since transects are only conducted in roughly 50% of our grid cells on a typical year and each transect records fewer bats per night than stationary monitoring, we have elected not to conduct regional-scale transect trend analyses due to low sample sizes.
 
 #### Use of Automated Identification Results in Stationary Trend Analyses
 
@@ -960,6 +966,32 @@ For stationary trend analyses, species identifications came from AutoID (Kaleido
 This approach was first identified as necessary in 2023 [@rae2024], when analyses of manually verified data revealed a consistent positive trend across all species, this was interpreted as an artifact of reviewer learning over time rather than a true biological signal. As verifier experience increased across years, calls were increasingly assigned to specific species rather than left unidentified, producing an apparent increase in detections independent of actual bat activity. Because this observer effect is difficult to control for statistically, AutoID classifications are now used as the standard for all activity trend analyses, as automated classifiers apply consistent criteria across all years. While AutoID is subject to some misclassification, the error rate is consistent across years and does not confound detection of genuine temporal trends.
 
 Trend analyses are presented only for species confirmed present through manual verification and for which models fully converged.
+
+### Transect Abundance Models
+
+We used only manually verified data for the abundance trend models using data collected from transects. We only used transect data starting in 2019, and only grids that had at least 5 years of data. When a detection was flagged as a species couplet, it was counted toward each species listed in the couplet. Covariates were limited to weather variables and transect length, and candidate models excluded any grouping of variables that were collinear with one another. We ran 59 candidate models per species and selected the one with the lowest AIC [@tbl-cov-transects].
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| include: true
+#| label: tbl-cov-transects
+#| tbl-cap: Top-performing transect models selected via AIC-based stepwise selection.
+#| fig.pos: 'H'
+
+kable(transect_covariates,
+      col.names = c("Species", "Species Code", "Top Performing Model Covariates"),
+      label = "model-covariates") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE,
+                position = "left") %>%
+  column_spec(1, width = "15em") %>%
+  column_spec(2, width = "8em") %>%
+  column_spec(3, width = "20em")
+```
+
+After selection, we ran a series of post-hoc checks to confirm model fit. We treated a species' result as reliable only when these tests agreed that the year effect reflected a genuine regional trend rather than an artefact of sparse counts or a single influential cell.
 
 ### Dynamic Occupancy
 
@@ -1046,18 +1078,18 @@ kable(merged_table %>% select(Species, stationary_trend, stationary_p),
   column_spec(2, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE)) %>%
   column_spec(3, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE))
 
-# # Display table with conditional bolding for both stationary and transect
-# kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_trend, transect_p),
-#       col.names = c("Species", "Trend Estimate ± 95%CI", "P-value",
-#                     "Trend Estimate ± 95%CI", "P-value"),
-#       align = c("l", "r", "r", "r", "r"),
-#       booktabs = TRUE) %>%
-#   kable_styling(latex_table_env = "tabular") %>%
-#   add_header_above(c(" " = 1, "Stationary Models" = 2, "Transect Models" = 2)) %>%
-#   column_spec(2, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE)) %>%
-#   column_spec(3, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE)) %>%
-#   column_spec(4, bold = ifelse(!is.na(merged_table$transect_pval) & merged_table$transect_pval < 0.05, TRUE, FALSE)) %>%
-#   column_spec(5, bold = ifelse(!is.na(merged_table$transect_pval) & merged_table$transect_pval < 0.05, TRUE, FALSE))
+# Display table with conditional bolding for both stationary and transect
+kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_trend, transect_p),
+      col.names = c("Species", "Trend Estimate ± 95%CI", "P-value",
+                    "Trend Estimate ± 95%CI", "P-value"),
+      align = c("l", "r", "r", "r", "r"),
+      booktabs = TRUE) %>%
+  kable_styling(latex_table_env = "tabular") %>%
+  add_header_above(c(" " = 1, "Stationary Models" = 2, "Transect Models" = 2)) %>%
+  column_spec(2, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE)) %>%
+  column_spec(3, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE)) %>%
+  column_spec(4, bold = ifelse(!is.na(merged_table$transect_pval) & merged_table$transect_pval < 0.05, TRUE, FALSE)) %>%
+  column_spec(5, bold = ifelse(!is.na(merged_table$transect_pval) & merged_table$transect_pval < 0.05, TRUE, FALSE))
 ```
 
 ## Dynamic Occupancy

@@ -29,10 +29,9 @@ library(tidyverse)
                             # sheet="Occupancy",
                              #.name_repair='universal')
 
-bat.data <- readxl::read_excel("V:/ARU/SENSR-BAT/NABat/2025/AK/Analyzed/All Year Activity by Night 2016-2025 AK-AutoID-Aug13.xlsx",
+bat.data <- readxl::read_excel("V:/ARU/SENSR-BAT/NABat/2025/AK/Analyzed/All Year Activity by Night 2016-2025 AK-Aug19.xlsx",
                                sheet="OccupancyKSP",
-                               .name_repair='universal',
-                               col_types = "text") 
+                               .name_repair='universal') 
 
 #time.data <- readxl::read_excel(file.path("..","Data","All Year Activity Time 2016-2023 AK and BC.xlsx"),
 #                               sheet="Activity Time",
@@ -142,7 +141,7 @@ xtabs(~Habitat2+Year, data=bat.data, exclude=NULL, na.action=na.pass)
 #----------------------
 xtabs(~Distance.to.Clutter..m.,data=bat.data, exclude=NULL, na.action=na.pass)
 bat.data$Distance.to.Clutter..m. <- as.numeric(bat.data$Distance.to.Clutter..m.)
-bat.data$Distance.to.Clutter..m.[bat.data$Distance.to.Clutter..m. > 75] <- 75
+bat.data$Distance.to.Clutter..m.[bat.data$Distance.to.Clutter..m. > 80] <- 80
 xtabs(~Distance.to.Clutter..m.,data=bat.data, exclude=NULL, na.action=na.pass)
 
 #-----------------------
@@ -265,20 +264,6 @@ hist(bat.data$mtime2h)
 
 bat.data[ bat.data$mtime2h==0, c("mrise","mset","mtime")][1:10,]
 
-
- 
-bat.data$mazimuth <- as.numeric(bat.data$mazimuth)
-sum(is.na(bat.data$mazimuth))
-hist(bat.data$mazimuth)
-
-bat.data$mdistance <- as.numeric(bat.data$mdistance)
-sum(is.na(bat.data$mdistance))
-hist(bat.data$mdistance)
-
-bat.data$mphase <- as.numeric(bat.data$mphase)
-sum(is.na(bat.data$mphase))
-hist(bat.data$mphase)
-
 bat.data$nightlen <- as.numeric(bat.data$nightlen)
 sum(is.na(bat.data$nightlen))
 hist(bat.data$nightlen)
@@ -290,9 +275,5 @@ bat.data$Count <- apply(bat.data[, bat.data.species],1,sum, na.rm=TRUE)
 xtabs(~Count, data=bat.data, exclude=NULL, na.action=na.pass)
 
 
-#---------------------
-# Additional transect covariates
-bat.data$Wstart <- tolower(bat.data$Wstart)
-bat.data$Wend   <- tolower(bat.data$Wend)
 
 

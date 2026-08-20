@@ -20,20 +20,48 @@ library(interactions)
 
 #load in the data using the code that runs preliminary stats on it
 source(file.path("c:","Users","cami","Documents","SE-Alaska_NABat","Code","read.detect.data.R"), local=TRUE, chdir=TRUE)
+source(file.path("c:","Users","cami","Documents","SE-Alaska_NABat","Code","MV.read.detect.data.R"), local=TRUE, chdir=TRUE)
 
 ##------------------------------------------Formatting the dataframe for the modeling-----------------------------------------------------#
-#change columns that should be numbers from characters
-bat.data <- bat.data %>% 
-  # Then convert to numeric
-  mutate(across(c(Nightly.Max.RH, Nightly.Mean.Temp, Nightly.Min.Temp, 
-                  Nightly.Max.Temp, Nightly.Mean.RH, Nightly.Precipitation), 
-                as.numeric))
+#change columns that should be character from number
+bat.data$WeatherSource <- as.character(bat.data$WeatherSource)
 #remove duplicate entries for sites (-dup and -sm)
 bat.data <- bat.data[!grepl("-dup|-SM", bat.data$Quadrant, ignore.case = TRUE), ]
-
 #separate transect from stationary data
-bat.transect.data <- bat.data[ bat.data$Quadrant == "Transects",]
 bat.data <- bat.data[ bat.data$Quadrant != "Transects",]
+
+#Clean up transect data (comes from manual verified data rather tahn autoID)
+#change columns that should be character from number
+bat.data.MV$WeatherSource <- as.character(bat.data.MV$WeatherSource)
+#remove duplicate entries for sites (-dup and -sm)
+bat.data.MV <- bat.data.MV[!grepl("-dup|-SM", bat.data.MV$Quadrant, ignore.case = TRUE), ]
+#separate transect from stationary data
+bat.transect.data <- bat.data.MV[ bat.data.MV$Quadrant == "Transects",]
+#add transect length (this should be done when putting otgether the raw data. Doign it here now becuase of timing, but try to be better next time)
+# Grid-cell -> transect length lookup
+tlength_lookup <- tibble(
+  GRTS.Cell.ID = c(206, 5006, 18318, 34338, 47310, 14222,24782,30606, 31438,34254,50638,315563,33486),
+  TLength      = c(48.88809967, 49.30189896, 38.09939957, 25.78700066, 47.06299973,71.96230316,27.53079987,
+                   49.19760132,31.82169914,44.92910004,27.29159927,54.00579834,22.46789932)
+)
+# ---- pre-check: confirm the exact label used for transects ----
+bat.transect.data %>% count(Quadrant)
+# ---------------------------------------------------------------
+bat.transect.data <- bat.transect.data %>%
+  left_join(tlength_lookup, by = "GRTS.Cell.ID") %>%
+  mutate(TLength = if_else(
+    grepl("^transect", tolower(trimws(Quadrant))),  # transect rows only
+    TLength,
+    NA_real_
+  ))
+
+# ---- Check: transect rows that did NOT get a length ----
+bat.transect.data %>%
+  filter(grepl("^transect", tolower(trimws(Quadrant))), is.na(TLength)) %>%
+  count(GRTS.Cell.ID, Quadrant)
+# ------------------------------------------------------------
+
+
 
 #create summarized detection counts for all nights for each species. 
 #This code has different columns for single, all couplets included, and couplets include only when there is a single
@@ -68,6 +96,8 @@ bat.transect.data.long <- plyr::ldply(species.id, function(species, bat.transect
 # If you'd rather treat the whole GRTS cell as the site, drop SiteName from the key.
 bat.data.long <- bat.data.long %>%
   mutate(Site_key = paste0(GRTS.Cell.ID))
+bat.transect.data.long <- bat.transect.data.long %>%
+  mutate(Site_key = paste0(GRTS.Cell.ID))
 
 # ---- Sampling effort per site ------------------------------------------------
 site_effort <- bat.data.long %>%
@@ -82,24 +112,45 @@ site_effort <- bat.data.long %>%
   ) %>%
   dplyr::arrange(dplyr::desc(n_years))
 
+# ---- Sampling effort transect ------------------------------------------------
+site_effort_t <- bat.transect.data.long %>%
+  dplyr::group_by(Site_key) %>%
+  dplyr::summarise(
+    GRTS.Cell.ID = dplyr::first(GRTS.Cell.ID),
+    SiteName     = paste(sort(unique(SiteName)), collapse = ", "),
+    n_years      = dplyr::n_distinct(Year),
+    years        = paste(sort(unique(Year)), collapse = ", "),
+    n_nights     = dplyr::n_distinct(Night),
+    .groups      = "drop"
+  ) %>%
+  dplyr::arrange(dplyr::desc(n_years))
+
 # ---- Keep sites with >= 5 years, then filter the data ------------------------
 keep <- site_effort %>% filter(n_years >= 5) %>% pull(Site_key)
+keept <- site_effort_t %>% filter(n_years >= 5) %>% pull(Site_key)
 
 bat.data.5yr <- bat.data.long %>% filter(Site_key %in% keep)
-
-# ---- Sanity summary ----------------------------------------------------------
-cat("Sites total: ", n_distinct(bat.data.long$Site_key), "\n",
-    "Sites kept:  ", length(keep), "\n",
-    "Rows before: ", nrow(bat.data.long), "\n",
-    "Rows after:  ", nrow(bat.data.5yr), "\n", sep = "")
+bat.transect.data.5yr <- bat.transect.data.long%>% filter(Site_key %in% keept)
 
 #----------For modelling will only use data from 2019 forward
-bat.data.5yr.2019 <- bat.data.5yr[bat.data.5yr$Year != c(2015,2017),]
+bat.data.5yr <- bat.data.5yr[!(bat.data.5yr$Year %in% c(2015, 2017)), ]
+bat.transect.data.5yr <- bat.transect.data.5yr[!(bat.transect.data.5yr$Year %in% c(2015, 2017)), ]
+
+# ---- Sanity summary ----------------------------------------------------------
+cat("Stationary Sites total: ", n_distinct(bat.data.long$Site_key), "\n",
+    "Stationary Sites kept:  ", length(keep), "\n",
+    "Stationary Rows before: ", nrow(bat.data.long), "\n",
+    "Stationary Rows after:  ", nrow(bat.data.5yr), "\n", sep = "")
+
+cat("Transect Routes total: ", n_distinct(bat.transect.data.long$Site_key), "\n",
+    "Transect Routes kept:  ", length(keept), "\n",
+    "Transect Rows before: ", nrow(bat.transect.data.long), "\n",
+    "Transect Rows after:  ", nrow(bat.transect.data.5yr), "\n", sep = "")
 
 #____Check to see if an exesive number of nights with 0 at the sites__________________________________________________________________________________
 # 1. Collapse species-long frame to one row per site-night --------------------
 #    Fullcount is the night's total detections (bats + NoID), constant per night.
-night_lvl <- bat.data.5yr %>%                      # swap name if your filtered df differs
+night_lvl <- bat.data.5yr.2019 %>%                      
   mutate(Night = as.Date(Night)) %>%
   group_by(Site_key, GRTS.Cell.ID, SiteName, Year, Night) %>%
   summarise(total_det = first(Fullcount),
@@ -118,19 +169,24 @@ night_lvl %>%
   arrange(desc(pct_zero)) %>%
   print(n = Inf)
 
-# 3. Identify deployments (runs of consecutive nights) & flag trailing zeros ---
+# 3. One deployment per site-year; flag trailing zeros -----------------------
 deploy <- night_lvl %>%
-  arrange(Site_key, Night) %>%
-  group_by(Site_key) %>%
-  mutate(gap        = as.integer(Night - lag(Night)),
-         new_deploy = is.na(gap) | gap > 1,          # >1 day gap starts a new deployment
-         deploy_id  = cumsum(new_deploy)) %>%
-  group_by(Site_key, deploy_id) %>%
-  mutate(night_pos    = row_number(),
-         is_zero      = total_det == 0,
-         last_det_pos = if (any(!is_zero)) max(night_pos[!is_zero]) else 0L,
-         trailing0    = night_pos > last_det_pos) %>%  # zeros after the last detection
+  arrange(Site_key, Year, Night) %>%
+  group_by(Site_key, Year) %>%                       # <-- the whole year IS the deployment
+  mutate(
+    night_pos    = row_number(),                     # 1st, 2nd, 3rd… night of the year
+    is_zero      = total_det == 0,
+    last_det_pos = if (any(!is_zero)) max(night_pos[!is_zero]) else 0L,
+    trailing0    = night_pos > last_det_pos           # nights after the final detection
+  ) %>%
   ungroup()
+
+remove <- deploy %>%
+  filter(trailing0) %>%
+  count(Site_key, Year, name = "n_trailing_zeros") %>%
+  arrange(desc(n_trailing_zeros)) %>%
+  print(n = Inf)
+#confirm that the remove df has 0 this means there are no trailing 0 in this df. IF they do then you need to remove these
 
 #_____Check for missing covariates_______________________________________________________________________________________________________________________
 # ---- Candidate covariates: trim to what you'll actually model ---------------
@@ -144,7 +200,7 @@ all_covars <- c(site_covars, night_covars)
 all_covars <- all_covars[all_covars %in% names(bat.data.5yr)]   # keep only present cols
 
 # ---- Collapse to one row per site-night (covariates constant within night) --
-night_lvl <- bat.data.5yr %>%
+night_lvl <- bat.data.5yr.2019 %>%
   mutate(Night = as.Date(Night)) %>%
   group_by(Site_key, GRTS.Cell.ID, SiteName, Region, Year, Night) %>%
   summarise(across(all_of(all_covars), ~ first(.x)), .groups = "drop")
@@ -169,9 +225,12 @@ miss_site <- night_lvl %>%
   pivot_longer(-Site_key, names_to = "covariate", values_to = "pct_missing") %>%
   pivot_wider(names_from = Site_key, values_from = pct_missing)
 
-print(miss_site, n = Inf)                        # cols = regions, cells = % missing
+print(miss_site, n = Inf)                        # cols = grids, cells = % missing
 
 
+#write the df that will be used for the models
+write.csv(bat.data.5yr, "Data/bat.data.5yr.csv")
+write.csv(bat.transect.data.5yr, "Data/bat.transect.data.5yr.Aug20.csv")
 
 
 #------------------------------Double checking the data (old code -- here fore reference but was not actually used)---------------------------------------------#

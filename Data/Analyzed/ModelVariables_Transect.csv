@@ -1,0 +1,8 @@
+"","vars","sp"
+"1","Nightly.Mean.Windsp","LACI"
+"2","Nightly.Min.Temp,Nightly.Max.RH","LANO"
+"3","Nightly.Max.RH","MYCA"
+"4","Nightly.Max.Temp,Nightly.Max.RH,Nightly.Mean.Windsp","MYEV"
+"5","Nightly.Max.RH,Nightly.Mean.Windsp","MYLU"
+"6","Nightly.Min.Temp,Nightly.Max.RH,Nightly.Mean.Windsp","MYVO"
+"7","jNight","MYYU"

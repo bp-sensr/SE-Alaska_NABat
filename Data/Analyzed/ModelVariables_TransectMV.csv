@@ -1,0 +1,8 @@
+"","vars","sp"
+"1","Nightly.Mean.Windsp","LACI"
+"2","Nightly.Precipitation,jNight","LANO"
+"3","Nightly.Max.RH","MYCA"
+"4","Nightly.Min.Temp,Nightly.Max.RH,Nightly.Mean.Windsp","MYEV"
+"5","Nightly.Precipitation","MYLU"
+"6","Nightly.Min.Temp,Nightly.Max.RH,Nightly.Mean.Windsp","MYVO"
+"7","jNight","MYYU"

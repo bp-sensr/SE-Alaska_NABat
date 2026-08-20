@@ -1,8 +1,10 @@
-
 ##Model Selection for stationary models in report
+#load raw data after running through the NABatTrends2025 code to clean up
+bat.data.5yr <- read.csv("Data/bat.data.5yr.csv")
+bat.transect.data.5yr <- read.csv("Data/bat.transect.data.5yr.Aug20.csv")
 
 #first get the means for the covariates across the sites (to know)
-AK.cov.site.mean <- plyr::ddply(bat.data, c("GRTS.Cell.ID","Year"), plyr::summarize,
+AK.cov.site.mean <- plyr::ddply(bat.data.5yr, c("GRTS.Cell.ID","Year"), plyr::summarize,
                              #Nightly.Mean.Temp  = mean(as.numeric(Nightly.Mean.Temp),  na.rm=TRUE),
                              Nightly.Min.Temp  = mean(Nightly.Min.Temp, na.rm=TRUE),
                              Nightly.Max.Temp  = mean(Nightly.Max.Temp, na.rm=TRUE),
@@ -72,8 +74,8 @@ make_candidates <- function(collinear_groups, free_vars,
 model_set <- make_candidates(collinear_groups, free_vars,
                              min_terms = 1, max_terms = 4)
 
-length(model_set)     # 489 at max_terms = 4
-# head(model_set)     # peek at the first few
+length(model_set)     
+#head(model_set)     # peek at the first few
 
 # ---- 1.4. Assign the same set to every species ------------------------
 species <- c("LACI", "LANO", "MYCA", "MYEV", "MYLU", "MYVO", "MYYU")
@@ -129,7 +131,7 @@ fit_one_model <- function(cell.summary, var_string) {
 
 # ── 3.  Main loop: fit all candidates per species, rank by AIC ───────────────
 sploc <- read.csv("Data/sploc.csv",check.names = FALSE, row.names = 1)
-AK.fits.cov.singlet <- plyr::dlply(bat.data.5yr.2019, "SpeciesGroup", function(x) {
+AK.fits.cov.singlet <- plyr::dlply(bat.data.5yr, "SpeciesGroup", function(x) {
   
   sp <- x$SpeciesGroup[1]
   cat("\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
@@ -255,14 +257,14 @@ kable(temptable, row.names=FALSE,
       caption="Estimated trends on logarithmic scale in bat detections for semipool, fullpool and singlet models",
       col.names=c("Species","Estimate","SE","P-value"),
       digits=c(0,  2,2,4))  %>% 
-  add_header_above(c(" "=1, "AutoID BC W Covariates"=3)) %>%
+  add_header_above(c(" "=1, "AutoID AK W Covariates"=3)) %>%
   column_spec(column=c(1),       width="12cm") %>%
   column_spec(column=c(2:4),       width="2cm") %>%
   kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")  ####%$%$
 
 
 write.csv(AK.cov.slope.summary.singlet, file="C:/Users/cami/Documents/SE-Alaska_NABat/Data/Analyzed/AK.cov.estimates.singlet.csv", row.names=FALSE)
-
+saveRDS(AK.fits.cov.singlet,"Data/Analyzed/AK.all.fits.rds")
 
 ##-------------------------Make the vars lists best on the best fit models---------------------
 varlists <- do.call(rbind, lapply(names(AK.fits.cov.singlet), function(sp) {
@@ -278,36 +280,64 @@ varlists <- do.call(rbind, lapply(names(AK.fits.cov.singlet), function(sp) {
 write.csv(varlists,"C:/Users/cami/Documents/SE-Alaska_NABat/Data/Analyzed/ModelVariables.csv")
 
 
-##Model Selection for transect models in report
-# ── 1. Define candidate variable sets ──────────────────────────────────────
 
-candidate_vars_transect <- list(
-  AUTO = list(
-    # Single covariates
-    m1  = "Nightly.Mean.Temp",
-    m2  = "Nightly.Mean.RH",
-    m3  = "Nightly.Mean.Windsp",
-    m4  = "mtime2h.mphase",
-    # Two-variable combinations
-    m5  = "Nightly.Mean.Temp,Nightly.Mean.RH",
-    m6  = "Nightly.Mean.Temp,Nightly.Mean.Windsp",
-    m7  = "Nightly.Mean.Temp,mtime2h.mphase",
-    m8  = "Nightly.Mean.RH,Nightly.Mean.Windsp",
-    m9  = "Nightly.Mean.RH,mtime2h.mphase",
-    m10 = "Nightly.Mean.Windsp,mtime2h.mphase",
-    # Three-variable combinations
-    m11 = "Nightly.Mean.Temp,Nightly.Mean.RH,Nightly.Mean.Windsp",
-    m12 = "Nightly.Mean.Temp,Nightly.Mean.RH,mtime2h.mphase",
-    m13 = "Nightly.Mean.Temp,Nightly.Mean.Windsp,mtime2h.mphase",
-    m14 = "Nightly.Mean.RH,Nightly.Mean.Windsp,mtime2h.mphase",
-    # Full model
-    m15 = "Nightly.Mean.Temp,Nightly.Mean.RH,Nightly.Mean.Windsp,mtime2h.mphase"
-  )
+##-----------------------------Model Selection for transect models in report------------------------------------------------------------------------------------
+# ── 1.1. Covariate pool ────────────────────────────────────────────────────
+# Transect surveys cover a lot of ground, so site-specific covariates
+# (clutter, water distance, etc.) are excluded. Only weather / temporal
+# covariates are eligible here.
+#
+tcollinear_groups <- list(
+  temp    = c("Nightly.Min.Temp", "Nightly.Max.Temp"),
+  rh      = c("Nightly.Mean.RH", "Nightly.Min.RH", "Nightly.Max.RH", "Nightly.Precipitation")
 )
+
+# Weather / temporal covariates with no collinearity constraint.
+tfree_vars <- c("Nightly.Mean.Windsp", "jNight")
+
+# ── 1.2. Generator (identical to the stationary script) ─────────────────────
+# If make_candidates() is already sourced in this session, delete this copy
+# and keep a single source of truth.
+make_candidates <- function(tcollinear_groups, tfree_vars,
+                            min_terms = 1, max_terms = 2) {
+  
+  # Each "slot" offers either nothing (NA) or exactly one of its members,
+  # which is what guarantees no two collinear terms co-occur.
+  choice_list <- c(
+    lapply(tcollinear_groups, function(g) c(NA_character_, g)),
+    lapply(tfree_vars,        function(v) c(NA_character_, v))
+  )
+  
+  grid <- do.call(expand.grid, c(choice_list, stringsAsFactors = FALSE))
+  
+  # Collapse each row to its non-NA terms.
+  term_sets <- lapply(seq_len(nrow(grid)), function(i) {
+    x <- unlist(grid[i, ], use.names = FALSE)
+    x[!is.na(x)]
+  })
+  
+  # Filter by model size.
+  k <- lengths(term_sets)
+  keep <- k >= min_terms & k <= max_terms
+  term_sets <- term_sets[keep]
+  
+  # Comma-delimited strings, ordered by complexity then name.
+  models <- vapply(term_sets, paste, collapse = ",", FUN.VALUE = character(1))
+  models <- models[order(lengths(term_sets), models)]
+  
+  setNames(as.list(models), paste0("m", seq_along(models)))
+}
+
+# ── 1.3. Build the shared candidate set ─────────────────────────────────────
+model_set_transect <- make_candidates(tcollinear_groups,
+                                      tfree_vars,
+                                      min_terms = 1, max_terms = 4)
+
+length(model_set_transect)  
+#head(model_set_transect)    # peek at the first few
 
 
 # ── 2. Helper: fit one transect glmmTMB model given a var string ────────────
-
 fit_one_transect_model <- function(cell.summary, var_string) {
   
   # Parse variables and drop rows with NAs in any covariate
@@ -337,44 +367,88 @@ fit_one_transect_model <- function(cell.summary, var_string) {
     rhs_covs
   )
   
-  tryCatch(
-    glmmTMB::glmmTMB(
-      formula = formula(form),
-      family  = nbinom1(link = "log"),
-      data    = data_clean,
-      se      = TRUE,
-      verbose = FALSE
+  # ── Fit: record warnings without discarding the fit, catch only true errors.
+  #    A benign "NA/NaN function evaluation" warning is emitted when the
+  #    optimizer probes a bad point mid-search but still converges. We keep
+  #    the fit and disqualify it later only if it genuinely failed.
+  fit <- withCallingHandlers(
+    tryCatch(
+      glmmTMB::glmmTMB(
+        formula = formula(form),
+        family  = nbinom1(link = "log"),
+        data    = data_clean,
+        se      = TRUE,
+        verbose = FALSE
+      ),
+      error = function(e) { cat("  ERROR:", conditionMessage(e), "\n"); NULL }
     ),
-    error   = function(e) { cat("  ERROR:", conditionMessage(e), "\n"); NULL },
-    warning = function(w) { cat("  WARNING:", conditionMessage(w), "\n"); NULL }
+    warning = function(w) {
+      cat("  (warning, fit kept):", conditionMessage(w), "\n")
+      invokeRestart("muffleWarning")
+    }
   )
+  
+  # ── Keep the fit only if it actually converged with finite SEs.
+  #    This is the real disqualifier for a count model: a non-positive-definite
+  #    Hessian, non-finite SEs, or a nonzero convergence code.
+  if (!is.null(fit)) {
+    ok <- tryCatch({
+      pdHess    <- isTRUE(fit$sdr$pdHess)
+      ses       <- sqrt(diag(vcov(fit)$cond))
+      finite_se <- all(is.finite(ses))
+      conv_ok   <- fit$fit$convergence == 0
+      pdHess && finite_se && conv_ok
+    }, error = function(e) FALSE)
+    if (!ok) {
+      cat("  DROPPED: non-convergent or non-finite SEs\n")
+      fit <- NULL
+    }
+  }
+  
+  fit
 }
 
 
 # ── 3. Main loop: fit all candidates per species, rank by AIC ───────────────
 
-bc.auto.transect.fits.cov.singlet <- plyr::dlply(temp, "SpeciesGroup", function(x) {
+AK.auto.transect.fits.cov.singlet <- plyr::dlply(bat.transect.data.5yr, "SpeciesGroup", function(x) {
   
   sp <- x$SpeciesGroup[1]
   cat("\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
   cat("Species:", sp, "\n")
   
-  # ── Retrieve candidate var sets (same for all species here)
-  sp_candidates <- candidate_vars_transect[["AUTO"]]
+  # ── Use the shared programmatic candidate set for EVERY species
+  sp_candidates <- model_set_transect
+  if (is.null(sp_candidates) || length(sp_candidates) == 0) {
+    cat("  model_set_transect is empty — skipping\n")
+    return(NULL)
+  }
   
   # ── Summarise to cell × year
   cell.summary <- plyr::ddply(x, c("Year", "GRTS.Cell.ID"), plyr::summarize,
-                              YearS               = Year[1] - 2015,
-                              total.detect        = sum(SpeciesSingleton),
-                              transect.nights     = length(SpeciesSingleton),
-                              transect.length     = mean(Tlength),
-                              Nightly.Mean.Temp   = mean(Nightly.Mean.Temp,   na.rm = TRUE),
-                              Nightly.Mean.RH     = mean(Nightly.Mean.RH,     na.rm = TRUE),
-                              Nightly.Mean.Windsp = mean(Nightly.Mean.Windsp, na.rm = TRUE),
-                              mtime2h             = mean(mtime2h,             na.rm = TRUE),
-                              mtime2h.mphase      = mean(mtime2h.mphase,      na.rm = TRUE))
+                              YearS                 = Year[1] - 2015,
+                              total.detect          = sum(SpeciesSingleton),
+                              transect.nights       = length(SpeciesSingleton),
+                              transect.length       = mean(TLength),
+                              Nightly.Min.Temp      = mean(Nightly.Min.Temp,      na.rm = TRUE),
+                              Nightly.Max.Temp      = mean(Nightly.Max.Temp,      na.rm = TRUE),
+                              Nightly.Mean.RH       = mean(Nightly.Mean.RH,       na.rm = TRUE),
+                              Nightly.Min.RH        = mean(Nightly.Min.RH,        na.rm = TRUE),
+                              Nightly.Max.RH        = mean(Nightly.Max.RH,        na.rm = TRUE),
+                              Nightly.Precipitation = mean(Nightly.Precipitation, na.rm = TRUE),
+                              Nightly.Mean.Windsp   = mean(Nightly.Mean.Windsp,   na.rm = TRUE),
+                              jNight                = mean(jNight,                na.rm = TRUE))
   
   cell.summary$GRTS.Cell.ID <- as.factor(cell.summary$GRTS.Cell.ID)
+  
+  # ── Restrict to complete cases across ALL candidate covariates, so every
+  #    model is fit on the SAME rows (required for AIC to be comparable).
+  all_cov <- unique(unlist(strsplit(unlist(sp_candidates), ",")))
+  all_cov <- all_cov[all_cov %in% names(cell.summary)]
+  n_before <- nrow(cell.summary)
+  cell.summary <- tidyr::drop_na(cell.summary, dplyr::any_of(all_cov))
+  cat("  Rows:", n_before, "->", nrow(cell.summary),
+      "after complete-case filter on", length(all_cov), "covariates\n")
   
   # ── Fit every candidate model
   cat("  Fitting", length(sp_candidates), "candidate models...\n")
@@ -418,8 +492,8 @@ bc.auto.transect.fits.cov.singlet <- plyr::dlply(temp, "SpeciesGroup", function(
 
 # ── 4. Summary AIC table across all species ──────────────────────────────────
 
-all_aic_transect <- do.call(rbind, lapply(names(bc.auto.transect.fits.cov.singlet), function(sp) {
-  res <- bc.auto.transect.fits.cov.singlet[[sp]]
+all_aic_transect <- do.call(rbind, lapply(names(AK.auto.transect.fits.cov.singlet), function(sp) {
+  res <-AK.auto.transect.fits.cov.singlet[[sp]]
   if (is.null(res)) return(NULL)
   cbind(species = sp, res$aic_table)
 }))
@@ -430,30 +504,35 @@ print(all_aic_transect, row.names = FALSE)
 
 # ── 5. Extract best fits only ─────────────────────────────────────────────────
 
-best_fits_transect <- lapply(bc.auto.transect.fits.cov.singlet, `[[`, "best_fit")
+best_fits_transect <- lapply(AK.auto.transect.fits.cov.singlet, `[[`, "best_fit")
 
-bc.transect.cov.slope.summary.singlet <- plyr::ldply(best_fits_transect, function(x){
+AK.transect.cov.slope.summary.singlet <- plyr::ldply(best_fits_transect, function(x){
+  if (is.null(x) || !inherits(x, "glmmTMB")) return(NULL)
   summary.table <- summary(x)
-  #browser()
-  slope   <- as.data.frame(summary.table$coefficients$cond[2,, drop=FALSE])
-  slope$intercept <- summary.table$coefficients$cond[1,,drop=FALSE]
+  slope   <- as.data.frame(summary.table$coefficients$cond[2, , drop = FALSE])
+  slope$intercept <- summary.table$coefficients$cond[1, , drop = FALSE]
   slope
 })
-#bc.slope.summary
-bc.transect.cov.slope.summary.singlet <- plyr::rename(bc.transect.cov.slope.summary.singlet,
+
+AK.transect.cov.slope.summary.singlet <- plyr::rename(
+  AK.transect.cov.slope.summary.singlet,
+  c("Pr(>|z|)" = "p.value", "Std. Error" = "SE", ".id" = "SpeciesGroup")
+)
+#AK.slope.summary
+AK.transect.cov.slope.summary.singlet <- plyr::rename(AK.transect.cov.slope.summary.singlet,
                                                       c("Pr(>|z|)"="p.value","Std. Error"="SE",".id"="SpeciesGroup"))
 
 
-bc.transect.cov.slope.summary.table.singlet <- bc.transect.cov.slope.summary.singlet[,c("SpeciesGroup","Estimate","SE","p.value")]
-bc.transect.cov.slope.summary.table.singlet[,"p.value"] <- insight::format_p(bc.transect.cov.slope.summary.table.singlet[,"p.value"])
+AK.transect.cov.slope.summary.table.singlet <- AK.transect.cov.slope.summary.singlet[,c("SpeciesGroup","Estimate","SE","p.value")]
+AK.transect.cov.slope.summary.table.singlet[,"p.value"] <- insight::format_p(AK.transect.cov.slope.summary.table.singlet[,"p.value"])
 
-write.csv(bc.transect.cov.slope.summary.table.singlet, file="C:/Users/cami/Documents/NABat-BC-2025/Data/Analyzed/bc.transect.cov.estimates.csv", row.names=FALSE)
+write.csv(AK.transect.cov.slope.summary.table.singlet, file="Data/Analyzed/AK.transect.cov.estimatesMV.csv", row.names=FALSE)
 
 
 # ── 6. Save variable list for best models ────────────────────────────────────
 
-varlists_transect <- do.call(rbind, lapply(names(bc.auto.transect.fits.cov.singlet), function(sp) {
-  res <- bc.auto.transect.fits.cov.singlet[[sp]]
+varlists_transect <- do.call(rbind, lapply(names(AK.auto.transect.fits.cov.singlet), function(sp) {
+  res <- AK.auto.transect.fits.cov.singlet[[sp]]
   if (is.null(res)) return(NULL)
   data.frame(
     vars = res$best_vars,
@@ -462,4 +541,4 @@ varlists_transect <- do.call(rbind, lapply(names(bc.auto.transect.fits.cov.singl
   )
 }))
 
-write.csv(varlists_transect, "C:/Users/cami/Documents/NABat-BC-2025/Data/Analyzed/ModelVariables_Transect.csv")
+write.csv(varlists_transect, "Data/Analyzed/ModelVariables_TransectMV.csv")

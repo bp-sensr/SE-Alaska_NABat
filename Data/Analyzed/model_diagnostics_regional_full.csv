@@ -1,8 +1,0 @@
-"Species","Convergence","N_GRTS_cells","N_observations","RE_variance_GRTS","YearS_estimate","YearS_SE","YearS_CI_lo","YearS_CI_hi","YearS_p","SE_ratio","Dispersion_stat","Dispersion_p","Dispersion_direction","Dispersion_flag","KS_stat","KS_p","KS_flag","ZeroInflation_stat","ZeroInflation_p","ZeroInflation_flag","Overall_flag"
-"LACI","Converged cleanly",9,217,3.3439,-0.2717,0.1863,-0.6369,0.0935,0.1448,0.69,0.0061,0.988,"under","OK",0.0599,0.4165,"OK",1,1,"OK","Report with Caveats"
-"LANO","Converged cleanly",9,217,5.8676,0.3253,0.0778,0.1727,0.4778,0,0.24,0.0021,0.632,"under","OK",0.0507,0.6318,"OK",0.929,0.796,"OK","Report with Caveats"
-"MYCA","Converged cleanly",9,217,0.6006,0.1902,0.0598,0.073,0.3075,0.0015,0.31,0.5181,0.544,"under","OK",0.0482,0.6935,"OK",0.893,0.604,"OK","Report with Caveats"
-"MYEV","Converged cleanly",9,217,1.9139,0.0793,0.0572,-0.0329,0.1914,0.1659,0.72,0.0107,0.784,"under","OK",0.119,0.0043,"Distributional fit marginal (KS p 0.001-0.05)",0.834,0.476,"OK","Report with Caveats"
-"MYLU","Converged cleanly",9,217,1.9897,0.1441,0.0626,0.0215,0.2668,0.0213,0.43,0.0676,0.976,"under","OK",0.0744,0.1803,"OK",0.944,1,"OK","Report with Caveats"
-"MYVO","Converged cleanly",3,74,0.2733,0.1399,0.0434,0.0549,0.225,0.0013,0.31,0.8664,0.692,"under","OK",0.1545,0.0522,"OK",1.437,0.48,"OK","Do Not Report"
-"MYYU","Converged cleanly",9,217,420.5636,0.1203,NA,NA,NA,NA,NA,0,0.416,"under","OK",0.1118,0.0089,"Distributional fit marginal (KS p 0.001-0.05)",1.085,0.596,"OK","Report with Caveats"
