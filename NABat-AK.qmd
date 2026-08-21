@@ -339,6 +339,10 @@ model_covariates<- model_covariates %>%
   ) %>%
   select(Common_Name, Species_Code = sp, Covariates)
 
+#remove these covariates since the model had too few detections to be reliable
+model_covariates$Covariates[model_covariates$Species_Code %in% c("MYVO", "MYYU")] <- "" 
+
+
 transect_covariates<- transect_covariates %>%
 mutate(
  Common_Name = species_names[sp],
@@ -840,10 +844,11 @@ actsum
 #| warning: false
 #| message: false
 ak.cov.slope.summary.singlet <- read.csv("Data/Analyzed/AK.cov.estimates.singlet.csv")
-ak.cov.slope.transect <- read.csv("Data/Analyzed/AK.transect.cov.estimates.csv")
+ak.cov.slope.transect <- read.csv("Data/Analyzed/AK.transect.cov.estimatesMV.csv")
 
 # Species excluded from stationary reporting due to insufficient precision
 excluded_stationary <- c("MYVO", "MYYU")
+excluded_trans <- c("LACI", "MYEV", "MYVO","MYCA","MYYU")
 
 # Prepare stationary data
 stationary <- ak.cov.slope.summary.singlet %>%
@@ -861,13 +866,18 @@ stationary <- ak.cov.slope.summary.singlet %>%
 
 # Prepare transect data
 transect <- ak.cov.slope.transect %>%
+  filter(!SpeciesGroup %in% excluded_trans) %>%
   mutate(
-    p_numeric = as.numeric(gsub("p = ", "", p.value)),
-    trend_ci = sprintf("%.2f ± %.2f", Estimate, 1.96 * SE),
+    # LANO is formatted "p < .001" rather than "p = 0.xxx", so detect that case first
+    p_is_lt   = grepl("<", p.value),
+    # strip everything except digits and the decimal point (works for both formats)
+    p_numeric = as.numeric(gsub("[^0-9.]", "", p.value)),
+    trend_ci  = sprintf("%.2f ± %.2f", Estimate, 1.96 * SE),
     p_val = case_when(
-      is.na(p_numeric) ~ NA_character_,
+      p_is_lt           ~ "<0.001",
+      is.na(p_numeric)  ~ NA_character_,
       p_numeric < 0.001 ~ "<0.001",
-      TRUE ~ sprintf("%.3f", p_numeric)
+      TRUE              ~ sprintf("%.3f", p_numeric)
     )
   ) %>%
   select(SpeciesGroup, trend_ci, p_val, p_numeric) %>%
@@ -875,56 +885,44 @@ transect <- ak.cov.slope.transect %>%
 
 # Merge datasets
 merged_table <- full_join(stationary, transect, by = "SpeciesGroup")
-merged_table <- stationary
+
+# Map codes -> display names; blank out excluded stationary values
 merged_table <- merged_table %>%
   mutate(Species = species_names[SpeciesGroup]) %>%
   mutate(
     stationary_trend = ifelse(SpeciesGroup %in% excluded_stationary, "", stationary_trend),
-    stationary_p = ifelse(SpeciesGroup %in% excluded_stationary, "", stationary_p),
-    stationary_pval = ifelse(SpeciesGroup %in% excluded_stationary, NA, stationary_pval)
+    stationary_p     = ifelse(SpeciesGroup %in% excluded_stationary, "", stationary_p),
+    stationary_pval  = ifelse(SpeciesGroup %in% excluded_stationary, NA_real_, stationary_pval)
   ) %>%
-  select(Species, stationary_trend, stationary_p, stationary_pval)#,
-         #transect_trend, transect_p, transect_pval)
+  select(SpeciesGroup, Species,
+         stationary_trend, stationary_p, stationary_pval,
+         transect_trend,   transect_p,   transect_pval)
 
-# Add excluded species back as empty rows so they still appear in the table
+# Species excluded from BOTH streams won't come out of the join — add them back as blank rows
+excluded_both <- setdiff(excluded_stationary, merged_table$SpeciesGroup)
 excluded_rows <- tibble(
-  SpeciesCode = excluded_stationary,
-  Species = species_names[excluded_stationary],
+  SpeciesGroup     = excluded_both,
+  Species          = species_names[excluded_both],
   stationary_trend = "",
-  stationary_p = "",
-  stationary_pval = NA_real_,
-  transect_trend = "",
-  transect_p = "",
-  transect_pval = NA_real_
+  stationary_p     = "",
+  stationary_pval  = NA_real_,
+  transect_trend   = "",
+  transect_p       = "",
+  transect_pval    = NA_real_
 )
 
-# Bind and sort alphabetically by species code
+# Bind, sort by species code, drop helper col, blank remaining NAs for display
 merged_table <- merged_table %>%
-  mutate(SpeciesCode = names(species_names)[match(Species, species_names)]) %>%
   bind_rows(excluded_rows) %>%
-  arrange(SpeciesCode) %>%
-  select(-SpeciesCode)
-
-# Replace NA with empty strings for display columns only
-merged_table <- merged_table %>%
-  mutate(SpeciesCode = names(species_names)[match(Species, species_names)]) %>%
-  bind_rows(excluded_rows) %>%
-  group_by(SpeciesCode) %>%
-  arrange(
-    desc(!is.na(stationary_pval) | stationary_trend != ""),
-    desc(!is.na(transect_pval) | transect_trend != "")
-  ) %>%
-  slice(1) %>%
-  ungroup() %>%
-  arrange(SpeciesCode) %>%
-  select(-SpeciesCode) %>%
+  arrange(SpeciesGroup) %>%
+  select(-SpeciesGroup) %>%
   mutate(
     stationary_trend = ifelse(is.na(stationary_trend), "", stationary_trend),
-    stationary_p     = ifelse(is.na(stationary_p), "", stationary_p),
-    transect_trend   = ifelse(is.na(transect_trend), "", transect_trend),
-    transect_p       = ifelse(is.na(transect_p), "", transect_p)
+    stationary_p     = ifelse(is.na(stationary_p),     "", stationary_p),
+    transect_trend   = ifelse(is.na(transect_trend),   "", transect_trend),
+    transect_p       = ifelse(is.na(transect_p),       "", transect_p)
+  )
 
-)
 ```
 
 ::: {.content-visible when-format="html"}
