@@ -1,6 +1,6 @@
 ---
 title: "North American Bat Monitoring Program in SE Alaska"
-subtitle: "Data Summary and Activity Trend Analyses: 2016 - 2025"
+subtitle: "Data Summary and Activity Trend Analyses: 2019 - 2025"
 format:
   html:
     grid:
@@ -45,7 +45,7 @@ nocite: '@*'
 ---
 
 ```{r}
-#| label: make summary from raw combined df
+#| label: make summary from data
 #| include: false
 #| echo: false
 #| eval: true
@@ -106,10 +106,33 @@ nocite: '@*'
 # 
 # write.csv(df_pts,"Data/hourlySppDetection-2024.csv")
 # write.csv(df1, "Data/dailytotaldetection-2024.csv")
+
+# species_cols  <- c("LACI","LANO","MYCA","MYEV","MYLU","MYVO","MYYU")
+# species_order <- c("LACI","LANO","MYCA","MYEV","MYLU","MYVO","MYYU")
+# loc_order <- c("Yakutat","Juneau","Douglas","Hoonah","Sitka",
+#                "Petersburg","Wrangell","POW","Ketchikan")
+# 
+# plot_df <- bat.data.5yr %>%
+#   dplyr::distinct(GRTS.Cell.ID, Quadrant, Night, .keep_all = TRUE) %>%   # one row / detector-night
+#   dplyr::select(Name, Year, dplyr::all_of(species_cols)) %>%
+#   tidyr::pivot_longer(dplyr::all_of(species_cols),
+#                       names_to = "Species", values_to = "Calls") %>%
+#   dplyr::group_by(Name, Year, Species) %>%
+#   dplyr::summarise(Calls = sum(Calls, na.rm = TRUE), .groups = "drop")
+# 
+# name_levels <- c(intersect(loc_order, unique(plot_df$Name)),
+#                  setdiff(unique(plot_df$Name), loc_order))          # keep any extras, don't drop
+# 
+# plot_df <- plot_df %>%
+#   dplyr::mutate(
+#     Species = factor(Species, levels = species_order),
+#     Name    = factor(Name,    levels = name_levels)
+#   )
+# write.csv(plot_df,"Data/yearlyspptotal.csv")
 ```
 
 ```{r}
-#| label: Load packages and summary data
+#| label: Load packages and summary data for 2024 and 2025
 #| include: false
 #| echo: false
 #| eval: true
@@ -178,10 +201,10 @@ grids$CellName <- cell_name_vec$name[
 # Fixed colour per species so every pie is consistent.
 # Unknown codes fall back to grey via pal_get().
 species_pal <- c(
-  EPFU = "#1b9e77", LABO = "#d95f02", LACI = "#7570b3", LANO = "#e7298a",
+  LACI = "#7570b3", LANO = "#e7298a",
   MYEV = "#e6ab02", `40KMYO` = "#1f78b4",
   MYLU = "#a6cee3", MYVO = "#b2df8a", MYYU = "#fb9a99",
-  MYCA = "#fdbf6f", MYSE = "#cab2d6"
+  MYCA = "#1b9e77", MYSE = "#cab2d6"
 )
 
 pal_get <- function(nm) {
@@ -754,6 +777,62 @@ m
 ```
 
 ```{r}
+#| label: create activity summary yearly figure
+#| include: false
+#| echo: false
+#| eval: true
+#| warning: false
+#| message: false
+
+plot_df <- read.csv("Data/yearlyspptotal.csv")
+plot_df$Name[plot_df$Name=="Valley"] <- "Juneau" #update Juneau name for consistency
+loc_order <- c("Yakutat","Juneau","Douglas","Hoonah","Sitka",             
+               "Petersburg","Wrangell","POW","Ketchikan")
+# make Name an ordered factor so facets follow loc_order (not alphabetical)
+name_levels <- c(intersect(loc_order, unique(plot_df$Name)),
+                 setdiff(unique(plot_df$Name), loc_order))   # append any extras, don't drop
+plot_df$Name <- factor(plot_df$Name, levels = name_levels)
+
+species_order <- c("LACI","LANO","MYCA","MYEV","MYLU","MYVO","MYYU")
+
+species_pal <- c(
+  LACI = "#7570b3", LANO = "#e7298a",
+  MYEV = "#e6ab02", `40KMYO` = "#1f78b4",
+  MYLU = "#a6cee3", MYVO = "#b2df8a", MYYU = "#fb9a99",
+  MYCA = "#1b9e77", MYSE = "#cab2d6"
+)
+species_labs <- c(
+  LACI = "Hoary Bat",        MYYU = "Yuma Myotis",       MYVO = "Long-legged Myotis",
+  MYEV = "Long-eared Myotis", LANO = "Silver-haired Bat", MYCA = "California Myotis",
+  MYLU = "Little Brown Myotis"
+)
+
+actsum <- ggplot(plot_df, aes(factor(Year), Calls, fill = Species)) +
+  geom_col(width = 0.85) +
+  facet_grid(~ Name, scales = "free_x", space = "free_x", switch = "x") +
+  scale_fill_manual(values = species_pal[species_order],
+                    breaks = species_order,
+                    labels = species_labs[species_order],
+                    name   = NULL) +
+  scale_y_continuous(labels = scales::comma,
+                     expand = expansion(mult = c(0, 0.03))) +
+  labs(x = NULL, y = "Number of Calls") +
+  theme_minimal(base_size = 11) +
+  theme(
+    panel.spacing.x    = unit(0.4, "lines"),
+    strip.placement    = "outside",
+    strip.background   = element_blank(),
+    strip.text.x       = element_text(size = 12),
+    axis.text.x        = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 9),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor   = element_blank(),
+    legend.key.size    = unit(0.9, "lines")
+  )
+
+actsum
+```
+
+```{r}
 #| label: Load activity model results and format
 #| include: false
 #| echo: false
@@ -864,13 +943,16 @@ The North American Bat Monitoring (NABat) program is a multi-agency initiative a
 
 ## Overview of NABat and the NNW Bat Hub
 
-North American Bat Monitoring Program (NABat) is a large-scale coordinated effort to monitor bat species to address gaps in knowledge and lack of long-term studies across North America [@loeb2015]. The program is administered by the US Geological Survey (USGS) and implemented by the North by Northwest Bat (NNW) Hub in S.E Alaska, Alberta, and British Columbia.
+North American Bat Monitoring Program (NABat) is a large-scale coordinated effort to monitor bat species to address gaps in knowledge and lack of long-term studies across North America [@loeb2015]. NABat uses a spatially-balanced random sampling design and standardized protocols for conducting short-term acoustic surveys and colony counts [@loeb2015]. The continental program is administered by the US Geological Survey (USGS). The Alaska Department of Fish and Game, with assistance from the US Forest Service, initiated an NABat monitoring program in Southeast Alaska in 2019.
 
-NNW Bat Hub was established in 2024 with collaboration from the governments of Alaska, Alberta, and British Columbia. The hub was formed by combining two previous regional hubs: the Alberta Hub and the BC and Southeast Alaska Hub. NABat monitoring in Southeast Alaska is implemented by the Alaska Department of Fish and Game and US Forest Service.
+NABat relies on regional hubs to help coordinate and standardize monitoring across smaller areas. Regional hubs help facilitate local implementation of NABat and maximize the benefits of the program within each region. The North of Northwest (NNW) Bat Hub was established in 2024 with collaboration from the governments of Alaska, Alberta, and British Columbia. The hub was formed by combining two previous regional hubs: the Alberta Hub and the BC and Southeast Alaska Hub. The NNW Bat Hub is directed by a steering committee consisting of representatives from each jurisdiction, major stakeholders, and USGS team members and it is coordinated by Biodiversity Pathways. The NNW Hub is responsible for compiling data, identifying calls to species, conducting statistical analyses, and generating annual regional reports. NABat monitoring in Southeast Alaska is implemented by the Alaska Department of Fish and Game and US Forest Service.
 
-## Threats to bat populations in Alaska
+## Threats to bat populations in S.E. Alaska
 
-Bat populations in Alaska face a wide range of threats including forestry practices, anthropogenic expansion, climate change, and disease. One of the most concerning threats is White-Nose Syndrome (WNS), a deadly fungal disease caused by the fungus *Pseudogymnoascus destructans (Pd)* that affects hibernating bats. As of 2026, WNS has been confirmed in 42 U.S. states, nine Canadian provinces, and the Northwest Territories ( @fig-WNS: @segers ; @u.s.fishandwidlifeservice ). The fungus*,* but not the disease, has been detected in 5 additional states and within British Columbia. Continued monitoring of bat populations in Alaska is critical as *Pd* and WNS continue to spread throughout the region.
+North American bat populations are currently facing multiple anthropogenic threats, including logging and other forms of habitat loss and fragmentation, disease, pesticides, wind energy development, and climate change. The most widespread and deadly threat is white-nose syndrome (WNS), a fungal disease that attacks hibernating bats. Although WNS is not yet present in Alaska, it has spread as far west as the Rocky Mountains and as far north as the Northwest Territories in Canada [@fig-WNS]. Following its discovery in King County in 2016, WNS has spread throughout most of Washington state and into Oregon [@fig-WNS] and the fungus (though not the disease) has been detected along the Washington border in southern British Columbia [@WNS].
+
+\
+The impacts of white-nose syndrome have been most severe east of the Rocky Mountains, where bats hibernate in large aggregations in caves and mines, resulting in high mortality [@cheng2021]. In the Rocky Mountains and further west, including in Alaska, Little Brown Myotis hibernate singly or in small groups in holes in the soil or between rocks in talus deposits [@neubaum2018; @blejwas2021]. This very different hibernation behavior is likely responsible for the slower rate of spread of WNS observed in Washington state [@blejwas2023]. Smaller and more dispersed winter colonies may reduce mortality relative to eastern North America, but will also make it difficult to detect the arrival and spread of WNS in Alaska and track its impact on bats in the state [@blejwas2023]. Given the absence of large hibernacula where bats may be counted and swabbed for the presence of WNS, alternative methods for monitoring bats in Southeast Alaska are required to assess changes or impacts from WNS or other threats.
 
 ![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in The US and Canada. Source: CWHC-RCSF (2026)](Figures/WNS-USandCanada.png){#fig-WNS width="100%"}
 
@@ -878,15 +960,15 @@ Bat populations in Alaska face a wide range of threats including forestry practi
 
 ## Acoustic Monitoring of Bats
 
-Acoustic recording is a cost-effective method for monitoring bat populations across large geographic and temporal scales. However, several limitations affect the conclusions that can be drawn from these data:
+Acoustic recording is a cost-effective method for monitoring bat populations across large geographic and temporal scales. However, several limitations affect the conclusions that can be drawn from these data and trend estimates cannot be produced for all species using acoustic methods alone:
 
-1.  **Imperfect species identification** — Each bat species can produce a broad range of echolocation calls, corresponding to different flight behaviours and environmental features. Species with similar ecology and physiology often produce overlapping calls, particularly in areas with high clutter (obstacles), such as forested habitats. Although detectors are deployed to maximize recordings of diagnostic Search Phase calls, species identifiability will always vary depending on the local species assemblage.
+1.  **Imperfect species identification** — Each bat species can produce a broad range of echolocation calls, corresponding to different flight behaviours and environmental features. Species with similar ecology and physiology often produce overlapping calls, particularly in areas with high clutter (obstacles), such as forested habitats. Although detectors are deployed to maximize recordings of diagnostic (typically Search Phase calls), species identifiability will always vary depending on the local species assemblage.
 
-2.  **Variable detectability** — Bat species are not equally detectable acoustically. Larger, wide-ranging species produce louder calls that travel farther, whereas smaller species with quieter calls or specialized habitat use may be less reliably recorded. As a result, trend estimates cannot be produced for all species using acoustic methods alone.
+2.  **Variable detectability** — Bat species are not equally detectable acoustically. Larger, wide-ranging species produce louder calls that travel farther, whereas species with quieter calls or specialized habitat use may be less reliably recorded.
 
 3.  **Data variability** — Many factors influence recording quality and bat activity, including weather, prey abundance and distribution, and local habitat. Additionally, stationary detectors may record an individual bat multiple times, meaning stationary acoustic data can only inform relative activity and occupancy.
 
-4.  **Processing limitations** — Auto-ID software enables efficient processing of large datasets, but is known to have high misclassification rates for bats, making manual verification necessary to ensure accurate results.
+4.  **Processing limitations** — Auto-ID software enables efficient processing of large datasets, but is known to have high misclassification rates for bats. Manual verification generally produces more accurate results, but has its own limitations, including significantly higher processing time and cost. We use a combination of both approaches, as detailed in the [Manual Verification] subsection of the Methods.
 
 ## Statistical Models
 
@@ -910,31 +992,33 @@ Where possible, driving transects were conducted following @loeb2015. Bats were 
 
 ### Landscape and Weather Covariates
 
-Model covariates for the activity trend models and dynamic occupancy models were based on those established by @raeBlejwas2024Alaska , with additional exploration of factors influencing colonization and extinction in the dynamic occupancy models. For the dynamic occupancy models we included distance to the nearest road, calculated as the distance from each survey location to the closest road feature, and distance to neasrest harvest including the harvest year. Road features and harvest data for British Columbia were derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways, while those for Southeast Alaska were taken from the [Alaska Department of Transportation and Public Facilities (AKDOT) Roads](Model%20covariates%20for%20the%20activity%20trend%20models%20and%20dynamic%20occupancy%20models%20were%20based%20on%20those%20established%20by%20@rae2024,%20with%20additional%20exploration%20of%20factors%20influencing%20colonization%20and%20extinction%20in%20the%20dynamic%20occupancy%20models.%20For%20the%20dynamic%20occupancy%20models%20we%20included%20distance%20to%20the%20nearest%20road,%20calculated%20as%20the%20distance%20from%20each%20survey%20location%20to%20the%20closest%20road%20feature.%20Road%20features%20for%20British%20Columbia%20were%20derived%20from%20the%20unpublished%20Human%20Footprint%20Index%20(HFI)%20layer%20currently%20being%20developed%20by%20the%20Geospatial%20Centre%20within%20Biodiversity%20Pathways,%20while%20those%20for%20Southeast%20Alaska%20were%20taken%20from%20the%20Alaska%20Department%20of%20Transportation%20and%20Public%20Facilities%20(AKDOT)%20Roads%20layer,%20a%20statewide%20road-centerline%20dataset%20distributed%20through%20the%20State%20of%20Alaska%20open-data%20portal%20(https://gis.data.alaska.gov/datasets/AKDOT::roads-akdot/about).) layer. The harvest data and distance to water was derived from unpublished Alaska Fish and Wiflide datasets.
+We considered the same covariates for the activity trend models as those previously established by @raeBlejwas2026Alaska. Temperature and relative humidity were recorded in each grid cell using onsite logging devices where possible; where loggers were unavailable, values were drawn from the nearest climate station. For sites in British Columbia, station records were obtained from the Pacific Climate Impacts Consortium (PCIC) Provincial Climate Data Set (PCDS), which aggregates and quality-controls observations from multiple provincial and federal networks. For sites in Southeast Alaska, station records were obtained using the Meteostat package in Python [@meteostat], which aggregates weather station records from multiple agencies. Additional weather covariates drawn from these station records included nightly mean wind speed (km/h) and nightly precipitation. Degree days above 10°C since January 1 were calculated from daily temperature records, and nightly moon illumination (proportion illuminated × proportion of the night the moon was above the horizon) was calculated for each site-night.
 
-Temperature and relative humidity were recorded in each grid cell using onsite logging devices where possible; where loggers were unavailable, values were drawn from the nearest climate station. For sites in British Columbia, station records were obtained from the Pacific Climate Impacts Consortium (PCIC) Provincial Climate Data Set ([PCDS](https://services.pacificclimate.org/met-data-portal-pcds/)), which aggregates and quality-controls observations from multiple provincial and federal networks. For sites in Southeast Alaska, station records were obtained using the meteostat library in python, which aggregates weather station records from multiple agencies. Additional weather covariates drawn from these station records included nightly mean wind speed (km/h) and nightly precipitation. Degree days above 10°C since January 1 were calculated from daily temperature records, and nightly moon illumination (proportion illuminated × proportion of the night the moon was above the horizon) was calculated for each site-night.
+Site-level covariates were derived from GIS (elevation, distance to water, water body type) or recorded by grid leaders during deployment (distance to clutter, percent clutter); estimates of percent clutter were confirmed using site photos. For sites with smaller ponds that did not appear on the GIS, we used the distance estimate recorded by the grid leader.
 
-Site-level covariates, including distance to clutter, percent clutter, were recorded by grid leaders during deployment.
+We explored additional factors influencing colonization and extinction in the dynamic occupancy models. For those models we included distance to the nearest road, and distance to timber harvest, calculated as the distance from each survey location to the closest road or harvest feature. Road and harvest features for British Columbia were derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways. Road features for Southeast Alaska were taken from the Alaska Department of Transportation and Public Facilities ([AKDOT](Model%20covariates%20for%20the%20activity%20trend%20models%20and%20dynamic%20occupancy%20models%20were%20based%20on%20those%20established%20by%20@rae2024,%20with%20additional%20exploration%20of%20factors%20influencing%20colonization%20and%20extinction%20in%20the%20dynamic%20occupancy%20models.%20For%20the%20dynamic%20occupancy%20models%20we%20included%20distance%20to%20the%20nearest%20road,%20calculated%20as%20the%20distance%20from%20each%20survey%20location%20to%20the%20closest%20road%20feature.%20Road%20features%20for%20British%20Columbia%20were%20derived%20from%20the%20unpublished%20Human%20Footprint%20Index%20(HFI)%20layer%20currently%20being%20developed%20by%20the%20Geospatial%20Centre%20within%20Biodiversity%20Pathways,%20while%20those%20for%20Southeast%20Alaska%20were%20taken%20from%20the%20Alaska%20Department%20of%20Transportation%20and%20Public%20Facilities%20(AKDOT)%20Roads%20layer,%20a%20statewide%20road-centerline%20dataset%20distributed%20through%20the%20State%20of%20Alaska%20open-data%20portal%20(https://gis.data.alaska.gov/datasets/AKDOT::roads-akdot/about).)) Roads layer and the US Forest Service Transportation layer. Harvest features for Southeast Alaska were taken from the US Forest Service Tongass_National_Forest_Past_Harvest_from_CoverType layer.
 
 ### Manual Verification
 
-In 2025 acoustic analysis mostly followed the standards set by WCSC in previous years [@raeBlejwas2024Alaska]. This included running all files through two automatic classifiers, Kaleidoscope's Bats of North America 5.4.0 classifier and Sonobat 3.0's southeast Alaska classifier, to remove files that do not contain bat pulses and giving a preliminary bat species identification.
+In 2024 and 2025 acoustic analysis mostly followed the standards set by WCSC in previous years [@raeBlejwas2026Alaska]. This included running all files through two automatic classifiers, Kaleidoscope's Bats of North America 5.4.0 classifier and Sonobat 3.0's southeast Alaska classifier, to remove files that do not contain bat pulses and giving a preliminary bat species identification.
 
-Manual vetting largely follows the protocol of @reichert2018 and previous analysis standards developed by WCSC. The key difference in the 2024 and 2025 acoustic analysis compared to previous years is that not all automatic species identifications were manually verified. Instead, based on findings from @stratton2022 , at least 50% of recordings were selected for manual verification.
+Manual vetting largely follows the protocol of @reichert2018 and previous analysis standards developed by WCSC [@raeBlejwas2026Alaska]. The key difference in the 2024 and 2025 acoustic analysis compared to previous years is that not all automatic species identifications were manually verified. Instead, based on findings from @stratton2022 , at least 50% of recordings were selected for manual verification.
 
-*Subsetting of for manual verification*
+*Subsetting for manual verification*
 
-Starting in 2024, the NNW Bat Hub implemented manual vetting of only a subset of all the bioacoustic data collected under the NABat program. Given the project's large scale, manually vetting all recordings is not feasible long-term. To address this, the NNW Bat Hub, in collaboration with WCSC and Brian Paterson, developed procedures to ensure that selecting a subset of recordings for manual review minimizes biases in analytical results. These standards prioritize the accurate identification of rare and difficult-to-recognize species to maintain the integrity of models and analyses.
+Given the project's large scale, manually vetting all recordings is not feasible long-term. To address this, the NNW Bat Hub, in collaboration with WCSC and Brian Paterson, developed procedures to ensure that selecting a subset of recordings for manual review minimizes biases in analytical results. These standards prioritize the accurate identification of rare and difficult-to-recognize species to maintain the integrity of models and analyses.
 
 To ensure data accuracy, manual verification was conducted based on the number of recordings that received an autoID tag at each site. For sites with 200 or fewer tagged recordings, all non-noise recordings were manually reviewed. For sites with more than 200 tagged recordings, verification depended on the proportion of recordings assigned a species label. All tags for rare species (comprising ≤10% of prior years' identifications) and commonly misidentified species were fully vetted. Specifically, all Hoary Bat (*Lasiurus cinereus*) and Silver-haired Bat (*Lasyonicteris noctivagans*) were reviewed due to the frequent misclassification of noise files that are tagged as these species. Additionally, recordings of common species were randomly selected for verification until 50% of total recordings were reviewed. If fewer than 50% of recordings had species tags, all classifier-assigned tags were manually verified, and "NoID" recordings were randomly selected until 50% of all recordings were reviewed.
+
+Manual verification is complicated by the lack of information on species ranges within Southeast Alaska. We considered all species found in the region as potential candidates in all grid cells with the exception of Long-legged and Yuma Myotis. Long-legged Myotis calls are acoustically similar to those produced by the much more common Little Brown Myotis and auto ID software frequently misclassifies the calls of these two species. Unfortunately, although Little Brown Myotis produces diagnostic calls, Long-legged Myotis does not. Therefore, in grid cells without independent confirmation of the presence of Long-legged Myotis, we downgraded all auto IDs of that species to a Little Brown Myotis/Long-legged Myotis couplet. Where that species has been confirmed present, we retained the species identification unless diagnostic characteristics of Little Brown Myotis were present. Calls of California Myotis also lack diagnostic characteristics and are acoustically similar to Yuma Myotis. However, to date Yuma Myotis has been documented only in the southern portion of Southeast Alaska [@olson2014First]and prior to 2024 we chose to exclude it as a potential species except for the Ketchikan and Prince of Wales grids. Beginning in 2024, we started including it in the species set for all grids in order to be able to detect any expansion of its range within Southeast Alaska.
 
 ## Statistical Analyses
 
 ### Activity Trends
 
-Statistical analyses followed closely what was established by WCSC and Dr. Carl Schwarz in 2021 [@raeBlejwas2024Alaska]. This includes conducting species-specific trend analyses examining activity patterns in the data collected to date using the (negative binomial GLMM) models and the covariates identified in @tbl-cov. We only included data from 2019 onwards since only a few of the grid cells had 2015 data, and it mostly didnt have data poitns between 2015-2019 (only a couple had 2017). This made the data more clean and the trend estimates more reliable. Also only inlcuded grid cell that had at least 5 years of data.
+We conducted species-specific trend analyses using negative binomial GLMM models as described in @raeBlejwas2026Alaska. We restricted the analysis to data from 2019 onward, due to the low number of grid cells that had been sampled in the years prior (2015 and 2017). We further limited the analysis to grid cells with at least five years of sampling, since estimating a temporal trend requires enough repeat visits per cell to distinguish a directional signal from year-to-year variation.
 
-Model selection was done by looking at the running model with a combination of up to 4 distinct covariables. First we made sure to prevent colinearity in corabiables. and then ran each species mdoel through 387 combinations of the models. we then selected the lowest AIC across all the models fro each species to get the final covariables included in the models [@tbl-cov].
+For each species, we performed model selection by fitting the base model augmented with every combination of up to four covariates, excluding combinations that would introduce collinearity. This produced 387 candidate models per species, from which we selected the model with the lowest AIC as the final covariate set [@tbl-cov].
 
 ```{r}
 #| echo: false
@@ -957,11 +1041,11 @@ kable(model_covariates,
 
 ```
 
-Post-hoc test where the final models to ensure proper model fit. Species were excluded from the analysis if model fit was not appropriate due to issues including under-dispersion or standard errors that were more than 3 times the estimate. Model results were also excluded if there was less than 150 recordings across all sample years. We conducted our statistical analyses on provincial and regional scales. For the regional analyses, we assigned all sampled grid cells into five geographic regions (Alaska, Southwestern, Southcentral, Southeastern, and Northern), each roughly corresponding to different species sets. Since transects are only conducted in roughly 50% of our grid cells on a typical year and each transect records fewer bats per night than stationary monitoring, we have elected not to conduct regional-scale transect trend analyses due to low sample sizes.
+Post-hoc tests were run on the final models to ensure proper model fit. Species were excluded from the analysis if model fit was not appropriate due to issues including under-dispersion or standard errors that were more than 3 times the estimate. Model results were also excluded if there was less than 150 recordings across all sample years.
 
 #### Use of Automated Identification Results in Stationary Trend Analyses
 
-For stationary trend analyses, species identifications came from AutoID (Kaleidoscope Pro and Sonobat 3.0), not from manual verification. Manual review was used only to remove non-bat noise. Specifically, files that manual review flagged as noise were excluded, but where manual review suggested a different species than the AutoID label, the AutoID classification was retained.
+For stationary trend analyses, species identifications came from the Kaelidoscope Pro AutoID software, not from manual verification. Manual review was used only to remove non-bat noise. Specifically, files that manual review flagged as noise were excluded, but where manual review suggested a different species than the AutoID label, the AutoID classification was retained.
 
 This approach was first identified as necessary in 2023 [@rae2024], when analyses of manually verified data revealed a consistent positive trend across all species, this was interpreted as an artifact of reviewer learning over time rather than a true biological signal. As verifier experience increased across years, calls were increasingly assigned to specific species rather than left unidentified, producing an apparent increase in detections independent of actual bat activity. Because this observer effect is difficult to control for statistically, AutoID classifications are now used as the standard for all activity trend analyses, as automated classifiers apply consistent criteria across all years. While AutoID is subject to some misclassification, the error rate is consistent across years and does not confound detection of genuine temporal trends.
 
@@ -969,7 +1053,7 @@ Trend analyses are presented only for species confirmed present through manual v
 
 ### Transect Abundance Models
 
-We used only manually verified data for the abundance trend models using data collected from transects. We only used transect data starting in 2019, and only grids that had at least 5 years of data. When a detection was flagged as a species couplet, it was counted toward each species listed in the couplet. Covariates were limited to weather variables and transect length, and candidate models excluded any grouping of variables that were collinear with one another. We ran 59 candidate models per species and selected the one with the lowest AIC [@tbl-cov-transects].
+For the transect-based abundance trend models, we used only manually verified detections. When a detection was flagged as a species couplet, it was counted toward each species in the couplet. As above, we restricted the data to transect surveys from 2019 onward and to grid cells with at least five years of sampling. Covariates were limited to weather variables and transect length, and candidate models excluded any combination of collinear variables. We fit 59 candidate models per species and selected the one with the lowest AIC as the final covariate set [@tbl-cov-transects].
 
 ```{r}
 #| echo: false
@@ -995,17 +1079,17 @@ After selection, we ran a series of post-hoc checks to confirm model fit. We tre
 
 ### Dynamic Occupancy
 
-This analysis used nightly acoustic detection/non-detection data from passive bat detectors deployed at GRTS-selected sites in British Columbia (BC) as part of the NABat long-term monitoring program. Data were filtered to the 2017–2025 period, and analysis used an every-other-night subsampling protocol to reduce temporal autocorrelation between consecutive nights, using max 4 visits per site-year. Sites had to have a minimum of 2 visits within a given year and data from at least 2 years total. Models were run separately for all 17 bat species.
+This analysis used nightly acoustic detection/non-detection data from passive bat detectors deployed at 43 stationary detector sites located in 9 grid cells in Southeast Alaska, as well as 173 stationary detector sites in 56 grid cells in British Columbia (BC). Data were filtered to the 2017–2025 period, and analysis used an every-other-night subsampling protocol to reduce temporal autocorrelation between consecutive nights, using a maximum of 4 nights per site-year. Sites had to have a minimum of 2 nights of data within a given year and data from at least 2 years total. Models were run separately for all 7 bat species.
 
-Fitted multi-season (dynamic) occupancy models (MacKenzie et al. 2003) to estimate trends in occupancy, colonization, and persistence while accounting for imperfect detection. Initial occupancy ($\psi$) was modeled as a function of elevation and water nearby, with a random effect for region. Colonization ($\gamma$) and persistence ($\varphi$) were modeled with time-varying intercepts and distance to road as a covariate. Detection probability (p) was modeled as a function of percent clutter, nightly mean temperature, and Juli
+We fitted multi-season (dynamic) occupancy models [@mackenzie2003] to estimate trends in occupancy, colonization, and persistence while accounting for imperfect detection. Initial occupancy ($\psi$) was modeled as a function of elevation and water nearby, with a random effect for region. Baseline occupancy for the Alaska region was estimated from Alaska detections only and was not forced toward the BC average. Colonization ($\gamma$) and persistence ($\varphi$) were modeled with time-varying intercepts and distance to road as a covariate. Detection probability (p) was modeled as a function of percent clutter, nightly mean temperature, and Julian night. Due to the small number of detector sites in Southeast Alaska, detection probability and covariate slopes were borrowed from the shared model.
 
-Elevation for each site was extracted from AWS terrain tiles (\~30 m resolution, SRTM-based) using the elevatr package in R, distance to road and distance to harvest was extracted using the Biodiversity Pathways Human Footprint Index (not published yet). All continuous covariates were standardized by centering on their mean and dividing by their standard deviation; missing covariate values were imputed with the global mean prior to standardization.
+All continuous covariates were standardized by centering on their mean and dividing by their standard deviation; missing covariate values were imputed with the global mean prior to standardization.
 
-Models were fit in a Bayesian framework using JAGS via the jagsUI package in R, with 30,000 iterations, 15,000 burn-in, thinning by 5, and 3 chains run in parallel, yielding 9,000 posterior samples for inference. Priors on all regression coefficients were normally distributed (mean = 0, precision = 0.368, equivalent to SD ≈ 1.65), and the region-level random effect standard deviation received a uniform(0, 5) prior. Model convergence was assessed using Rhat diagnostics. Results are interpreted using posterior means and 95% Bayesian credible intervals. An overall occupancy trend metric (λ) was calculated as the ratio of estimated occupancy in the final year to occupancy in the initial year; values of λ \> 1 with 95 CIs entirely above 1 indicate an increase in occupancy, values \< 1 with 95 CIs entirely below 1 indicate a decline, and values with CIs overlapping 1 indicate uncertain or stable trends. 
+Models were fit in a Bayesian framework using JAGS via the jagsUI package in R, with 30,000 iterations, 15,000 burn-in, thinning by 5, and 3 chains run in parallel, yielding 9,000 posterior samples for inference. Priors on all regression coefficients were normally distributed (mean = 0, precision = 0.368, equivalent to SD ≈ 1.65), and the region-level random effect standard deviation received a uniform(0, 5) prior. Model convergence was assessed using Rhat diagnostics. Results are interpreted using posterior means and 95% Bayesian credible intervals. An overall occupancy trend metric (λ) was calculated as the ratio of estimated occupancy in the final year to occupancy in the initial year; values of λ \> 1 with 95 CIs entirely above 1 indicate an increase in occupancy, values \< 1 with 95 CIs entirely below 1 indicate a decline, and values with CIs overlapping 1 indicate uncertain or stable trends.
 
 # Results
 
-In 2025 a total of 6 grid sites were sampled in SE Alaska and 3 newly established sites were sampled around the Anchorage area (@fig-sites).
+In 2024 all 9 grid cells were monitored, and in 2025 a total of 6 grid sites were sampled in SE Alaska and 3 newly established sites were sampled around the Anchorage area (@fig-sites).
 
 ```{r}
 #| label: fig-sites
@@ -1058,7 +1142,21 @@ if (is_html) {
 }
 ```
 
-## Activity Trends
+## Activity Summary and Trends
+
+```{r}
+#| label: fig-activitysummary
+#| echo: false
+#| warning: false
+#| message: false
+#| out-width: 100%
+#| fig-pos: H
+#| fig-width: 13
+#| fig-height: 6
+#| fig-cap: Relative activity of bat species detected during NABat monitoring in 9 grid cells in Southeast Alaska, arranged north to south, during 2019-2025
+
+actsum
+```
 
 ```{r}
 #| echo: false
@@ -1097,6 +1195,12 @@ kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_
 Temperature was the most consistent detection covariate–warmer nights equate to higher detection for most species. There were some clutter effects on detection probability that were species-specific. Julian date effects were mixed across species.
 
 Species specific results can be found on [Appendix A](#sec-appendix-a)
+
+# Discussion
+
+The reduced survey effort in 2025 was the result of staffing cuts by the US Forest Service and staffing levels are unlikely to improve in the near future. Given the already low number of grids currently being monitored in Southeast Alaska, efforts should be made to find other agencies or organizations to continue the monitoring in those grids or to establish new ones.\
+-Also, are there ways to reduce the time it takes to monitor a grid? Eliminate driving surveys, stop collecting onsite weather data, etc. that wouldn’t impact the analyses?\
+Many more species are present in BC than in SEAK and its possible that new species may expand their ranges into or within SEAK (MYYU). Is it feasible to look for species such as EPFU somehow? Maybe run the files with all the BC species that have diagnostic calls and manually review any recordings that are identified as one of those species? Not sure if there are diagnostic characteristics for EPFU like there are for LANO though.
 
 # Appendix A {#sec-appendix-a}
 
