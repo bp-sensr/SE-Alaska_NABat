@@ -1166,16 +1166,6 @@ actsum
 #| tbl-cap:  Stationary trend estimates from 2015-2025 NABat monitoring in S.E. Alaska adjusted for covariates. Trends estimated on a logarithmic scale, thus a trend estimate of 0.05 corresponds to an annual change of 5%. Significant results (p value < 0.05) are highlighted in bold.
 #| tbl-pos: 'H'
 
-#Temporary table with only stationary results
-kable(merged_table %>% select(Species, stationary_trend, stationary_p),
-      col.names = c("Species", "Trend Estimate ± 95%CI", "P-value"),
-      align = c("l", "r", "r"),
-      booktabs = TRUE) %>%
-  kable_styling(latex_table_env = "tabular") %>%
-  add_header_above(c(" " = 1, "Stationary Models" = 2)) %>%
-  column_spec(2, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE)) %>%
-  column_spec(3, bold = ifelse(!is.na(merged_table$stationary_pval) & merged_table$stationary_pval < 0.05, TRUE, FALSE))
-
 # Display table with conditional bolding for both stationary and transect
 kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_trend, transect_p),
       col.names = c("Species", "Trend Estimate ± 95%CI", "P-value",
