@@ -1,0 +1,15 @@
+.quarto-title-block .quarto-title-banner {
+  background-image: 
+    url('logos/NABat.png'),
+    url('logos/BP-Logo-Hz-invert-notag.png');
+  background-size: 
+    200px,
+    375px;
+  background-position: 
+    left,
+    right;
+  background-repeat: no-repeat;
+  padding-left: 10px;
+  padding-right: 10px;
+  background-origin: content-box;
+}
