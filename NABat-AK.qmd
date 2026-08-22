@@ -1142,6 +1142,8 @@ if (is_html) {
 
 ## Activity Summary and Trends
 
+Total acoustic activity varied substantially across sites and years, with Little Brown Myotis dominating call volume at every site in nearly every year. Overall detection totals were highest at the northern sites: Yakutat produced the single largest site-year total (\~17,500 calls in 2024), and Juneau recorded consistently high volumes (\~12,000 in 2020 and \~13,500 in 2024). Southern and central sites generally recorded lower totals, with Petersburg (\~9,000 in 2024) and POW (\~7,500 in 2024) reaching comparable peaks in single years, while Wrangell and Hoonah remained low throughout (generally under \~2,000 calls per year). There was big spike in activity in 2024 year for most sites,compared to other years.
+
 ```{r}
 #| label: fig-activitysummary
 #| echo: false
@@ -1156,11 +1158,21 @@ if (is_html) {
 actsum
 ```
 
+We estimated yearly trends in nightly acoustic activity for seven species across the stationary detector and mobile transect survey streams. Five species produced reportable stationary-detector models; two (Long-legged Myotis, Yuma Myotis) could not be reliably fit and are not reported [@tbl-models]. For transect abundance trends we only report on the results of Silver-haired bat and Little Brown bat since tbl-modelcovtbl-modelcovthese were the only two species were modelling results were reliable.
+
+Silver-haired Bat (LANO) showed the clearest and most consistent signal, with activity increasing significantly over the monitoring period in both the stationary (β = 0.48, 95% CI \[0.31, 0.65\], p \< 0.001) and transect (β = 0.40, 95% CI \[0.20, 0.60\], p = 0.001) datasets, the only species for which a significant trend was recovered independently in both survey types.
+
+Two additional species showed significant trends in the stationary data alone. Hoary Bat (LACI) declined (β = −0.41, 95% CI \[−0.77, −0.05\], p = 0.027), while California Myotis (MYCA) increased modestly (β = 0.14, 95% CI \[0.01, 0.27\], p = 0.036); neither had a reportable transect model.
+
+Long-eared Myotis (MYEV; β = 0.06, 95% CI \[−0.07, 0.19\], p = 0.35) and Little Brown Myotis (MYLU; stationary β = 0.08, 95% CI \[−0.06, 0.22\], p = 0.24; transect β = 0.00, 95% CI \[−0.12, 0.12\], p = 0.94) showed no detectable trend, with confidence intervals spanning zero in every reportable model.
+
+Long-legged Myotis (MYVO) and Yuma Myotis (MYYU) are not reported: MYVO fell below the detection threshold required for trend estimation, and the MYYU model failed to converge.
+
 ```{r}
 #| echo: false
 #| warning: false
 #| message: false
-#| label: tbl-modelcov
+#| label: tbl-models
 #| tbl-cap:  Stationary trend estimates from 2015-2025 NABat monitoring in S.E. Alaska adjusted for covariates. Trends estimated on a logarithmic scale, thus a trend estimate of 0.05 corresponds to an annual change of 5%. Significant results (p value < 0.05) are highlighted in bold.
 #| tbl-pos: 'H'
 
@@ -1185,6 +1197,10 @@ Temperature was the most consistent detection covariate–warmer nights equate t
 Species specific results can be found on [Appendix A](#sec-appendix-a)
 
 # Discussion
+
+Need to talk about the spike in 2024 data. I looked through the data and there isn't an issue with duplicate sites. Need to confirm if the sites were sampled for longer than normal as this might explain the issue (will need to reference new table that includes deployment sated for 2024 and 2025).
+
+Talk about the differences in results between activity and occupancy trends. Is there a big difference? Do they tell us the same information?
 
 The reduced survey effort in 2025 was the result of staffing cuts by the US Forest Service and staffing levels are unlikely to improve in the near future. Given the already low number of grids currently being monitored in Southeast Alaska, efforts should be made to find other agencies or organizations to continue the monitoring in those grids or to establish new ones.\
 -Also, are there ways to reduce the time it takes to monitor a grid? Eliminate driving surveys, stop collecting onsite weather data, etc. that wouldn’t impact the analyses?\
