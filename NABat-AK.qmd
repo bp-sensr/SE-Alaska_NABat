@@ -960,13 +960,13 @@ The impacts of white-nose syndrome have been most severe east of the Rocky Mount
 
 Acoustic recording is a cost-effective method for monitoring bat populations across large geographic and temporal scales. However, several limitations affect the conclusions that can be drawn from these data and trend estimates cannot be produced for all species using acoustic methods alone:
 
-1.  **Imperfect species identification** — Each bat species can produce a broad range of echolocation calls, corresponding to different flight behaviours and environmental features. Species with similar ecology and physiology often produce overlapping calls, particularly in areas with high clutter (obstacles), such as forested habitats. Although detectors are deployed to maximize recordings of diagnostic (typically Search Phase calls), species identifiability will always vary depending on the local species assemblage.
+1.  **Imperfect species identification** --- Each bat species can produce a broad range of echolocation calls, corresponding to different flight behaviours and environmental features. Species with similar ecology and physiology often produce overlapping calls, particularly in areas with high clutter (obstacles), such as forested habitats. Although detectors are deployed to maximize recordings of diagnostic (typically Search Phase calls), species identifiability will always vary depending on the local species assemblage.
 
-2.  **Variable detectability** — Bat species are not equally detectable acoustically. Larger, wide-ranging species produce louder calls that travel farther, whereas species with quieter calls or specialized habitat use may be less reliably recorded.
+2.  **Variable detectability** --- Bat species are not equally detectable acoustically. Larger, wide-ranging species produce louder calls that travel farther, whereas species with quieter calls or specialized habitat use may be less reliably recorded.
 
-3.  **Data variability** — Many factors influence recording quality and bat activity, including weather, prey abundance and distribution, and local habitat. Additionally, stationary detectors may record an individual bat multiple times, meaning stationary acoustic data can only inform relative activity and occupancy.
+3.  **Data variability** --- Many factors influence recording quality and bat activity, including weather, prey abundance and distribution, and local habitat. Additionally, stationary detectors may record an individual bat multiple times, meaning stationary acoustic data can only inform relative activity and occupancy.
 
-4.  **Processing limitations** — Auto-ID software enables efficient processing of large datasets, but is known to have high misclassification rates for bats. Manual verification generally produces more accurate results, but has its own limitations, including significantly higher processing time and cost. We use a combination of both approaches, as detailed in the [Manual Verification] subsection of the Methods.
+4.  **Processing limitations** --- Auto-ID software enables efficient processing of large datasets, but is known to have high misclassification rates for bats. Manual verification generally produces more accurate results, but has its own limitations, including significantly higher processing time and cost. We use a combination of both approaches, as detailed in the [Manual Verification] subsection of the Methods.
 
 ## Statistical Models
 
@@ -986,7 +986,7 @@ Two to four stationary detectors were deployed across at least two quadrants per
 
 ### Transect Surveys
 
-Where possible, driving transects were conducted following @loeb2015. Bats were recorded along the road by driving at \~32km/h with a microphone mounted vertically inside a magnetic pvc pipe holder on the vehicle’s roof. Transects were 30-45 km long and were surveyed twice during the stationary deployment period whenever possible.
+Where possible, driving transects were conducted following @loeb2015. Bats were recorded along the road by driving at \~32km/h with a microphone mounted vertically inside a magnetic pvc pipe holder on the vehicle's roof. Transects were 30-45 km long and were surveyed twice during the stationary deployment period whenever possible.
 
 ### Landscape and Weather Covariates
 
@@ -1077,7 +1077,7 @@ After selection, we ran a series of post-hoc checks to confirm model fit. We tre
 
 ### Dynamic Occupancy
 
-This analysis used nightly acoustic detection/non-detection data from passive bat detectors deployed at 43 stationary detector sites located in 9 grid cells in Southeast Alaska, as well as 173 stationary detector sites in 56 grid cells in British Columbia (BC). Data were filtered to the 2017–2025 period, and analysis used an every-other-night subsampling protocol to reduce temporal autocorrelation between consecutive nights, using a maximum of 4 nights per site-year. Sites had to have a minimum of 2 nights of data within a given year and data from at least 2 years total. Models were run separately for all 7 bat species.
+This analysis used nightly acoustic detection/non-detection data from passive bat detectors deployed at 43 stationary detector sites located in 9 grid cells in Southeast Alaska, as well as 173 stationary detector sites in 56 grid cells in British Columbia (BC). Data were filtered to the 2017--2025 period, and analysis used an every-other-night subsampling protocol to reduce temporal autocorrelation between consecutive nights, using a maximum of 4 nights per site-year. Sites had to have a minimum of 2 nights of data within a given year and data from at least 2 years total. Models were run separately for all 7 bat species.
 
 We fitted multi-season (dynamic) occupancy models [@mackenzie2003] to estimate trends in occupancy, colonization, and persistence while accounting for imperfect detection. Initial occupancy ($\psi$) was modeled as a function of elevation and water nearby, with a random effect for region. Baseline occupancy for the Alaska region was estimated from Alaska detections only and was not forced toward the BC average. Colonization ($\gamma$) and persistence ($\varphi$) were modeled with time-varying intercepts and distance to road as a covariate. Detection probability (p) was modeled as a function of percent clutter, nightly mean temperature, and Julian night. Due to the small number of detector sites in Southeast Alaska, detection probability and covariate slopes were borrowed from the shared model.
 
@@ -1158,7 +1158,7 @@ Total acoustic activity varied substantially across sites and years, with Little
 actsum
 ```
 
-We estimated yearly trends in nightly acoustic activity for seven species across the stationary detector and mobile transect survey streams. Five species produced reportable stationary-detector models; two (Long-legged Myotis, Yuma Myotis) could not be reliably fit and are not reported [@tbl-models]. For transect abundance trends we only report on the results of Silver-haired bat and Little Brown bat since tbl-modelcovtbl-modelcovthese were the only two species were modelling results were reliable.
+We estimated yearly trends in nightly acoustic activity for seven species across the stationary detector and mobile transect survey streams. Five species produced reportable stationary-detector models; two (Long-legged Myotis, Yuma Myotis) could not be reliably fit and are not reported [@tbl-models]. For transect abundance trends we only report on the results of Silver-haired bat and Little Brown bat since these were the only two species were modelling results were reliable.
 
 Silver-haired Bat (LANO) showed the clearest and most consistent signal, with activity increasing significantly over the monitoring period in both the stationary (β = 0.48, 95% CI \[0.31, 0.65\], p \< 0.001) and transect (β = 0.40, 95% CI \[0.20, 0.60\], p = 0.001) datasets, the only species for which a significant trend was recovered independently in both survey types.
 
@@ -1192,7 +1192,7 @@ kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_
 
 ## Dynamic Occupancy
 
-Temperature was the most consistent detection covariate–warmer nights equate to higher detection for most species. There were some clutter effects on detection probability that were species-specific. Julian date effects were mixed across species.
+Temperature was the most consistent detection covariate--warmer nights equate to higher detection for most species. There were some clutter effects on detection probability that were species-specific. Julian date effects were mixed across species.
 
 Species specific results can be found on [Appendix A](#sec-appendix-a)
 
@@ -1203,7 +1203,7 @@ Need to talk about the spike in 2024 data. I looked through the data and there i
 Talk about the differences in results between activity and occupancy trends. Is there a big difference? Do they tell us the same information?
 
 The reduced survey effort in 2025 was the result of staffing cuts by the US Forest Service and staffing levels are unlikely to improve in the near future. Given the already low number of grids currently being monitored in Southeast Alaska, efforts should be made to find other agencies or organizations to continue the monitoring in those grids or to establish new ones.\
--Also, are there ways to reduce the time it takes to monitor a grid? Eliminate driving surveys, stop collecting onsite weather data, etc. that wouldn’t impact the analyses?\
+-Also, are there ways to reduce the time it takes to monitor a grid? Eliminate driving surveys, stop collecting onsite weather data, etc. that wouldn't impact the analyses?\
 Many more species are present in BC than in SEAK and its possible that new species may expand their ranges into or within SEAK (MYYU). Is it feasible to look for species such as EPFU somehow? Maybe run the files with all the BC species that have diagnostic calls and manually review any recordings that are identified as one of those species? Not sure if there are diagnostic characteristics for EPFU like there are for LANO though.
 
 # Appendix A {#sec-appendix-a}
