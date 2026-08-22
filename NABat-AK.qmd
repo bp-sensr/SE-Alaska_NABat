@@ -740,22 +740,43 @@ map_data$popup <- vapply(seq_len(nrow(map_data)), function(i) {
   
   build_popup(site, NULL, map_data$Comment[i], pie_svg, ts_svg, hr_svg, show_graph = TRUE)
 }, character(1))
+
 # ---- 8. Build the map ------------------------------------------------------
+# split cells by colour so grey draws first (underneath) and coloured on top
+grids_grey  <- grids[grids$border_col == "#999999", ]
+grids_col   <- grids[grids$border_col != "#999999", ]
 
 m <- leaflet(map_data) %>%
   addProviderTiles(providers$CartoDB.Positron) %>%
+
+  # grey cells first -> bottom of the stack
   addPolygons(
-    data        = grids,
-    color       = ~border_col,   # border colour, per cell
+    data        = grids_grey,
+    color       = ~border_col,
     weight      = 4,
     opacity     = 1,
-    fill        = FALSE,         # transparent interior, and no click capture
+    fill        = FALSE,
     group       = "GRTS grid cells",
     label       = ~ifelse(
       !is.na(CellName) & nzchar(CellName),
       paste0("Cell ", GRTS_ID, " - ", CellName, "; Last sampled: ", LastYSamp),
       paste0("Cell ", GRTS_ID, "; Last sampled: ", LastYSamp))
-    )%>%
+    ) %>%
+
+  # red + orange cells second -> drawn on top of grey
+  addPolygons(
+    data        = grids_col,
+    color       = ~border_col,
+    weight      = 4,
+    opacity     = 1,
+    fill        = FALSE,
+    group       = "GRTS grid cells",
+    label       = ~ifelse(
+      !is.na(CellName) & nzchar(CellName),
+      paste0("Cell ", GRTS_ID, " - ", CellName, "; Last sampled: ", LastYSamp),
+      paste0("Cell ", GRTS_ID, "; Last sampled: ", LastYSamp))
+    ) %>%
+
   addCircleMarkers(
     lng = ~Long, lat = ~Lat,
     radius = 6, color = "#2c3e50", weight = 1,

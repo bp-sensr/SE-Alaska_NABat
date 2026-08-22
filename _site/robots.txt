@@ -1,1 +1,1 @@
-Sitemap: https://biodiversitypathways.github.io/SE-Alaska_NABat/sitemap.xml
+Sitemap: https://bp-sensr.github.io/SE-Alaska_NABat/sitemap.xml
