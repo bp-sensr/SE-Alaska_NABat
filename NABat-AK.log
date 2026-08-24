@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999997 (TeX Live 2025) (preloaded format=xelatex 2026.2.25)  24 AUG 2026 10:56
+This is XeTeX, Version 3.141592653-2.6-0.999997 (TeX Live 2025) (preloaded format=xelatex 2026.2.25)  24 AUG 2026 11:54
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1220,9 +1220,8 @@ Missing character: There is no β (U+03B2) in font [lmroman10-regular]:mapping=t
 Missing character: There is no β (U+03B2) in font [lmroman10-regular]:mapping=tex-text;!
 Missing character: There is no β (U+03B2) in font [lmroman10-regular]:mapping=tex-text;!
 Missing character: There is no β (U+03B2) in font [lmroman10-regular]:mapping=tex-text;!
-Missing character: There is no β (U+03B2) in font [lmroman10-regular]:mapping=tex-text;!
 
-Overfull \hbox (9.61891pt too wide) in paragraph at lines 797--813
+Overfull \hbox (9.61891pt too wide) in paragraph at lines 793--809
  [][] 
  []
 
@@ -1232,16 +1231,15 @@ Missing character: There is no λ (U+03BB) in font [lmroman10-regular]:mapping=t
 Missing character: There is no λ (U+03BB) in font [lmroman10-regular]:mapping=tex-text;!
 Missing character: There is no λ (U+03BB) in font [lmroman10-regular]:mapping=tex-text;!
 
-LaTeX Warning: Reference `tbl-occ-trends' on page 14 undefined on input line 825.
+LaTeX Warning: Reference `tbl-occ-trends' on page 14 undefined on input line 823.
 
-Missing character: There is no λ (U+03BB) in font [lmroman10-regular]:mapping=tex-text;!
 Missing character: There is no λ (U+03BB) in font [lmroman10-regular]:mapping=tex-text;!
 Missing character: There is no λ (U+03BB) in font [lmroman10-regular]:mapping=tex-text;!
 Missing character: There is no λ (U+03BB) in font [lmroman10-regular]:mapping=tex-text;!
 ! Misplaced \noalign.
 \midrule ->\noalign 
                     {\ifnum 0=`}\fi \@aboverulesep =\aboverulesep \global \@...
-l.849 \midrule
+l.847 \midrule
               
 I expect to see \noalign only after the \cr of
 an alignment. Proceed, and I'll ignore this case.
