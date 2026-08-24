@@ -153,6 +153,7 @@ library(ggplot2)
 library(htmltools)
 library(sf)
 library(lubridate)
+library(stringr)
 #set these so that the document can render both html and pdf
 is_html <- knitr::pandoc_to("html")
 is_pdf  <- !is_html
@@ -947,37 +948,54 @@ merged_table <- merged_table %>%
 ```
 
 ```{r}
-#| label: Load activity occupancy trend resutls and format
+#| label: Load activity occupancy trend results and format
 #| include: false
 #| echo: false
 #| eval: true
 #| warning: false
 #| message: false
 
-trend_tbl <- tibble::tribble(
-  ~Species,   ~`Trend slope (95% CI)`,      ~`λ (95% CI)`,
-  "Hoary Bat",  "",  "",
-  "Silver-haired Bat",  "0.0085 (0.0009, 0.0160)",   "1.05 (0.95, 1.17)",
-  "California Myotis",  "0.0158 (0.0069, 0.0250)",   "1.16 (1.00, 1.35)",
-  "Long-eared Myotis", "0.0276 (0.0174, 0.0381)",   "1.25 (1.05, 1.50)",
-  "Little Brown Myotis",  "0.0142 (0.0090, 0.0200)",   "1.10 (1.03, 1.19)",
-  "Long-legged Myotis",  "0.0246 (0.0144, 0.0346)",   "1.43 (1.18, 1.77)",
-  "Yuma Myotis",   "0.0151 (0.0065, 0.0233)",   "1.44 (1.17, 1.79)"
-)
+trend_tbl <- read.csv("Data/Analyzed/Occupancy/yeartrendestimates.csv")
+occ_tbl <- read.csv("Data/Analyzed/Occupancy/covestimates.csv")
 
-# Species with lambda CI entirely above 1
-has_trend <- c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE, TRUE)
+# --- identify section-header rows (all species columns blank/NA) ---
+species_cols <- setdiff(names(occ_tbl), "Covariate")
 
-occ_tbl <- tibble::tribble(
-  ~Covariate,             ~LACI,                  ~LANO,                  ~MYCA,                  ~MYEV,               ~MYLU,                ~MYVO,                  ~MYYU,
-  "Elevation",            " ",                    "—",                    "-0.91 (-1.76, -0.16)", "—",                 "—",                  "—",                    "-1.83 (-2.81, -0.95)",
-  "Water nearby",         " ",                    "—",                    "1.79 (0.49, 3.36)",    "—",                 "—",                  "—",                    "—",
-  "Distance to road",     " ", "-0.49 (-0.91, -0.16)", "—",                    "—",                 "—",                  "-0.61 (-1.35, -0.18)", "—",
-  "Distance to road ",    " ",                    "-0.42 (-0.73, -0.07)", "—",                    "—",                 "—",                  "—",                    "-0.78 (-1.40, -0.13)",
-  "Percent clutter",      " ",                    "—",                    "0.22 (0.13, 0.32)",    "0.11 (0.02, 0.19)", "—",                  "0.16 (0.08, 0.25)",    "—",
-  "Nightly temperature",  " ",    "0.47 (0.36, 0.57)",    "0.23 (0.14, 0.33)",    "—",                 "0.24 (0.14, 0.34)",  "0.15 (0.06, 0.24)",    "—",
-  "Julian night",         " ",    "0.18 (0.09, 0.27)",    "-0.20 (-0.29, -0.12)", "—",                 "0.28 (0.19, 0.38)",  "0.13 (0.05, 0.22)",    "0.11 (0.01, 0.22)"
-)
+is_header <- apply(occ_tbl[species_cols], 1, function(x)
+  all(is.na(x) | str_trim(as.character(x)) == ""))
+
+sections   <- str_trim(occ_tbl$Covariate[is_header])  # section titles, in order
+section_id <- cumsum(is_header)                        # section each row belongs to
+
+# --- keep only data rows, build the pack_rows index ---
+occ_tbl <- occ_tbl[!is_header, , drop = FALSE]
+grp <- section_id[!is_header]
+counts    <- as.integer(table(factor(grp, levels = seq_along(sections))))
+index_vec <- setNames(counts, sections)
+
+# --- normalize empty cells to a consistent em dash ---
+occ_tbl[species_cols] <- lapply(occ_tbl[species_cols], function(col) {
+  col <- str_trim(as.character(col))
+  col[is.na(col) | col == ""] <- "—"
+  col
+})
+
+occ_tbl$LACI <- ""
+
+# --- render ---
+occ_tbl %>%
+  kbl(
+    align    = c("l", rep("c", length(species_cols))),
+    booktabs = TRUE,
+    linesep  = "",
+    caption  = "Occupancy covariate estimates, posterior mean (95% CI)."
+  ) %>%
+  kable_styling(
+    latex_options     = if (is_pdf) c("hold_position", "scale_down"),
+    bootstrap_options = if (!is_pdf) c("striped", "condensed"),
+    full_width        = FALSE
+  ) %>%
+  pack_rows(index = index_vec, bold = TRUE, italic = FALSE)
 
 ```
 
@@ -1248,11 +1266,52 @@ kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_
 
 ## Dynamic Occupancy
 
-Dynamic occupancy models converged for all species. Due to the low number of Hoary bat detections across the monitoring period all Hoary bat results were removed from this report. Four species showed increasing occupancy over the 2017–2025 period, comprising all Myotis species except California Myotis: Long-legged Myotis (λ = 1.43, 95% CI 1.18–1.77), Long-eared Myotis (λ = 1.25, 1.05–1.50), Little Brown Myotis (λ = 1.10, 1.03–1.19), and Yuma Myotis (λ = 1.44, 1.17–1.79).
+Dynamic occupancy models converged for all species. Due to the low number of Hoary bat detections across the monitoring period all Hoary bat results were removed from this report. Four species showed increasing occupancy over the 2017–2025 period, comprising all Myotis species except California Myotis: Long-legged Myotis (λ = 1.43, 95% CI 1.18–1.77), Long-eared Myotis (λ = 1.25, 1.05–1.50), Little Brown Myotis (λ = 1.10, 1.03–1.19), and Yuma Myotis (λ = 1.44, 1.17–1.79) [@tbl-occ-trends].
 
-For the remaining three species, Silver-haired Bat (λ = 1.05, 0.95–1.17), and California Myotis (λ = 1.16, 1.00–1.35), the 95% credible interval for λ overlapped 1, indicating that no directional change in occupancy could be detected.
+For the remaining three species, Silver-haired Bat (λ = 1.05, 0.95–1.17), and California Myotis (λ = 1.16, 1.00–1.35) [@tbl-occ-trends], the 95% credible interval for λ overlapped 1, indicating that no directional change in occupancy could be detected.
+
+```{r}
+#| label: tbl-occ-trends
+#| echo: false
+#| warning: false
+#| message: false
+#| tbl-pos: H
+#| tbl-cap: Occupancy trend estimates 
+
+kable(trend_tbl,
+      col.names = c("Species", "Trend Slope (95% CI)", " λ (95% CI)"),
+      row.names = FALSE)%>%
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE,
+                position = "left")
+```
 
 Covariate effects varied by species, but temperature was the most consistent detection covariate, with warmer nights associated with higher detection probability for most species. Clutter effects on detection probability were present but species-specific, and Julian date effects were mixed across species[@tbl-occ-covariates].
+
+```{r}
+#| label: tbl-occ-covariates
+#| echo: false
+#| warning: false
+#| message: false
+#| tbl-pos: H
+#| tbl-cap: Covariates
+
+kable(occ_tbl,
+      col.names = c("Covariate", species_cols),
+      row.names = FALSE,
+      label = "occ-covariates") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
+                full_width = FALSE,
+                position = "left") %>%
+  column_spec(1, width = "10em") %>%
+  column_spec(2, width = "6em",
+              extra_css = "min-width: 6em; white-space: nowrap;") %>%
+  column_spec(3:(length(species_cols) + 1),
+              width = "20em",
+              extra_css = "white-space: nowrap;") %>%
+  pack_rows(index = index_vec, bold = TRUE, italic = FALSE,
+            label_row_css = "text-align: left; border-bottom: 1px solid #ddd;")
+```
 
 More detailed species results can be found on [Appendix A](#sec-appendix-a).
 
