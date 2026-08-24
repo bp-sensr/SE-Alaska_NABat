@@ -954,7 +954,7 @@ merged_table <- merged_table %>%
 
 # Executive Summary
 
-The North American Bat Monitoring (NABat) program is a multi-agency initiative administered by the US Geological Survey (USGS). In 2024, the North by Northwest (NNW) Bat Hub was formed by combining the former Alberta Hub and the BC and Southeast Alaska (BC-SE_AK) Hub. The NNW Bat Hub leads the NABat program within S.E Alaska, with key support from state representatives. In 2025, 6 grid cells in S.E. Alaska were monitored. Results indicate that bat populations across S.E. Alaska remain stable, with some key species showing small positive trends, including Little Brown Myotis and Eastern Red Bat. Given growing threats to bat populations in BC, continued monitoring is essential to detect any significant changes.
+The North American Bat Monitoring (NABat) program is a multi-agency initiative administered by the US Geological Survey (USGS). In 2024, the North by Northwest (NNW) Bat Hub was formed by combining the former Alberta Hub and the BC and Southeast Alaska (BC-SE_AK) Hub. The NNW Bat Hub leads the NABat program within S.E Alaska, with key support from state representatives. In 2024, 9 grid cells were monitored and in 2025 6 grid cells were monitored in Southeast Alaska. We used activity, abundance and dynamic occupancy models to evaluate the trends in bat population in the region using 7 years of acoustic data. Results indicate that bat populations across Southeast Alaska remain stable, with some key species showing small positive trends, including Little Brown Myotis and Silver-haired bat. Given growing threats to bat populations across the region, continued monitoring is essential to detect any significant changes.
 
 {{< pagebreak >}}
 
@@ -1098,17 +1098,19 @@ After selection, we ran a series of post-hoc checks to confirm model fit. We tre
 
 ### Dynamic Occupancy
 
-This analysis used nightly acoustic detection/non-detection data from passive bat detectors deployed at 43 stationary detector sites located in 9 grid cells in Southeast Alaska, as well as 173 stationary detector sites in 56 grid cells in British Columbia (BC). Data were filtered to the 2017--2025 period, and analysis used an every-other-night subsampling protocol to reduce temporal autocorrelation between consecutive nights, using a maximum of 4 nights per site-year. Sites had to have a minimum of 2 nights of data within a given year and data from at least 2 years total. Models were run separately for all 7 bat species.
+We fitted multi-season (dynamic) occupancy models [@mackenzie2003] to estimate trends in occupancy, colonization, and persistence while accounting for imperfect detection. This analysis used nightly acoustic detection/non-detection data from passive bat detectors deployed at 43 stationary detector sites located in 9 grid cells in Southeast Alaska, as well as 173 stationary detector sites in 56 grid cells in British Columbia (BC). Pooling the two regions allowed the more extensive BC data to inform species-specific detection probabilities and covariate slopes, improving our ability to distinguish true absences from non-detections and thereby sharpening occupancy estimates where Alaska data were sparse. A region effect accounted for structural differences in the landscape between British Columbia and southeast Alaska, allowing us to characterize occupancy trends for southeast Alaska with greater precision than an Alaska-only model would permit.
 
-We fitted multi-season (dynamic) occupancy models [@mackenzie2003] to estimate trends in occupancy, colonization, and persistence while accounting for imperfect detection. Initial occupancy ($\psi$) was modeled as a function of elevation and water nearby, with a random effect for region. Baseline occupancy for the Alaska region was estimated from Alaska detections only and was not forced toward the BC average. Colonization ($\gamma$) and persistence ($\varphi$) were modeled with time-varying intercepts and distance to road as a covariate. Detection probability (p) was modeled as a function of percent clutter, nightly mean temperature, and Julian night. Due to the small number of detector sites in Southeast Alaska, detection probability and covariate slopes were borrowed from the shared model.
+Data were filtered to the 2017--2025 period, and analysis used an every-other-night subsampling protocol to reduce temporal autocorrelation between consecutive nights, using a maximum of 4 nights per site-year. Sites had to have a minimum of 2 nights of data within a given year and data from at least 2 years total. Models were run separately for all 7 bat species.
+
+Initial occupancy ($\psi$) was modeled as a function of elevation and water nearby, with a random effect for region. Baseline occupancy for the Alaska region was estimated from Alaska detections only and was not forced toward the BC average. Colonization ($\gamma$) and persistence ($\varphi$) were modeled with time-varying intercepts and distance to road as a covariate. Detection probability (p) was modeled as a function of percent clutter, nightly mean temperature, and Julian night.
 
 All continuous covariates were standardized by centering on their mean and dividing by their standard deviation; missing covariate values were imputed with the global mean prior to standardization.
 
-Models were fit in a Bayesian framework using JAGS via the jagsUI package in R, with 30,000 iterations, 15,000 burn-in, thinning by 5, and 3 chains run in parallel, yielding 9,000 posterior samples for inference. Priors on all regression coefficients were normally distributed (mean = 0, precision = 0.368, equivalent to SD ≈ 1.65), and the region-level random effect standard deviation received a uniform(0, 5) prior. Model convergence was assessed using Rhat diagnostics. Results are interpreted using posterior means and 95% Bayesian credible intervals. An overall occupancy trend metric (λ) was calculated as the ratio of estimated occupancy in the final year to occupancy in the initial year; values of λ \> 1 with 95 CIs entirely above 1 indicate an increase in occupancy, values \< 1 with 95 CIs entirely below 1 indicate a decline, and values with CIs overlapping 1 indicate uncertain or stable trends.
+Models were fit in a Bayesian framework using JAGS (Version 4.3.2) via the `jagsUI` package (Version 1.6.3) in r (Version 4.5.1). We ran 3 chains in parallel for 30,000 iterations each, discarding the first 15,000 as burn-in and thinning the remainder by 5, yielding 9,000 posterior samples for inference. Priors on all regression coefficients were normal with mean 0 and precision 0.368 (equivalent to a standard deviation of approximately 1.65), and the standard deviation of the region-level random effect was assigned a Uniform(0, 5) prior. Convergence was assessed using Rhat diagnostics, with values below 1.1 taken to indicate convergence. Results are summarized using posterior means and 95% Bayesian credible intervals. We calculated an overall occupancy trend metric (𝜆) as the ratio of estimated occupancy in the final year to that in the initial year; values of 𝜆 \> 1 with 95% credible intervals entirely above 1 indicate an increase in occupancy, values 𝜆\<1 with intervals entirely below 1 indicate a decline, and intervals overlapping 1 indicate an uncertain or stable.
 
 # Results
 
-In 2024 all 9 grid cells were monitored, and in 2025 a total of 6 grid sites were sampled in SE Alaska and 3 newly established sites were sampled around the Anchorage area (@fig-sites).
+In 2024 all 9 grid cells were monitored, and in 2025 a total of 6 grid sites were sampled in SE Alaska and 3 newly established sites were sampled in the Anchorage area (@fig-sites).
 
 ```{r}
 #| label: fig-sites
@@ -1163,7 +1165,7 @@ if (is_html) {
 
 ## Activity Summary and Trends
 
-Total acoustic activity varied substantially across sites and years, with Little Brown Myotis dominating call volume at every site in nearly every year. Overall detection totals were highest at the northern sites: Yakutat produced the single largest site-year total (\~17,500 calls in 2024), and Juneau recorded consistently high volumes (\~12,000 in 2020 and \~13,500 in 2024). Southern and central sites generally recorded lower totals, with Petersburg (\~9,000 in 2024) and POW (\~7,500 in 2024) reaching comparable peaks in single years, while Wrangell and Hoonah remained low throughout (generally under \~2,000 calls per year). There was big spike in activity in 2024 year for most sites,compared to other years.
+Total acoustic activity varied substantially across sites and years, with Little Brown Myotis dominating call volume at every site in nearly every year. Overall detection totals were highest at the northern sites: Yakutat produced the single largest site-year total (\~17,500 calls in 2024), and Juneau recorded consistently high volumes (\~12,000 in 2020 and \~13,500 in 2024). Southern and central sites generally recorded lower totals, with Petersburg (\~9,000 in 2024) and POW (\~7,500 in 2024) reaching comparable peaks in single years, while Wrangell and Hoonah remained low throughout (generally under \~2,000 calls per year). Most sites recorded substantially higher activity in 2024 than in any other year.
 
 ```{r}
 #| label: fig-activitysummary
@@ -1181,20 +1183,20 @@ actsum
 
 We estimated yearly trends in nightly acoustic activity for seven species across the stationary detector and mobile transect survey streams. Five species produced reportable stationary-detector models; two (Long-legged Myotis, Yuma Myotis) could not be reliably fit and are not reported [@tbl-models]. For transect abundance trends we only report on the results of Silver-haired bat and Little Brown bat since these were the only two species were modelling results were reliable.
 
-Silver-haired Bat (LANO) showed the clearest and most consistent signal, with activity increasing significantly over the monitoring period in both the stationary (β = 0.48, 95% CI \[0.31, 0.65\], p \< 0.001) and transect (β = 0.40, 95% CI \[0.20, 0.60\], p = 0.001) datasets, the only species for which a significant trend was recovered independently in both survey types.
+Silver-haired Bat showed the clearest and most consistent signal, with activity increasing significantly over the monitoring period in both the stationary (β = 0.48 ± 0.17, p \< 0.001) and transect (β = 0.40 ± 0.20, p = 0.001) datasets, the only species for which a significant trend was recovered independently in both survey types.
 
-Two additional species showed significant trends in the stationary data alone. Hoary Bat (LACI) declined (β = −0.41, 95% CI \[−0.77, −0.05\], p = 0.027), while California Myotis (MYCA) increased modestly (β = 0.14, 95% CI \[0.01, 0.27\], p = 0.036); neither had a reportable transect model.
+Two additional species showed significant trends in the stationary data alone. Hoary Bat declined (β = −0.41 ± 0.36 , p = 0.027), while California Myotis increased (β = 0.14 ± 0.13, p = 0.036); neither had a reportable transect model.
 
-Long-eared Myotis (MYEV; β = 0.06, 95% CI \[−0.07, 0.19\], p = 0.35) and Little Brown Myotis (MYLU; stationary β = 0.08, 95% CI \[−0.06, 0.22\], p = 0.24; transect β = 0.00, 95% CI \[−0.12, 0.12\], p = 0.94) showed no detectable trend, with confidence intervals spanning zero in every reportable model.
+Long-eared Myotis (β = 0.06 ± 0.13, p = 0.35) and Little Brown Myotis (stationary β = 0.08 ± 0.14, p = 0.24; transect β = 0.00 ± 0.12, p = 0.94) showed no detectable trend, with confidence intervals spanning zero in both reportable models.
 
-Long-legged Myotis (MYVO) and Yuma Myotis (MYYU) are not reported: MYVO fell below the detection threshold required for trend estimation, and the MYYU model failed to converge.
+Long-legged Myotis and Yuma Myotis are not reported: Long-legged Myotis fell below the detection threshold required for trend estimation, and the Yuma Myotis model failed to converge.
 
 ```{r}
 #| echo: false
 #| warning: false
 #| message: false
 #| label: tbl-models
-#| tbl-cap:  Stationary trend estimates from 2015-2025 NABat monitoring in S.E. Alaska adjusted for covariates. Trends estimated on a logarithmic scale, thus a trend estimate of 0.05 corresponds to an annual change of 5%. Significant results (p value < 0.05) are highlighted in bold.
+#| tbl-cap: Trend estimates from NABat stationary and transect monitoring in southeast Alaska, 2019–2025, adjusted for covariates. Estimates are on the natural-log scale. Stationary and transect models were fit separately as independent pipelines; blank cells indicate species that did not meet the criteria for reporting in that framework. Significant results (p < 0.05) are shown in bold.
 #| tbl-pos: 'H'
 
 # Display table with conditional bolding for both stationary and transect
@@ -1213,15 +1215,84 @@ kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_
 
 ## Dynamic Occupancy
 
-Temperature was the most consistent detection covariate--warmer nights equate to higher detection for most species. There were some clutter effects on detection probability that were species-specific. Julian date effects were mixed across species.
+Dynamic occupancy models converged for all seven species. Four species showed increasing occupancy over the 2017–2025 period, comprising all Myotis species except California Myotis: Long-legged Myotis (λ = 1.43, 95% CI 1.18–1.77), Long-eared Myotis (λ = 1.25, 1.05–1.50), Little Brown Myotis (λ = 1.10, 1.03–1.19), and Yuma Myotis (λ = 1.44, 1.17–1.79) [@tbl-occ-trends].
 
-Species specific results can be found on [Appendix A](#sec-appendix-a)
+For the remaining three species, Hoary Bat (λ = 1.09, 0.95–1.26), Silver-haired Bat (λ = 1.05, 0.95–1.17), and California Myotis (λ = 1.16, 1.00–1.35), the 95% credible interval for λ overlapped 1, indicating that no directional change in occupancy could be detected.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: tbl-occ-trends
+#| tbl-cap: "Occupancy trend estimates from the dynamic occupancy models (pooled British Columbia and Southeast Alaska), 2017–2025. The trend slope is the per-year change in occupancy on the model scale; $\\lambda$ is the ratio of occupancy in the final year (2025) to the initial year (2017). Values are posterior means with 95% credible intervals. A $\\lambda$ interval entirely above 1 indicates increasing occupancy; an interval overlapping 1 indicates no directional change could be detected."
+
+trend_tbl <- tibble::tribble(
+  ~Species,   ~`Trend slope (95% CI)`,      ~`$\\lambda$ (95% CI)`,
+  "Hoary Bat",  "0.0004 (-0.0086, 0.0095)",  "1.09 (0.95, 1.26)",
+  "Silver-haired Bat",  "0.0085 (0.0009, 0.0160)",   "1.05 (0.95, 1.17)",
+  "California Myotis",  "0.0158 (0.0069, 0.0250)",   "1.16 (1.00, 1.35)",
+  "Long-eared Myotis", "0.0276 (0.0174, 0.0381)",   "1.25 (1.05, 1.50)",
+  "Little Brown Myotis",  "0.0142 (0.0090, 0.0200)",   "1.10 (1.03, 1.19)",
+  "Long-legged Myotis",  "0.0246 (0.0144, 0.0346)",   "1.43 (1.18, 1.77)",
+  "Yuma Myotis",   "0.0151 (0.0065, 0.0233)",   "1.44 (1.17, 1.79)"
+)
+
+# Species with lambda CI entirely above 1
+has_trend <- c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE, TRUE)
+
+trend_tbl %>%
+  mutate(Species = cell_spec(Species, bold = has_trend)) %>%
+  kbl(booktabs = TRUE, escape = FALSE, align = c("l", "l", "c", "c")) %>%
+  kable_styling(
+    latex_options = c("hold_position"),
+    bootstrap_options = c("striped", "hover"),
+    full_width = FALSE
+  )
+```
+
+Covariate effects varied by species, but temperature was the most consistent detection covariate, with warmer nights associated with higher detection probability for most species. Clutter effects on detection probability were present but species-specific, and Julian date effects were mixed across species[@tbl-occ-covariates].
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: tbl-occ-covariates
+#| tbl-cap: "Covariate effects from the dynamic occupancy models (pooled British Columbia and Southeast Alaska), on the standardized model scale. Each cell gives the posterior mean and 95% credible interval; only effects whose interval excludes zero are shown, and a dash indicates the covariate was included but its 95% credible interval overlapped zero. $\\psi$ = initial occupancy, $\\gamma$ = colonization, $\\varphi$ = persistence, $p$ = detection."
+
+
+occ_tbl <- tibble::tribble(
+  ~Covariate,             ~LACI,                  ~LANO,                  ~MYCA,                  ~MYEV,               ~MYLU,                ~MYVO,                  ~MYYU,
+  "Elevation",            "—",                    "—",                    "-0.91 (-1.76, -0.16)", "—",                 "—",                  "—",                    "-1.83 (-2.81, -0.95)",
+  "Water nearby",         "—",                    "—",                    "1.79 (0.49, 3.36)",    "—",                 "—",                  "—",                    "—",
+  "Distance to road",     "-0.54 (-0.98, -0.19)", "-0.49 (-0.91, -0.16)", "—",                    "—",                 "—",                  "-0.61 (-1.35, -0.18)", "—",
+  "Distance to road ",    "—",                    "-0.42 (-0.73, -0.07)", "—",                    "—",                 "—",                  "—",                    "-0.78 (-1.40, -0.13)",
+  "Percent clutter",      "—",                    "—",                    "0.22 (0.13, 0.32)",    "0.11 (0.02, 0.19)", "—",                  "0.16 (0.08, 0.25)",    "—",
+  "Nightly temperature",  "0.29 (0.19, 0.39)",    "0.47 (0.36, 0.57)",    "0.23 (0.14, 0.33)",    "—",                 "0.24 (0.14, 0.34)",  "0.15 (0.06, 0.24)",    "—",
+  "Julian night",         "0.23 (0.14, 0.33)",    "0.18 (0.09, 0.27)",    "-0.20 (-0.29, -0.12)", "—",                 "0.28 (0.19, 0.38)",  "0.13 (0.05, 0.22)",    "0.11 (0.01, 0.22)"
+)
+
+occ_tbl %>%
+  mutate(Covariate = trimws(Covariate)) %>%
+  kbl(booktabs = TRUE, escape = FALSE, align = c("l", rep("c", 7))) %>%
+  kable_styling(
+    latex_options = c("hold_position", "scale_down"),
+    bootstrap_options = c("striped", "hover"),
+    full_width = FALSE
+  ) %>%
+  add_header_above(c(" " = 1, "Species" = 7)) %>%
+  pack_rows("Initial occupancy ($\\psi$)", 1, 2, escape = FALSE) %>%
+  pack_rows("Colonization ($\\gamma$)",    3, 3, escape = FALSE) %>%
+  pack_rows("Persistence ($\\varphi$)",    4, 4, escape = FALSE) %>%
+  pack_rows("Detection ($p$)",             5, 7, escape = FALSE)
+```
+
+More detailed species results can be found on [Appendix A](#sec-appendix-a).
 
 # Discussion
 
 Need to talk about the spike in 2024 data. I looked through the data and there isn't an issue with duplicate sites. Need to confirm if the sites were sampled for longer than normal as this might explain the issue (will need to reference new table that includes deployment sated for 2024 and 2025).
 
-Talk about the differences in results between activity and occupancy trends. Is there a big difference? Do they tell us the same information?
+Talk about the differences in results between activity and occupancy trends. Occupancy trends need a larger change to be detectable, so it can take a bit longer to be able to detect changes in populations. Activity metrics are way more noisy so they might show changes quicker but might not be as reliable and need to have consistent trends over many years of modelling to say anythign about them.
 
 The reduced survey effort in 2025 was the result of staffing cuts by the US Forest Service and staffing levels are unlikely to improve in the near future. Given the already low number of grids currently being monitored in Southeast Alaska, efforts should be made to find other agencies or organizations to continue the monitoring in those grids or to establish new ones.\
 -Also, are there ways to reduce the time it takes to monitor a grid? Eliminate driving surveys, stop collecting onsite weather data, etc. that wouldn't impact the analyses?\
@@ -1233,7 +1304,7 @@ Many more species are present in BC than in SEAK and its possible that new speci
 
 ![](images/clipboard-1678851271.png) ![](images/clipboard-2604002813.png) ![](images/clipboard-539850997.png) ![](images/clipboard-4068991790.png)
 
-##Silver-haired Bat (*Lasyonicteris noctivagans*)
+## Silver-haired Bat (*Lasyonicteris noctivagans*)
 
 ![](images/clipboard-3190713865.png) ![](images/clipboard-2878420209.png) ![](images/clipboard-950746085.png) ![](images/clipboard-4079169987.png)
 
