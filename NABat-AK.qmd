@@ -1296,10 +1296,11 @@ Covariate effects varied by species, but temperature was the most consistent det
 #| tbl-pos: H
 #| tbl-cap: Covariates
 
-kable(occ_tbl,
-      col.names = c("Covariate", species_cols),
-      row.names = FALSE,
-      label = "occ-covariates") %>%
+occ_kable <- kable(occ_tbl,
+                   format = "html",                       # force HTML so styling applies even in PDF render
+                   col.names = c("Covariate", species_cols),
+                   row.names = FALSE,
+                   label = "occ-covariates") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
                 full_width = FALSE,
                 position = "left") %>%
@@ -1307,10 +1308,17 @@ kable(occ_tbl,
   column_spec(2, width = "6em",
               extra_css = "min-width: 6em; white-space: nowrap;") %>%
   column_spec(3:(length(species_cols) + 1),
-              width = "20em",
-              extra_css = "white-space: nowrap;") %>%
+              width = "20em") %>%
   pack_rows(index = index_vec, bold = TRUE, italic = FALSE,
             label_row_css = "text-align: left; border-bottom: 1px solid #ddd;")
+
+if (is_pdf) {
+  dir.create("figures", showWarnings = FALSE)
+  save_kable(occ_kable, file = "figures/occ_covariates.png", zoom = 2)
+  knitr::include_graphics("figures/occ_covariates.png")
+} else {
+  occ_kable
+}
 ```
 
 More detailed species results can be found on [Appendix A](#sec-appendix-a).
@@ -1321,11 +1329,13 @@ Need to talk about the spike in 2024 data. I looked through the data and there i
 
 Talk about the differences in results between activity and occupancy trends. Occupancy trends need a larger change to be detectable, so it can take a bit longer to be able to detect changes in populations. Activity metrics are way more noisy so they might show changes quicker but might not be as reliable and need to have consistent trends over many years of modelling to say anythign about them.
 
-The reduced survey effort in 2025 was the result of staffing cuts by the US Forest Service and staffing levels are unlikely to improve in the near future. Given the already low number of grids currently being monitored in Southeast Alaska, efforts should be made to find other agencies or organizations to continue the monitoring in those grids or to establish new ones.\
--Also, are there ways to reduce the time it takes to monitor a grid? Eliminate driving surveys, stop collecting onsite weather data, etc. that wouldn't impact the analyses?\
-Many more species are present in BC than in SEAK and its possible that new species may expand their ranges into or within SEAK (MYYU). Is it feasible to look for species such as EPFU somehow? Maybe run the files with all the BC species that have diagnostic calls and manually review any recordings that are identified as one of those species? Not sure if there are diagnostic characteristics for EPFU like there are for LANO though.
+The reduced survey effort in 2025 was the result of staffing cuts by the US Forest Service and staffing levels are unlikely to improve in the near future. Maintainign the sampling in the sites and grid cells that have the most amount of continuous data is vital to enrugin that we can continue to detect changes in the populations, expecially given the imminent threat of white nose syndrome. if need to reduce the number of grids would focus on keeping the grids that have been sampled the longest. Efforts can also be made to join efforts with other agencies to continue monitoring at current or new sites. One example that is being explored in BC and Alberta is engaging with industry partners (mines and wind development) to have coordinated monitorign efforts at their sites and getting them to contriubte to the hub and overall work.
 
-Main questii: what do we need to change to improve the power of these analyses. REcommnedations to improve stats)
+Efforts to help reduce the work it takes to deploy the grid cells are mainyl focuse aroudn efficiencies in deployment. Grid leaders should be continued to be encouraged to use Survey123 as a form to simplify their deployment of sites. In 2024 and 2025 the online platform was not used consistently among all grids. In 2026 we can view efficiencies surrounding weather data used, specifically evaluating whether the continued use of temperature and humidity detectors at the site offer simialr results to using weather data from clsoest weather stations.
+
+Species ranges continue to expand and a review of the data, specifically looking for new potentail species would be prudent. Specifically lookinga t the Big Borwn Bat. This bat has very similar calls to that of LANO, so we can explore using bioacoustics to do general checks for species for going out and catching the bats will be the only way to confirm range expansion.
+
+Overall Alaska species seem to be pretty stable, with even potentail increases for bats like LANO nad MYCA
 
 # Appendix A {#sec-appendix-a}
 

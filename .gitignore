@@ -5,3 +5,10 @@
 
 /.quarto/
 **/*.quarto_ipynb
+
+#All fits results from activity models
+Data/Analyzed/AK.all.fits.rds
+
+#raw data 
+Data/NABatOccupancy2015-2023.xlsx
+
