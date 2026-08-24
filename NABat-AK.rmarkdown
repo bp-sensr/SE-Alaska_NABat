@@ -1273,13 +1273,11 @@ occ_tbl <- tibble::tribble(
 
 occ_tbl %>%
   mutate(Covariate = trimws(Covariate)) %>%
-  kbl(booktabs = TRUE, escape = FALSE, align = c("l", rep("c", 7)),
-      linesep = "") %>%
+  kbl(booktabs = TRUE, escape = FALSE, align = c("l", rep("c", 7))) %>%
   kable_styling(
-    latex_options = c("hold_position"),
+    latex_options = c("hold_position", "scale_down"),
     bootstrap_options = c("striped", "hover"),
-    full_width = FALSE,
-    font_size = if (is_pdf) 8 else NULL
+    full_width = FALSE
   ) %>%
   add_header_above(c(" " = 1, "Species" = 7)) %>%
   pack_rows("Initial occupancy ($\\psi$)", 1, 2, escape = FALSE) %>%
@@ -1481,3 +1479,4 @@ if (is_pdf) {
 {{< pagebreak >}}
 
 # Literature Cited
+
