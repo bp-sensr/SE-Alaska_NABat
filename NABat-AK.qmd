@@ -1266,9 +1266,9 @@ kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_
 
 ## Dynamic Occupancy
 
-Dynamic occupancy models converged for all species. Due to the low number of Hoary bat detections across the monitoring period all Hoary bat results were removed from this report. Four species showed increasing occupancy over the 2017–2025 period, comprising all Myotis species except California Myotis: Long-legged Myotis (λ = 1.43, 95% CI 1.18–1.77), Long-eared Myotis (λ = 1.25, 1.05–1.50), Little Brown Myotis (λ = 1.10, 1.03–1.19), and Yuma Myotis (λ = 1.44, 1.17–1.79) [@tbl-occ-trends].
+Dynamic occupancy models converged for all species. Due to the low number of Hoary bat detections across the monitoring period all Hoary bat results were removed from this report. Four species showed increasing occupancy over the 2017–2025 period, comprising all Myotis species except California Myotis: Long-legged Myotis (λ = 1.43, 95% CI 1.18–1.77), Long-eared Myotis (λ = 1.25, 1.05–1.50), Little Brown Myotis (λ = 1.10, 1.03–1.19), and Yuma Myotis (λ = 1.44, 1.17–1.79) ([@tbl-occ-trends]).
 
-For the remaining three species, Silver-haired Bat (λ = 1.05, 0.95–1.17), and California Myotis (λ = 1.16, 1.00–1.35) [@tbl-occ-trends], the 95% credible interval for λ overlapped 1, indicating that no directional change in occupancy could be detected.
+For the remaining three species, Silver-haired Bat (λ = 1.05, 0.95–1.17), and California Myotis (λ = 1.16, 1.00–1.35) ([@tbl-occ-trends]), the 95% credible interval for λ overlapped 1, indicating that no directional change in occupancy could be detected.
 
 ```{r}
 #| label: tbl-occ-trends
@@ -1286,7 +1286,7 @@ kable(trend_tbl,
                 position = "left")
 ```
 
-Covariate effects varied by species, but temperature was the most consistent detection covariate, with warmer nights associated with higher detection probability for most species. Clutter effects on detection probability were present but species-specific, and Julian date effects were mixed across species[@tbl-occ-covariates].
+Covariate effects varied by species, but temperature was the most consistent detection covariate, with warmer nights associated with higher detection probability for most species. Clutter effects on detection probability were present but species-specific, and Julian date effects were mixed across species ([@tbl-occ-covariates]).
 
 ```{r}
 #| label: tbl-occ-covariates
@@ -1328,10 +1328,6 @@ Many more species are present in BC than in SEAK and its possible that new speci
 Main questii: what do we need to change to improve the power of these analyses. REcommnedations to improve stats)
 
 # Appendix A {#sec-appendix-a}
-
-## Hoary Bat (*Lasiurus cinereus*)
-
-![](images/clipboard-1678851271.png) ![](images/clipboard-2604002813.png) ![](images/clipboard-539850997.png) ![](images/clipboard-4068991790.png)
 
 ## Silver-haired Bat (*Lasyonicteris noctivagans*)
 
