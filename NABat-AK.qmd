@@ -1276,14 +1276,15 @@ For the remaining three species, Silver-haired Bat (λ = 1.05, 0.95–1.17), and
 #| warning: false
 #| message: false
 #| tbl-pos: H
-#| tbl-cap: Occupancy trend estimates 
+#| tbl-cap: Occupancy trend estimates. Bolded rows show the estimates where lambada did not include 1 which suggest a changing trend
 
 kable(trend_tbl,
       col.names = c("Species", "Trend Slope (95% CI)", " λ (95% CI)"),
-      row.names = FALSE)%>%
+      row.names = FALSE) %>%
   kable_styling(bootstrap_options = c("striped", "hover"),
                 full_width = FALSE,
-                position = "left")
+                position = "left") %>%
+  row_spec((nrow(trend_tbl) - 3):nrow(trend_tbl), bold = TRUE)
 ```
 
 Covariate effects varied by species, but temperature was the most consistent detection covariate, with warmer nights associated with higher detection probability for most species. Clutter effects on detection probability were present but species-specific, and Julian date effects were mixed across species ([@tbl-occ-covariates]).
