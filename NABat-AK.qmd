@@ -1342,23 +1342,23 @@ Overall Alaska species seem to be pretty stable, with even potentail increases f
 
 ## Silver-haired Bat (*Lasyonicteris noctivagans*)
 
-![](images/clipboard-3190713865.png) ![](images/clipboard-2878420209.png) ![](images/clipboard-950746085.png) ![](images/clipboard-4079169987.png)
+![](Figures/DOccupancy/LANO_04_alaska.png) ![](Figures/DOccupancy/LANO_01_occupancy_trend.png) ![](Figures/DOccupancy/LANO_02_dynamics.png) ![](Figures/DOccupancy/LANO_03_covariate_effects.png)
 
 ## California Myotis (*Myotis californicus*)
 
-![](images/clipboard-2427323019.png) ![](images/clipboard-359804971.png) ![](images/clipboard-3695743881.png) ![](images/clipboard-1493695761.png)
+![](Figures/DOccupancy/MYCA_04_alaska.png) ![](Figures/DOccupancy/MYCA_01_occupancy_trend.png) ![](Figures/DOccupancy/MYCA_02_dynamics.png) ![](Figures/DOccupancy/MYCA_03_covariate_effects.png)
 
 ## Long-eared Myotis (*Myotis evotis*)
 
-![](images/clipboard-3941761601.png) ![](images/clipboard-2730898759.png) ![](images/clipboard-3987187980.png) ![](images/clipboard-3555136292.png)
+![](Figures/DOccupancy/MYEV_04_alaska.png) ![](Figures/DOccupancy/MYEV_01_occupancy_trend.png) ![](Figures/DOccupancy/MYEV_02_dynamics.png) ![](Figures/DOccupancy/MYEV_03_covariate_effects.png)
 
 ## Little Brown Myotis (*Myotis lucifugus*)
 
-![](images/clipboard-3750373898.png) ![](images/clipboard-2633679632.png) ![](images/clipboard-2306693806.png) ![](images/clipboard-79436506.png)
+![](Figures/DOccupancy/MYLU_04_alaska.png) ![](Figures/DOccupancy/MYVO_01_occupancy_trend.png) ![](Figures/DOccupancy/MYLU_02_dynamics.png) ![](Figures/DOccupancy/MYLU_03_covariate_effects.png)
 
 ## Long-legged Myotis (*Myotis volans*)
 
-![](images/clipboard-378845605.png) ![](images/clipboard-2874082935.png) ![](images/clipboard-2053734589.png) ![](images/clipboard-4053125643.png)
+![](Figures/DOccupancy/MYVO_04_alaska.png) ![](Figures/DOccupancy/MYVO_01_occupancy_trend.png) ![](Figures/DOccupancy/MYVO_02_dynamics.png) ![](Figures/DOccupancy/MYVO_03_covariate_effects.png)
 
 {{< pagebreak >}}
 
