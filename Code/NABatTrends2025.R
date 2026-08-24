@@ -30,6 +30,9 @@ bat.data <- bat.data[!grepl("-dup|-SM", bat.data$Quadrant, ignore.case = TRUE), 
 #separate transect from stationary data
 bat.data <- bat.data[ bat.data$Quadrant != "Transects",]
 
+###NEEED TO DO THISSS!!! In the Kaleidoscope outputs it looks like there are a lot of LACI, but they are all noise.
+### Need to remove all of the LACI  outputs form 2019-2023 and only include one confirmed call from Yakitat (33486) in 2022. 
+
 #Clean up transect data (comes from manual verified data rather tahn autoID)
 #change columns that should be character from number
 bat.data.MV$WeatherSource <- as.character(bat.data.MV$WeatherSource)

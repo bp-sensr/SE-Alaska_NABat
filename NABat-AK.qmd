@@ -946,6 +946,41 @@ merged_table <- merged_table %>%
 
 ```
 
+```{r}
+#| label: Load activity occupancy trend resutls and format
+#| include: false
+#| echo: false
+#| eval: true
+#| warning: false
+#| message: false
+
+trend_tbl <- tibble::tribble(
+  ~Species,   ~`Trend slope (95% CI)`,      ~`λ (95% CI)`,
+  "Hoary Bat",  "",  "",
+  "Silver-haired Bat",  "0.0085 (0.0009, 0.0160)",   "1.05 (0.95, 1.17)",
+  "California Myotis",  "0.0158 (0.0069, 0.0250)",   "1.16 (1.00, 1.35)",
+  "Long-eared Myotis", "0.0276 (0.0174, 0.0381)",   "1.25 (1.05, 1.50)",
+  "Little Brown Myotis",  "0.0142 (0.0090, 0.0200)",   "1.10 (1.03, 1.19)",
+  "Long-legged Myotis",  "0.0246 (0.0144, 0.0346)",   "1.43 (1.18, 1.77)",
+  "Yuma Myotis",   "0.0151 (0.0065, 0.0233)",   "1.44 (1.17, 1.79)"
+)
+
+# Species with lambda CI entirely above 1
+has_trend <- c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE, TRUE)
+
+occ_tbl <- tibble::tribble(
+  ~Covariate,             ~LACI,                  ~LANO,                  ~MYCA,                  ~MYEV,               ~MYLU,                ~MYVO,                  ~MYYU,
+  "Elevation",            " ",                    "—",                    "-0.91 (-1.76, -0.16)", "—",                 "—",                  "—",                    "-1.83 (-2.81, -0.95)",
+  "Water nearby",         " ",                    "—",                    "1.79 (0.49, 3.36)",    "—",                 "—",                  "—",                    "—",
+  "Distance to road",     " ", "-0.49 (-0.91, -0.16)", "—",                    "—",                 "—",                  "-0.61 (-1.35, -0.18)", "—",
+  "Distance to road ",    " ",                    "-0.42 (-0.73, -0.07)", "—",                    "—",                 "—",                  "—",                    "-0.78 (-1.40, -0.13)",
+  "Percent clutter",      " ",                    "—",                    "0.22 (0.13, 0.32)",    "0.11 (0.02, 0.19)", "—",                  "0.16 (0.08, 0.25)",    "—",
+  "Nightly temperature",  " ",    "0.47 (0.36, 0.57)",    "0.23 (0.14, 0.33)",    "—",                 "0.24 (0.14, 0.34)",  "0.15 (0.06, 0.24)",    "—",
+  "Julian night",         " ",    "0.18 (0.09, 0.27)",    "-0.20 (-0.29, -0.12)", "—",                 "0.28 (0.19, 0.38)",  "0.13 (0.05, 0.22)",    "0.11 (0.01, 0.22)"
+)
+
+```
+
 ::: {.content-visible when-format="html"}
 ![Deployment in Petersburg (Grid ID 5006) in 2025](images/5006tlllk2.jpg)
 :::
@@ -1213,77 +1248,11 @@ kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_
 
 ## Dynamic Occupancy
 
-Dynamic occupancy models converged for all species. Due to the low number of Hoary bat detections across the monitoring period all Hoary bat results were removed from this report. Four species showed increasing occupancy over the 2017–2025 period, comprising all Myotis species except California Myotis: Long-legged Myotis (λ = 1.43, 95% CI 1.18–1.77), Long-eared Myotis (λ = 1.25, 1.05–1.50), Little Brown Myotis (λ = 1.10, 1.03–1.19), and Yuma Myotis (λ = 1.44, 1.17–1.79) [@tbl-occ-trends].
+Dynamic occupancy models converged for all species. Due to the low number of Hoary bat detections across the monitoring period all Hoary bat results were removed from this report. Four species showed increasing occupancy over the 2017–2025 period, comprising all Myotis species except California Myotis: Long-legged Myotis (λ = 1.43, 95% CI 1.18–1.77), Long-eared Myotis (λ = 1.25, 1.05–1.50), Little Brown Myotis (λ = 1.10, 1.03–1.19), and Yuma Myotis (λ = 1.44, 1.17–1.79).
 
 For the remaining three species, Silver-haired Bat (λ = 1.05, 0.95–1.17), and California Myotis (λ = 1.16, 1.00–1.35), the 95% credible interval for λ overlapped 1, indicating that no directional change in occupancy could be detected.
 
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-#| label: tbl-occ-trends
-#| tbl-cap: "Occupancy trend estimates from the dynamic occupancy models (pooled British Columbia and Southeast Alaska), 2017–2025. The trend slope is the per-year change in occupancy on the model scale; $\\lambda$ is the ratio of occupancy in the final year (2025) to the initial year (2017). Values are posterior means with 95% credible intervals. A $\\lambda$ interval entirely above 1 indicates increasing occupancy; an interval overlapping 1 indicates no directional change could be detected."
-
-trend_tbl <- tibble::tribble(
-  ~Species,   ~`Trend slope (95% CI)`,      ~`$\\lambda$ (95% CI)`,
-  "Hoary Bat",  "",  "",
-  "Silver-haired Bat",  "0.0085 (0.0009, 0.0160)",   "1.05 (0.95, 1.17)",
-  "California Myotis",  "0.0158 (0.0069, 0.0250)",   "1.16 (1.00, 1.35)",
-  "Long-eared Myotis", "0.0276 (0.0174, 0.0381)",   "1.25 (1.05, 1.50)",
-  "Little Brown Myotis",  "0.0142 (0.0090, 0.0200)",   "1.10 (1.03, 1.19)",
-  "Long-legged Myotis",  "0.0246 (0.0144, 0.0346)",   "1.43 (1.18, 1.77)",
-  "Yuma Myotis",   "0.0151 (0.0065, 0.0233)",   "1.44 (1.17, 1.79)"
-)
-
-# Species with lambda CI entirely above 1
-has_trend <- c(FALSE, FALSE, FALSE, TRUE, TRUE, TRUE, TRUE)
-
-trend_tbl %>%
-  mutate(Species = cell_spec(Species, bold = has_trend)) %>%
-  kbl(booktabs = TRUE, escape = FALSE, align = c("l", "l", "c", "c")) %>%
-  kable_styling(
-    latex_options = c("hold_position"),
-    bootstrap_options = c("striped", "hover"),
-    full_width = FALSE
-  )
-```
-
 Covariate effects varied by species, but temperature was the most consistent detection covariate, with warmer nights associated with higher detection probability for most species. Clutter effects on detection probability were present but species-specific, and Julian date effects were mixed across species[@tbl-occ-covariates].
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-#| label: tbl-occ-covariates
-#| tbl-cap: "Covariate effects from the dynamic occupancy models (pooled British Columbia and Southeast Alaska), on the standardized model scale. Each cell gives the posterior mean and 95% credible interval; only effects whose interval excludes zero are shown, and a dash indicates the covariate was included but its 95% credible interval overlapped zero. $\\psi$ = initial occupancy, $\\gamma$ = colonization, $\\varphi$ = persistence, $p$ = detection."
-
-occ_tbl <- tibble::tribble(
-  ~Covariate,             ~LACI,                  ~LANO,                  ~MYCA,                  ~MYEV,               ~MYLU,                ~MYVO,                  ~MYYU,
-  "Elevation",            " ",                    "—",                    "-0.91 (-1.76, -0.16)", "—",                 "—",                  "—",                    "-1.83 (-2.81, -0.95)",
-  "Water nearby",         " ",                    "—",                    "1.79 (0.49, 3.36)",    "—",                 "—",                  "—",                    "—",
-  "Distance to road",     " ", "-0.49 (-0.91, -0.16)", "—",                    "—",                 "—",                  "-0.61 (-1.35, -0.18)", "—",
-  "Distance to road ",    " ",                    "-0.42 (-0.73, -0.07)", "—",                    "—",                 "—",                  "—",                    "-0.78 (-1.40, -0.13)",
-  "Percent clutter",      " ",                    "—",                    "0.22 (0.13, 0.32)",    "0.11 (0.02, 0.19)", "—",                  "0.16 (0.08, 0.25)",    "—",
-  "Nightly temperature",  " ",    "0.47 (0.36, 0.57)",    "0.23 (0.14, 0.33)",    "—",                 "0.24 (0.14, 0.34)",  "0.15 (0.06, 0.24)",    "—",
-  "Julian night",         " ",    "0.18 (0.09, 0.27)",    "-0.20 (-0.29, -0.12)", "—",                 "0.28 (0.19, 0.38)",  "0.13 (0.05, 0.22)",    "0.11 (0.01, 0.22)"
-)
-
-occ_tbl %>%
-  mutate(Covariate = trimws(Covariate)) %>%
-  kbl(booktabs = TRUE, escape = FALSE, align = c("l", rep("c", 7)),
-      linesep = "") %>%
-  kable_styling(
-    latex_options = c("hold_position"),
-    bootstrap_options = c("striped", "hover"),
-    full_width = FALSE,
-    font_size = if (is_pdf) 8 else NULL
-  ) %>%
-  add_header_above(c(" " = 1, "Species" = 7)) %>%
-  pack_rows("Initial occupancy ($\\psi$)", 1, 2, escape = FALSE) %>%
-  pack_rows("Colonization ($\\gamma$)",    3, 3, escape = FALSE) %>%
-  pack_rows("Persistence ($\\varphi$)",    4, 4, escape = FALSE) %>%
-  pack_rows("Detection ($p$)",             5, 7, escape = FALSE)
-```
 
 More detailed species results can be found on [Appendix A](#sec-appendix-a).
 
