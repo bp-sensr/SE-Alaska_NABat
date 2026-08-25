@@ -1,0 +1,128 @@
+<style>
+/* ============================================================
+   Collapsible section headings — HTML output only.
+   Included via `include-after-body` in the html format.
+   The PDF format never sees this file, so PDF is unaffected.
+   ============================================================ */
+
+/* Headings that act as toggles get a pointer + a caret */
+.qmd-collapsible > h1:first-child,
+.qmd-collapsible > h2:first-child,
+.qmd-collapsible > h3:first-child,
+.qmd-collapsible > h4:first-child,
+.qmd-collapsible > h5:first-child,
+.qmd-collapsible > h6:first-child {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+/* Caret drawn as a CSS triangle. Down = open, right = closed. */
+.qmd-collapsible > h1:first-child::before,
+.qmd-collapsible > h2:first-child::before,
+.qmd-collapsible > h3:first-child::before,
+.qmd-collapsible > h4:first-child::before,
+.qmd-collapsible > h5:first-child::before,
+.qmd-collapsible > h6:first-child::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 0.5em;
+  vertical-align: middle;
+  border-left: 0.45em solid #1d4566;   /* matches your banner colour */
+  border-top: 0.3em solid transparent;
+  border-bottom: 0.3em solid transparent;
+  transition: transform 0.15s ease;
+  transform: rotate(90deg);            /* pointing down when expanded */
+}
+
+/* Collapsed: caret points right, everything after the heading is hidden */
+.qmd-collapsible.qmd-collapsed > h1:first-child::before,
+.qmd-collapsible.qmd-collapsed > h2:first-child::before,
+.qmd-collapsible.qmd-collapsed > h3:first-child::before,
+.qmd-collapsible.qmd-collapsed > h4:first-child::before,
+.qmd-collapsible.qmd-collapsed > h5:first-child::before,
+.qmd-collapsible.qmd-collapsed > h6:first-child::before {
+  transform: rotate(0deg);
+}
+.qmd-collapsible.qmd-collapsed > *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6):first-child,
+.qmd-collapsible.qmd-collapsed > *:not(:first-child) {
+  display: none !important;
+}
+
+/* If the reader prints the HTML page, force everything open so nothing is lost */
+@media print {
+  .qmd-collapsible.qmd-collapsed > *:not(:first-child) { display: revert !important; }
+  .qmd-collapsible > h1:first-child::before,
+  .qmd-collapsible > h2:first-child::before,
+  .qmd-collapsible > h3:first-child::before,
+  .qmd-collapsible > h4:first-child::before,
+  .qmd-collapsible > h5:first-child::before,
+  .qmd-collapsible > h6:first-child::before { display: none; }
+}
+</style>
+
+<script>
+(function () {
+  // ---- config -------------------------------------------------------------
+  var LEVELS = ["level1", "level2", "level3"]; // which heading levels toggle
+  var START_COLLAPSED = true;                 // true = every section starts closed
+  // -------------------------------------------------------------------------
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var selector = LEVELS.map(function (c) { return "section." + c; }).join(", ");
+    var sections = document.querySelectorAll(selector);
+
+    sections.forEach(function (sec) {
+      var heading = sec.querySelector(
+        ":scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6"
+      );
+      if (!heading) return;
+
+      sec.classList.add("qmd-collapsible");
+      if (START_COLLAPSED) sec.classList.add("qmd-collapsed");
+
+      heading.addEventListener("click", function (e) {
+        // let the little hover-anchor link behave normally
+        if (e.target.closest("a")) return;
+        sec.classList.toggle("qmd-collapsed");
+      });
+    });
+
+    // Open a target (and all its ancestor sections) so a link can reach it
+    function reveal(id) {
+      if (!id) return;
+      var el = document.getElementById(id);
+      if (!el) return;
+      var node = el;
+      while (node) {
+        if (node.classList && node.classList.contains("qmd-collapsible")) {
+          node.classList.remove("qmd-collapsed");
+        }
+        node = node.parentElement;
+      }
+    }
+
+    // TOC entries and cross-references (@fig-, @tbl-, @sec-) open their target first
+    document.querySelectorAll('a[href^="#"], a[href*="#"]').forEach(function (a) {
+      a.addEventListener("click", function () {
+        var href = this.getAttribute("href") || "";
+        var hash = href.indexOf("#") >= 0 ? href.slice(href.indexOf("#") + 1) : "";
+        reveal(decodeURIComponent(hash));
+      });
+    });
+
+    // Direct load or back/forward navigation to an anchor
+    function handleHash() {
+      if (!location.hash) return;
+      var id = decodeURIComponent(location.hash.slice(1));
+      reveal(id);
+      var t = document.getElementById(id);
+      if (t) setTimeout(function () { t.scrollIntoView(); }, 0);
+    }
+    window.addEventListener("hashchange", handleHash);
+    handleHash();
+  });
+})();
+</script>
