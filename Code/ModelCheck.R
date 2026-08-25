@@ -389,8 +389,8 @@ run_model_diagnostics <- function(fit_list, n_sim = 500) {
 # -----------------------------------------------------------------------------
 # SECTION 4: Run diagnostics and save outputs
 # -----------------------------------------------------------------------------
-#AK.fits.cov.singlet <- readRDS("Data/Analyzed/AK_fits_cov_singlet.rds") #leaving this here. Should work if you have saved the output so you dont need to re-run the model selction script
-#best_fits <- lapply(AK.fits.cov.singlet, function(x) x$best_fit)
+AK.fits.cov.singlet <- readRDS("Data/Analyzed/AK_fits_cov_singlet.rds") #leaving this here. Should work if you have saved the output so you dont need to re-run the model selction script
+best_fits <- lapply(AK.fits.cov.singlet, function(x) x$best_fit)
 
 diag_table <- run_model_diagnostics(best_fits, n_sim = 500)
 
@@ -900,8 +900,8 @@ run_transect_signal_diagnostics <- function(fit_list, B = 499,
 # -----------------------------------------------------------------------------
 # If you saved the transect selection output you can rebuild best_fits without
 # re-running selection:
-#AK.auto.transect.fits.cov.singlet <- readRDS("Data/Analyzed/AK_transect_fits_cov_singlet.rds")
-#best_fits_transect <- lapply(AK.auto.transect.fits.cov.singlet, function(x) x$best_fit)
+AK.transect.fits.cov.singlet <- readRDS("Data/Analyzed/AK_transect_fits_cov_singlet.rds")
+best_fits_transect <- lapply(AK.transect.fits.cov.singlet, function(x) x$best_fit)
 
 # Bootstrap resolution: B = 499 gives p-values to ~0.002. Drop to 199 for a
 # quick pass, raise to 999 for anything sitting near p = 0.05.

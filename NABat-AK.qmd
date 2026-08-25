@@ -305,7 +305,7 @@ map_data <- map_sites %>%
 
 # Load the model covariates summary table
 model_covariates <- read.csv("Data/Analyzed/ModelVariables.csv")
-transect_covariates <- read.csv("Data/Analyzed/ModelVariables_Transect.csv")
+transect_covariates <- read.csv("Data/Analyzed/ModelVariables_TransectMV.csv")
 #this comes from running the ModelSelection.R code where it runs all of the covariates and chooses the best model best on AIC
 
 #format the covariates df
@@ -343,7 +343,7 @@ model_covariates<- model_covariates %>%
 
 #remove these covariates since the model had too few detections to be reliable
 model_covariates$Covariates[model_covariates$Species_Code %in% c("MYVO", "MYYU", "LACI")] <- "" 
-
+model_covariates$Species_Code <- NULL
 
 transect_covariates<- transect_covariates %>%
 mutate(
@@ -355,7 +355,7 @@ Covariates = clean_covars(vars)
 transect_covariates$Covariates[transect_covariates$Species_Code=="MYYU"] <- "" 
 #remove these covariates since the model had too few detections to be reliable
 transect_covariates$Covariates[transect_covariates$Species_Code %in% c("LACI", "MYEV", "MYVO","MYCA")] <- "" 
-
+transect_covariates$Species_Code <- NULL
 ```
 
 ```{r}
@@ -949,6 +949,110 @@ merged_table <- merged_table %>%
 ```
 
 ```{r}
+#| label: Load activity model covariates results and their estimates
+#| include: false
+#| echo: false
+#| eval: true
+#| warning: false
+#| message: false
+
+#these are all the other covariate resutls that were included and their effect sizes. 
+cov_estimates_S <- read.csv("Data/Analyzed/ModelVariablesEstimates_Stationary.csv")
+cov_estimates_T <- read.csv("Data/Analyzed/ModelVariablesEstimates_Transect.csv")
+stationarycov <- cov_estimates_S %>%
+  filter(!species %in% excluded_stationary) %>%
+  select(species, term, estimate, std_error, p) %>%
+  mutate(
+    est_ci = sprintf("%.2f ± %.2f", estimate, 1.96 * std_error),
+    p_val  = case_when(
+      p < 0.001 ~ "<0.001",
+      TRUE      ~ sprintf("%.3f", p)
+    )
+  ) %>%
+  select(species, term, est_ci, p_val, p) %>%
+  dplyr::rename(
+    SpeciesGroup    = species,
+    covariate       = term,
+    stationary_est  = est_ci,
+    stationary_p    = p_val,
+    stationary_pval = p
+  )
+
+# Code -> display name, in your report's species order
+species_names <- c(
+  LACI = "Hoary Bat",        LANO = "Silver-haired Bat",
+  MYCA = "California Myotis", MYEV = "Long-eared Myotis",
+  MYLU = "Little Brown Myotis", MYVO = "Long-legged Myotis",
+  MYYU = "Yuma Myotis"
+)
+
+# Optional: clean covariate labels. Anything not listed falls back to its raw term.
+cov_labels <- c(
+  Percent.Clutter          = "Percent clutter",
+  Water.Nearby             = "Water nearby",
+  WaterDist                = "Distance to water",
+  Distance.to.Clutter..m.  = "Distance to clutter (m)",
+  Nightly.Max.Temp         = "Nightly max temp",
+  Nightly.Min.Temp         = "Nightly min temp",
+  Nightly.Max.RH           = "Nightly max RH",
+  Nightly.Min.RH           = "Nightly min RH",
+  Nightly.Precipitation    = "Nightly precipitation",
+  Nightly.Mean.Windsp      = "Nightly mean wind speed",
+  jNight                   = "Julian night"
+)
+
+cov_display <- stationarycov %>%
+  mutate(SpeciesGroup = factor(SpeciesGroup, levels = names(species_names))) %>%
+  arrange(SpeciesGroup, covariate) %>%
+  mutate(
+    Species   = species_names[as.character(SpeciesGroup)],
+    Covariate = dplyr::coalesce(cov_labels[covariate], covariate)
+  )
+
+transectcov <- cov_estimates_T %>%
+  filter(!species %in% excluded_trans) %>%
+  select(species, term, estimate, std_error, p) %>%
+  mutate(
+    est_ci = sprintf("%.2f ± %.2f", estimate, 1.96 * std_error),
+    p_val  = case_when(
+      p < 0.001 ~ "<0.001",
+      TRUE      ~ sprintf("%.3f", p)
+    )
+  ) %>%
+  select(species, term, est_ci, p_val, p) %>%
+  dplyr::rename(
+    SpeciesGroup  = species,
+    covariate     = term,
+    transect_est  = est_ci,
+    transect_p    = p_val,
+    transect_pval = p
+  )
+
+merged_cov <- full_join(stationarycov, transectcov,
+                        by = c("SpeciesGroup", "covariate"))
+
+cov_tbl_data <- merged_cov %>%
+  mutate(SpeciesGroup = factor(SpeciesGroup, levels = names(species_names))) %>%
+  arrange(SpeciesGroup, covariate) %>%
+  mutate(
+    Species   = species_names[as.character(SpeciesGroup)],
+    Covariate = dplyr::coalesce(cov_labels[covariate], covariate)
+  ) %>%
+  mutate(across(c(stationary_est, stationary_p, transect_est, transect_p),
+                ~ tidyr::replace_na(.x, "")))   # blank the absent side
+
+cov_body <- cov_tbl_data %>%
+  select(Covariate, stationary_est, stationary_p, transect_est, transect_p)
+
+# pack_rows index, preserving factor order (count() would re-sort alphabetically)
+runs       <- rle(as.character(cov_tbl_data$Species))
+pack_index <- setNames(runs$lengths, runs$values)
+
+# HTML/PDF-safe CI header: raw % and ± crash XeLaTeX, so escape for LaTeX only
+ci_lab <- if (knitr::is_latex_output()) "Estimate $\\pm$ 95\\% CI" else "Estimate ± 95% CI"
+```
+
+```{r}
 #| label: Load activity occupancy trend results and format
 #| include: false
 #| echo: false
@@ -1095,7 +1199,9 @@ We conducted species-specific trend analyses using negative binomial GLMM models
 
 All models followed the same basic structure, modelling the total number of detected calls as a negative binomial response with log link:
 
-Total detections \~ YearS + log(Sample Nights) + (1\|Grid Cell ID) + (1\|Quadrant) + species specific covariates
+``` r
+Total detections ~ YearS + log(Sample Nights) + (1|Grid Cell ID) + (1|Quadrant) + species specific covariates
+```
 
 Where total detections is the total number of detected calls of a given species at a site in a given year. YearS is the standardized survey year (years since 2019) and provides the estimate of the temporal activity trend. log(Sample Nights) is the natural logarithm of the number of detector-nights and accounts for variation in sampling effort among site-years. The random intercepts (1\|Grid Cell ID) and (1\|Quadrant) allow baseline activity to vary among grid cells and among quadrants within them, respectively.
 
@@ -1107,18 +1213,17 @@ For each species, we performed model selection by fitting the base model augment
 #| message: false
 #| include: true
 #| label: tbl-cov
-#| tbl-cap: Top-performing stationary models selected via AIC-based stepwise selection. Covariates are described as, Distance to Clutter = distance (m) to nearest object; Percent Clutter = estimated percentage of space within a 50m radius obstructed by objects; Water Nearby = detector within 100m of water; WaterDist = distance (m) to nearest water feature; Nightly Temperature = nightly air temperature (°C); RH = nightly relative humidity (%); Nightly Mean Wind Speed = mean nightly wind speed (m/s); Nightly Precipitation = total nightly precipitation (mm); jNight = Julian date (day of year) of the survey night.
+#| tbl-cap: Top-performing stationary models selected via AIC-based stepwise selection. Covariates are described as, Distance to Clutter = distance (m) to nearest object; Percent Clutter = estimated percentage of space within a 30m radius obstructed by objects; Water Nearby = detector within 100m of water; WaterDist = distance (m) to nearest water feature; Nightly Temperature = nightly air temperature (°C); RH = nightly relative humidity (%); Nightly Mean Wind Speed = mean nightly wind speed (m/s); Nightly Precipitation = total nightly precipitation (mm); jNight = Julian date (day of year) of the survey night.
 #| fig.pos: 'H'
 
 kable(model_covariates,
-      col.names = c("Species", "Species Code", "Top Performing Model Covariates"),
+      col.names = c("Species", "Top Performing Model Covariates"),
       label = "model-covariates") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
                 full_width = FALSE,
                 position = "left") %>%
   column_spec(1, width = "15em") %>%
-  column_spec(2, width = "8em") %>%
-  column_spec(3, width = "20em")
+  column_spec(2, width = "25em")
 
 ```
 
@@ -1134,7 +1239,17 @@ Trend analyses are presented only for species confirmed present through manual v
 
 ### Transect Abundance Models
 
-For the transect-based abundance trend models, we used only manually verified detections. When a detection was flagged as a species couplet, it was counted toward each species in the couplet. As above, we restricted the data to transect surveys from 2019 onward and to grid cells with at least five years of sampling. Covariates were limited to weather variables and transect length, and candidate models excluded any combination of collinear variables. We fit 59 candidate models per species and selected the one with the lowest AIC as the final covariate set [@tbl-cov-transects].
+For the transect-based abundance trend models, we used only manually verified detections. When a detection was flagged as a species couplet, it was counted toward each species in the couplet. As above, we restricted the data to transect surveys from 2019 onward and to grid cells with at least five years of sampling.
+
+All models followed the same basic structure, modelling the total number of detected calls as a negative binomial response with log link:
+
+``` r
+Total detections ~ YearS + log(transect length) + (1|Grid Cell ID)+ species specific covariates
+```
+
+Where total detections is the total number of detected calls of a given species at a site in a given year. YearS is the standardized survey year (years since 2019) and provides the estimate of the temporal activity trend. log(transect length) is the natural logarithm of the total length of the transect sampled and accounts for variation in sampling effort among transects. The random intercept (1\|Grid Cell ID) allow baseline activity to vary among grid cells.
+
+Covariates were limited to weather variables and transect length, and candidate models excluded any combination of collinear variables. We fit 59 candidate models per species and selected the one with the lowest AIC as the final covariate set [@tbl-cov-transects].
 
 ```{r}
 #| echo: false
@@ -1142,18 +1257,17 @@ For the transect-based abundance trend models, we used only manually verified de
 #| message: false
 #| include: true
 #| label: tbl-cov-transects
-#| tbl-cap: Top-performing transect models selected via AIC-based stepwise selection.
+#| tbl-cap: Top-performing transect models selected via AIC-based stepwise selection.Covariates are described as,Nightly Precipitation = total nightly precipitation (mm); jNight = Julian date (day of year) of the survey night.
 #| fig.pos: 'H'
 
 kable(transect_covariates,
-      col.names = c("Species", "Species Code", "Top Performing Model Covariates"),
+      col.names = c("Species", "Top Performing Model Covariates"),
       label = "model-covariates") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
                 full_width = FALSE,
                 position = "left") %>%
   column_spec(1, width = "15em") %>%
-  column_spec(2, width = "8em") %>%
-  column_spec(3, width = "20em")
+  column_spec(2, width = "25em")
 ```
 
 After selection, we ran a series of post-hoc checks to confirm model fit. We treated a species' result as reliable only when these tests agreed that the year effect reflected a genuine regional trend rather than an artefact of sparse counts or a single influential cell.
@@ -1225,23 +1339,23 @@ if (is_html) {
 }
 ```
 
-## Activity Summary and Trends
-
 Total acoustic activity varied substantially across sites and years, with Little Brown Myotis dominating call volume at every site in nearly every year. Overall detection totals were highest at the northern sites: Yakutat produced the single largest site-year total (\~17,500 calls in 2024), and Juneau recorded consistently high volumes (\~12,000 in 2020 and \~13,500 in 2024). Southern and central sites generally recorded lower totals, with Petersburg (\~9,000 in 2024) and POW (\~7,500 in 2024) reaching comparable peaks in single years, while Wrangell and Hoonah remained low throughout (generally under \~2,000 calls per year). Most sites recorded substantially higher activity in 2024 than in any other year.
 
 ```{r}
-#| label: fig-activitysummary
+#| label: fig-activitysummary 
 #| echo: false
 #| warning: false
-#| message: false
-#| out-width: 100%
+#| message: false 
+#| out-width: 100% 
 #| fig-pos: H
 #| fig-width: 13
 #| fig-height: 6
-#| fig-cap: Relative activity of bat species detected during NABat monitoring in 9 grid cells in Southeast Alaska, arranged north to south, during 2019-2025
-
+#| fig-cap: Relative activity of bat species detected during NABat monitoring in 9 grid cells in Southeast Alaska, arranged north to south, during 2019-2025  
+ 
 actsum
 ```
+
+## Activity and Abundance Trends
 
 We estimated yearly trends in nightly acoustic activity for seven species across the stationary detector and mobile transect survey streams. Five species produced reportable stationary-detector models; two (Long-legged Myotis, Yuma Myotis) could not be reliably fit and are not reported [@tbl-models]. For transect abundance trends we only report on the results of Silver-haired bat and Little Brown bat since these were the only two species were modelling results were reliable.
 
@@ -1273,6 +1387,40 @@ kable(merged_table %>% select(Species, stationary_trend, stationary_p, transect_
   column_spec(5, bold = ifelse(!is.na(merged_table$transect_pval) & merged_table$transect_pval < 0.05, TRUE, FALSE))
 ```
 
+### Covariate Effects
+
+Beyond the year term used to estimate activity trends, each species' best-supported model retained one or more weather or temporal covariates, and stationary models could additionally retain site-level descriptors ([@tbl-cov-models]). Because transect surveys traverse heterogeneous terrain within a cell, site-specific covariates such as distance to clutter, percent clutter, and distance to water were eligible only in the stationary models.
+
+Covariates describing moisture in the air were among the most frequently retained across species, entering models either as relative humidity or as nightly precipitation. Retained weather terms were consistently negative in sign, indicating lower nightly activity under wetter conditions, a pattern consistent with reduced foraging during precipitation and elevated humidity.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| label: tbl-cov-models
+#| tbl-cap: Covariate effects from the best-fitting (lowest-AIC) negative binomial generalized linear mixed model for each species' stationary and transect acoustic detector data. Estimates are fixed-effect coefficients on the log link (± 1.96 × standard error, an approximate 95% confidence interval). Only species with a reportable stationary trend model are included.
+#| tbl-pos: 'H'
+
+kbl(cov_body,
+    booktabs  = TRUE,
+    escape    = FALSE,
+    col.names = c("Covariate", ci_lab, "P-value", ci_lab, "P-value"),
+    align     = c("l", "r", "r", "r", "r")) %>%
+  add_header_above(c(" " = 1,
+                     "Stationary Models" = 2,
+                     "Transect Models"   = 2)) %>%
+  pack_rows(index = pack_index, bold = TRUE, italic = FALSE,
+            label_row_css = "text-align: left; border-bottom: 1px solid #ddd;") %>%
+  kable_styling(latex_options = "hold_position", full_width = FALSE)
+if (is_pdf) {
+  dir.create("figures", showWarnings = FALSE)
+  save_kable(kbl, file = "figures/actabund_covariates.png", zoom = 2)
+  knitr::include_graphics("figures/actabund_covariates.png")
+} else {
+  kbl
+}
+```
+
 ## Dynamic Occupancy
 
 Dynamic occupancy models converged for all species. Due to the low number of Hoary bat detections across the monitoring period all Hoary bat results were removed from this report. Four species showed increasing occupancy over the 2017–2025 period, comprising all Myotis species except California Myotis: Long-legged Myotis (λ = 1.43, 95% CI 1.18–1.77), Long-eared Myotis (λ = 1.25, 1.05–1.50), Little Brown Myotis (λ = 1.10, 1.03–1.19), and Yuma Myotis (λ = 1.44, 1.17–1.79) ([@tbl-occ-trends]).
@@ -1295,6 +1443,8 @@ kable(trend_tbl,
                 position = "left") %>%
   row_spec((nrow(trend_tbl) - 3):nrow(trend_tbl), bold = TRUE)
 ```
+
+### Covariate Effects
 
 Covariate effects varied by species, but temperature was the most consistent detection covariate, with warmer nights associated with higher detection probability for most species. Clutter effects on detection probability were present but species-specific, and Julian date effects were mixed across species ([@tbl-occ-covariates]).
 
@@ -1337,19 +1487,23 @@ More detailed species results can be found on [Appendix A](#sec-appendix-a).
 
 Overall, Alaska bat populations do not show evidence of decline, and several species show potential increases: the Silver-haired Bat (LANO) in activity, and most Myotis species in occupancy.
 
-The positive activity trends for the California Myotis (MYCA) and LANO should be interpreted with caution [@tbl-models]. Activity counts are noisy, and it can be difficult to distinguish a true trend from a spurious increase driven by year effects. For this reason it is prudent to examine trends across many years; a trend that persists across years is more likely to reflect a real change. The 2023 Alaska report [@raeBlejwas2026Alaska] identified a negative and non-significant trend, so although the MYCA estimate is significant in the present analysis, additional years of data are needed to confirm it.
+The positive activity trends for the California Myotis (MYCA) and LANO should be interpreted with caution [@tbl-models]. Activity counts are noisy, and it can be difficult to distinguish a true trend from a spurious increase driven by year effects. For this reason it is prudent to examine trends across many years; a trend that persists across years is more likely to reflect a real change. The 2023 Alaska report [@raeBlejwas2026Alaska] identified a negative and non-significant trend for MYCA, so although the estimate is significant in the present analysis, additional years of data are needed to confirm it.
 
-In contrast, @raeBlejwas2026Alaska found a positive activity trend for LANO that was marginally non-significant (p = 0.05), and the continued positive trend observed in this report (stationary: 0.48 ± 0.17, and transect 0.40 ± 0.20) suggests it may represent a genuine trend rather than noise. Two additional results point the same way. The occupancy results from this report show that although the occupancy trend is not significant, it is positive [@tbl-occ-trends]. The second independent study by @bradleyjudell has preliminary NABat species-distribution and trend models estimate an increase in LANO occupancy across Alaska (mean = 0.23, 95% CI \[0.07, 0.39\]). The accumulation of estimates pointing consistently in the same direction, across different datasets and modeling approaches, gives us a solid point from which to conlcude LANO is increasing in occupancy across southeast Alaska. This pattern also speaks to why we include occupancy analyses alongside activity trends in this report: activity counts are noisy and easily perturbed by year effects, so a metric that is less sensitive to fluctuations in activity volume offers a valuable complementary check.
+In contrast, @raeBlejwas2026Alaska found a positive activity trend for LANO that was marginally non-significant (p = 0.05), and the continued positive trend observed in this report (stationary: 0.48 ± 0.17 p\<0.001, and transect 0.40 ± 0.20 p\<0.001) suggests it may represent a genuine trend rather than noise. Two additional results point the same way. The occupancy results from this report show that although the occupancy trend is not significant, it is positive [@tbl-occ-trends]. The second independent study by @bradleyjudell has preliminary NABat species-distribution and trend models estimate an increase in LANO occupancy across Alaska (mean = 0.23, 95% CI \[0.07, 0.39\]). The accumulation of estimates pointing consistently in the same direction, across different datasets and modeling approaches, gives us a solid point from which to conlcude LANO is increasing in occupancy across southeast Alaska. This pattern also speaks to why we include occupancy analyses alongside activity trends in this report: activity counts are noisy and easily perturbed by year effects, so a metric that is less sensitive to fluctuations in activity volume offers a valuable complementary check.
 
 Occupancy models require a stronger signal to detect change, because they consider only whether a cell is occupied rather than overall activity levels. As a result, when a trend is detected in occupancy we can be more confident that it reflects a real change. Our occupancy results indicate that all Myotis species except MYCA may be increasing in occupancy [@tbl-occ-trends; [Appendix A](#sec-appendix-a)], which could suggest that Myotis species are expanding in Southeast Alaska. It is worth noting that MYCA is the one Myotis species that does not show an increase in occupancy, in direct contrast to its positive activity trend. This divergence reinforces the caution above: the MYCA activity estimate should not be treated as confirmed until additional years of data are available. With that caveat in mind, the broader occupancy signal is encouraging, particularly because these are the species most likely to be affected by white-nose syndrome (WNS).
 
 One important consideration is the large pulse in activity observed across most sites in 2024. Sampling effort in 2024 was comparable to previous years and to 2025, so this spike most likely reflects year-to-year variation in bat activity rather than a change in survey design. This pulse currently registers as part of the trend in the models because of its magnitude, but additional years of data will help discern whether it represents a true trend or a short-lived effect of an atypical year.
 
-The reduced survey effort in 2025 was the result of staffing cuts at the US Forest Service, and staffing levels are unlikely to improve in the near future. Maintaining sampling at the sites and grid cells with the most continuous data is vital to ensuring that we can continue to detect population changes, especially given the imminent threat of WNS. If the number of grids must be reduced, priority should be given to retaining those that have been sampled the longest. Collaboration with other agencies could also help sustain monitoring at existing or new sites. One approach currently being explored in British Columbia and Alberta is engaging industry partners such as mines and wind developments in coordinated monitoring at their sites and having them contribute to the hub and to the broader effort.
+## Looking forward
 
-Efforts to reduce the workload associated with deploying grid cells center on improving deployment efficiency. Grid leaders should continue to be encouraged to use Survey123 to streamline site deployment; in 2024 and 2025 this platform was not used consistently across all grids. In 2026 we can also examine efficiencies related to weather data collection, specifically evaluating whether continued use of on-site temperature and humidity loggers yields results comparable to weather data drawn from the nearest weather stations.
+The reduced survey effort in 2025 was the result of staffing cuts at the US Forest Service, and staffing levels are unlikely to improve in the near future. Maintaining sampling at the sites and grid cells with the most continuous data is vital to ensuring that we can continue to detect population changes, especially given the imminent threat of WNS. If the number of grids must be reduced, priority should be given to retaining those that have been sampled the longest.
 
-As species ranges continue to expand, a review of the data aimed at identifying potential new species would be prudent, particularly the Big Brown Bat (EPFU). Because this species produces calls very similar to those of LANO, bioacoustics could be used for preliminary screening; however, capturing bats will ultimately be the only way to confirm a range expansion.
+Collaboration with other agencies could also help sustain monitoring at existing or new sites. One approach currently being explored in British Columbia and Alberta is engaging industry partners, such as those in the forestry and wind energy sectors, in coordinated monitoring at their sites, and having them contribute both to the hub and to the broader effort. Such partnerships may be easier to establish where regulatory frameworks support them, for example by requiring that monitoring data collected at industry sites be submitted to NABat.
+
+Another way to sustain monitoring is to look for ways to make the process more efficient. Grid leaders should continue to be encouraged to use Survey123 to streamline site deployment; in 2024 and 2025 this platform was not used consistently across all grids. Using it also helps ensure that metadata are consistent and complete. In 2026 we can also examine efficiencies in weather data collection, specifically evaluating whether continued use of on-site temperature and humidity loggers yields results comparable to weather data drawn from the nearest weather stations.
+
+As species ranges continue to expand, a review of the data aimed at identifying potential new species would be prudent, particularly the Big Brown Bat (EPFU). Because this species produces calls very similar to those of LANO, bioacoustics could be used for preliminary screening to find potential sites worth exploring further. Once these sites are identified, capture surveys can be conducted, as capturing bats will ultimately be the only way to confirm a range expansion.
 
 # Appendix A {#sec-appendix-a}
 

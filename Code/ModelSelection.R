@@ -279,6 +279,22 @@ varlists <- do.call(rbind, lapply(names(AK.fits.cov.singlet), function(sp) {
 
 write.csv(varlists,"C:/Users/cami/Documents/SE-Alaska_NABat/Data/Analyzed/ModelVariables.csv")
 
+#── 7. Save variables included and their effects ────────────────────────────────────
+cov_tbl <- imap_dfr(AK.all.fits, function(x, sp) {
+  vars <- str_trim(str_split(x$best_vars, ",")[[1]])
+  cc <- summary(x$best_fit)$coefficients$cond |>
+    as_tibble(rownames = "term") |>
+    rename(estimate = Estimate, std_error = `Std. Error`,
+           z = `z value`, p = `Pr(>|z|)`)
+  # startsWith handles factor-level suffixes (e.g. Water.NearbyYes)
+  is_cov <- map_lgl(cc$term, ~ any(startsWith(.x, vars)))
+  mutate(cc, species = sp, kept = is_cov, .before = 1)
+})
+
+# The covariate estimates you want (year term + intercept excluded):
+covariates <- filter(cov_tbl, kept) |> select(-kept)
+write.csv(covariates, "Data/Analyzed/ModelVariablesEstimates_Stationary.csv")
+
 
 
 ##-----------------------------Model Selection for transect models in report------------------------------------------------------------------------------------
@@ -410,8 +426,9 @@ fit_one_transect_model <- function(cell.summary, var_string) {
 
 
 # ── 3. Main loop: fit all candidates per species, rank by AIC ───────────────
+bat.transect.data.5yr <- read.csv("Data/bat.transect.data.5yr.Aug20.csv")
 
-AK.auto.transect.fits.cov.singlet <- plyr::dlply(bat.transect.data.5yr, "SpeciesGroup", function(x) {
+AK.transect.fits.cov.singlet <- plyr::dlply(bat.transect.data.5yr, "SpeciesGroup", function(x) {
   
   sp <- x$SpeciesGroup[1]
   cat("\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
@@ -489,10 +506,12 @@ AK.auto.transect.fits.cov.singlet <- plyr::dlply(bat.transect.data.5yr, "Species
   )
 })
 
+#save the fits
+saveRDS(AK.transect.fits.cov.singlet, "Data/Analyzed/AK_transect_fits_cov_singlet.rds")
 
 # ── 4. Summary AIC table across all species ──────────────────────────────────
 
-all_aic_transect <- do.call(rbind, lapply(names(AK.auto.transect.fits.cov.singlet), function(sp) {
+all_aic_transect <- do.call(rbind, lapply(names(AK.transect.fits.cov.singlet), function(sp) {
   res <-AK.auto.transect.fits.cov.singlet[[sp]]
   if (is.null(res)) return(NULL)
   cbind(species = sp, res$aic_table)
@@ -504,7 +523,8 @@ print(all_aic_transect, row.names = FALSE)
 
 # ── 5. Extract best fits only ─────────────────────────────────────────────────
 
-best_fits_transect <- lapply(AK.auto.transect.fits.cov.singlet, `[[`, "best_fit")
+best_fits_transect <- lapply(AK.transect.fits.cov.singlet, `[[`, "best_fit")
+saveRDS(AK.transect.fits.cov.singlet, "Data/Analyzed/AK_transect_fits_cov_singlet.rds")
 
 AK.transect.cov.slope.summary.singlet <- plyr::ldply(best_fits_transect, function(x){
   if (is.null(x) || !inherits(x, "glmmTMB")) return(NULL)
@@ -542,3 +562,27 @@ varlists_transect <- do.call(rbind, lapply(names(AK.auto.transect.fits.cov.singl
 }))
 
 write.csv(varlists_transect, "Data/Analyzed/ModelVariables_TransectMV.csv")
+
+#── 7. Save variables included and their effects ────────────────────────────────────
+structural <- c("(Intercept)", "YearS", "log(transect.length)")
+
+transect_cov_tbl <- imap_dfr(best_fits_transect, function(fit, sp) {
+  if (is.null(fit) || !inherits(fit, "glmmTMB")) return(NULL)
+  summary(fit)$coefficients$cond |>
+    as_tibble(rownames = "term") |>
+    rename(estimate  = Estimate,
+           std_error = `Std. Error`,
+           z         = `z value`,
+           p         = `Pr(>|z|)`) |>
+    mutate(species   = sp,
+           covariate = !term %in% structural,
+           .before   = 1)
+})
+
+# Covariates only (intercept, year, log-transect-length dropped)
+transect_covariates <- transect_cov_tbl |>
+  filter(covariate) |>
+  select(-covariate)
+
+transect_covariates
+write.csv(transect_covariates, "Data/Analyzed/ModelVariablesEstimates_Transect.csv")
