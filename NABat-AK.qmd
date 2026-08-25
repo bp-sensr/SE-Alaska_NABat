@@ -54,7 +54,7 @@ nocite: '@*'
 #| message: false
 
 # #This is just here to show how the summaries for df_pt and df1 were done
-# df <- read.csv("V:/ARU/SENSR-BAT/NABat/2024/Processed_V2/AK/Combined.csv")
+# df <- read.csv("V:/ARU/SENSR-BAT/NABat/2025/AK/Processed/Combined.csv")
 # keep_grids <- c(18318, 206, 47310)  # Wrangell, POW, Ketchikan have actual confirmed MYVO. Any other grids need to get MYVO tags downgraded
 # 
 # df <- df %>%
@@ -74,12 +74,12 @@ nocite: '@*'
 # df_pts <- df %>%
 #   filter(!is.na(Final.Species.ID)) %>%
 #   mutate(ts = as.POSIXct(Timestamp, format = "%Y-%m-%d %H:%M", tz = "UTC")) %>%
-#   transmute(species_raw = Final.Species.ID, SiteName, ts) %>%
+#   transmute(species_raw = Final.Species.ID, SiteName, GRTS.Cell.ID, ts) %>%
 #   separate_rows(species_raw, sep = "\\s*,\\s*") %>%
 #   mutate(species = toupper(trimws(species_raw))) %>%
 #   filter(!species %in% drop_codes, species != "", !is.na(ts)) %>%
 #   mutate(
-#     Site_key   = tolower(trimws(SiteName)),
+#     Site_key   = tolower(trimws(GRTS.Cell.ID)),
 #     hr         = as.numeric(format(ts, "%H")) + as.numeric(format(ts, "%M")) / 60,
 #     nh         = ifelse(hr < 12, hr + 24, hr),               # wrap post-midnight past 24 so 0:00 sits above 23:00
 #     night_date = as.Date(ts - 12 * 3600),                    # dusk-to-dawn pooled onto one date (same rule as df1)
@@ -87,14 +87,18 @@ nocite: '@*'
 #     facet = ifelse(nchar(species) > 4 | species %in% unid_codes, "Unidentified", species)     # your >4-char rule plus NoID
 #   )
 # 
-# # species <- Final.Species.ID   Site <- CellName   date <- Timestamp   year <- Year
+# species <- Final.Species.ID   
+# Site <- CellName   
+# date <- Timestamp   
+# year <- Year
+# 
 # df1 <- df %>%
 #   filter(!is.na(Final.Species.ID)) %>%
 #   mutate(rec_id = row_number()) %>%       # one row of df == one recording
 #   transmute(
 #     rec_id,
 #     species_raw = Final.Species.ID,
-#     Site        = SiteName,
+#     Site        = GRTS.Cell.ID,
 #     date = as.Date(as.POSIXct(Timestamp, format = "%Y-%m-%d %H:%M", tz = "UTC") - 12 * 3600),     # For biological "nights" (pool dusk-to-dawn onto one date)
 #     year        = Year
 #   ) %>%
@@ -104,9 +108,8 @@ nocite: '@*'
 #   mutate(species = toupper(trimws(species_raw))) %>%
 #   filter(!species %in% drop_codes) %>%    # removes Noise, FB, blanks, junk buckets
 #   count(species, year, date, Site, name = "n_files")
-# 
-# write.csv(df_pts,"Data/hourlySppDetection-2024.csv")
-# write.csv(df1, "Data/dailytotaldetection-2024.csv")
+#  write.csv(df_pts,"Data/hourlySppDetection-2024.csv")
+#  write.csv(df1, "Data/dailytotaldetection-2024.csv")
 
 # species_cols  <- c("LACI","LANO","MYCA","MYEV","MYLU","MYVO","MYYU")
 # species_order <- c("LACI","LANO","MYCA","MYEV","MYLU","MYVO","MYYU")
@@ -806,8 +809,7 @@ addLegend(
   colors   = c("#e31a1c", "#ff7f00", "#999999"),
   labels   = c("Last sampled 2025", "Last sampled 2024", "Previous years"),
   title    = "GRTS cell status",
-  opacity  = 1
-)
+  opacity  = 1)
 
 m
 ```
