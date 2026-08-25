@@ -1134,7 +1134,7 @@ North American bat populations are currently facing multiple anthropogenic threa
 \
 The impacts of white-nose syndrome have been most severe east of the Rocky Mountains, where bats hibernate in large aggregations in caves and mines, resulting in high mortality [@cheng2021]. In the Rocky Mountains and further west, including in Alaska, Little Brown Myotis hibernate singly or in small groups in holes in the soil or between rocks in talus deposits [@neubaum2018; @blejwas2021]. This very different hibernation behavior is likely responsible for the slower rate of spread of WNS observed in Washington state [@blejwas2023]. Smaller and more dispersed winter colonies may reduce mortality relative to eastern North America, but will also make it difficult to detect the arrival and spread of WNS in Alaska and track its impact on bats in the state [@blejwas2023]. Given the absence of large hibernacula where bats may be counted and swabbed for the presence of WNS, alternative methods for monitoring bats in Southeast Alaska are required to assess changes or impacts from WNS or other threats.
 
-![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in The US and Canada. Source: CWHC-RCSF (2026)](Figures/WNS-USandCanada.png){#fig-WNS}
+![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in The US and Canada. Source: CWHC-RCSF (2026)](Figures/WNS-USandCanada.png){#fig-WNS width="100%"}
 
 {{< pagebreak >}}
 
