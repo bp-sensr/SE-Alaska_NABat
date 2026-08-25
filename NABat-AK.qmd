@@ -309,6 +309,20 @@ transect_covariates <- read.csv("Data/Analyzed/ModelVariables_TransectMV.csv")
 #this comes from running the ModelSelection.R code where it runs all of the covariates and chooses the best model best on AIC
 
 #format the covariates df
+# Optional: clean covariate labels. Anything not listed falls back to its raw term.
+cov_labels <- c(
+  Percent.Clutter          = "Percent clutter",
+  Water.Nearby             = "Water nearby",
+  WaterDist                = "Distance to water (m)",
+  Distance.to.Clutter..m.  = "Distance to clutter (m)",
+  Nightly.Max.Temp         = "Nightly max temp (°C)",
+  Nightly.Min.Temp         = "Nightly min temp (°C)",
+  Nightly.Max.RH           = "Nightly max RH (%)",
+  Nightly.Min.RH           = "Nightly min RH (%)",
+  Nightly.Precipitation    = "Nightly precipitation (mm)",
+  Nightly.Mean.Windsp      = "Nightly mean wind speed (m/s)",
+  jNight                   = "Julian night"
+)
 
 # Species code to common name lookup
 species_names <- c(
@@ -321,23 +335,14 @@ species_names <- c(
   MYCA = "California Myotis"
 )
 
-# Clean covariate from models and format for report
-clean_covars <- function(x) {
-  x %>%
-    gsub("\\.", " ", .) %>%                          # replace dots with spaces
-    gsub("\\bdd\\b", "Degree Days", .) %>%           # dd -> Degree Days
-    gsub("Temp\\b", "Temperature", .) %>%            # Temp -> Temperature
-    gsub("Windsp\\b", "Wind Speed", .) %>%           # Windsp -> Wind Speed
-    gsub("Clutterdist\\b", "Distance to Clutter", .) %>%  # Clutterdist -> Distance to Clutter
-    gsub("mtime2h mphase", "Moon", .) %>%      # mtime2h mphase -> Moon Phase
-    gsub(",\\s*I\\(YearS\\^2\\)|I\\(YearS\\^2\\),?\\s*", "", .) %>% #remove quadratic term from the reporting
-    trimws()
-}
-
-model_covariates<- model_covariates %>%
+model_covariates <- model_covariates %>%
   mutate(
     Common_Name = species_names[sp],
-    Covariates = clean_covars(vars)
+    Covariates = purrr::map_chr(vars, function(v) {
+      parts    <- trimws(strsplit(v, ",")[[1]])
+      labelled <- dplyr::coalesce(unname(cov_labels[parts]), parts)
+      paste(labelled, collapse = ", ")
+    })
   ) %>%
   select(Common_Name, Species_Code = sp, Covariates)
 
@@ -348,7 +353,11 @@ model_covariates$Species_Code <- NULL
 transect_covariates<- transect_covariates %>%
 mutate(
  Common_Name = species_names[sp],
-Covariates = clean_covars(vars)
+ Covariates = purrr::map_chr(vars, function(v) {
+   parts    <- trimws(strsplit(v, ",")[[1]])
+   labelled <- dplyr::coalesce(unname(cov_labels[parts]), parts)
+   paste(labelled, collapse = ", ")
+ })
  ) %>%
  select(Common_Name, Species_Code = sp, Covariates)
 #remove these covariates since the model didnt converge
@@ -978,29 +987,6 @@ stationarycov <- cov_estimates_S %>%
     stationary_pval = p
   )
 
-# Code -> display name, in your report's species order
-species_names <- c(
-  LACI = "Hoary Bat",        LANO = "Silver-haired Bat",
-  MYCA = "California Myotis", MYEV = "Long-eared Myotis",
-  MYLU = "Little Brown Myotis", MYVO = "Long-legged Myotis",
-  MYYU = "Yuma Myotis"
-)
-
-# Optional: clean covariate labels. Anything not listed falls back to its raw term.
-cov_labels <- c(
-  Percent.Clutter          = "Percent clutter",
-  Water.Nearby             = "Water nearby",
-  WaterDist                = "Distance to water",
-  Distance.to.Clutter..m.  = "Distance to clutter (m)",
-  Nightly.Max.Temp         = "Nightly max temp",
-  Nightly.Min.Temp         = "Nightly min temp",
-  Nightly.Max.RH           = "Nightly max RH",
-  Nightly.Min.RH           = "Nightly min RH",
-  Nightly.Precipitation    = "Nightly precipitation",
-  Nightly.Mean.Windsp      = "Nightly mean wind speed",
-  jNight                   = "Julian night"
-)
-
 cov_display <- stationarycov %>%
   mutate(SpeciesGroup = factor(SpeciesGroup, levels = names(species_names))) %>%
   arrange(SpeciesGroup, covariate) %>%
@@ -1049,7 +1035,8 @@ runs       <- rle(as.character(cov_tbl_data$Species))
 pack_index <- setNames(runs$lengths, runs$values)
 
 # HTML/PDF-safe CI header: raw % and ± crash XeLaTeX, so escape for LaTeX only
-ci_lab <- if (knitr::is_latex_output()) "Estimate $\\pm$ 95\\% CI" else "Estimate ± 95% CI"
+# in the chunk that builds cov_kbl
+ci_lab <- if (knitr::is_latex_output()) "Estimate $\\pm$ 95\\% CI" else "Estimate ± 95% CI"        # always unicode now, no is_latex_output() branch
 
 cov_kbl <- kbl(cov_body,
                booktabs  = TRUE,
@@ -1059,7 +1046,7 @@ cov_kbl <- kbl(cov_body,
   add_header_above(c(" " = 1,
                      "Stationary Models" = 2,
                      "Transect Models"   = 2)) %>%
-  pack_rows(index = pack_index, bold = TRUE, italic = FALSE,
+  pack_rows(index = pack_index,bold = TRUE, italic = FALSE,
             label_row_css = "text-align: left; border-bottom: 1px solid #ddd;") %>%
   kable_styling(latex_options = "hold_position", full_width = FALSE)
 ```
@@ -1143,7 +1130,7 @@ North American bat populations are currently facing multiple anthropogenic threa
 \
 The impacts of white-nose syndrome have been most severe east of the Rocky Mountains, where bats hibernate in large aggregations in caves and mines, resulting in high mortality [@cheng2021]. In the Rocky Mountains and further west, including in Alaska, Little Brown Myotis hibernate singly or in small groups in holes in the soil or between rocks in talus deposits [@neubaum2018; @blejwas2021]. This very different hibernation behavior is likely responsible for the slower rate of spread of WNS observed in Washington state [@blejwas2023]. Smaller and more dispersed winter colonies may reduce mortality relative to eastern North America, but will also make it difficult to detect the arrival and spread of WNS in Alaska and track its impact on bats in the state [@blejwas2023]. Given the absence of large hibernacula where bats may be counted and swabbed for the presence of WNS, alternative methods for monitoring bats in Southeast Alaska are required to assess changes or impacts from WNS or other threats.
 
-![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in The US and Canada. Source: CWHC-RCSF (2026)](Figures/WNS-USandCanada.png){#fig-WNS width="100%"}
+![White-nose syndrome (WNS) and Pseudogymnoascus destructans (Pd) occurrence in The US and Canada. Source: CWHC-RCSF (2026)](Figures/WNS-USandCanada.png){#fig-WNS}
 
 {{< pagebreak >}}
 
@@ -1195,7 +1182,7 @@ In 2024 and 2025 acoustic analysis mostly followed the standards set by WCSC in 
 
 Manual vetting largely follows the protocol of @reichert2018 and previous analysis standards developed by WCSC [@raeBlejwas2026Alaska]. The key difference in the 2024 and 2025 acoustic analysis compared to previous years is that not all automatic species identifications were manually verified. Instead, based on findings from @stratton2022 , at least 50% of recordings were selected for manual verification.
 
-*Subsetting for manual verification*
+#### *Subsetting for manual verification*
 
 Given the project's large scale, manually vetting all recordings is not feasible long-term. To address this, the NNW Bat Hub, in collaboration with WCSC and Brian Paterson, developed procedures to ensure that selecting a subset of recordings for manual review minimizes biases in analytical results. These standards prioritize the accurate identification of rare and difficult-to-recognize species to maintain the integrity of models and analyses.
 
@@ -1212,7 +1199,8 @@ We conducted species-specific trend analyses using negative binomial GLMM models
 All models followed the same basic structure, modelling the total number of detected calls as a negative binomial response with log link:
 
 ``` r
-Total detections ~ YearS + log(Sample Nights) + (1|Grid Cell ID) + (1|Quadrant) + species specific covariates
+Total detections ~ YearS + log(Sample Nights) + (1|Grid Cell ID) + (1|Quadrant) 
++ species specific covariates
 ```
 
 Where total detections is the total number of detected calls of a given species at a site in a given year. YearS is the standardized survey year (years since 2019) and provides the estimate of the temporal activity trend. log(Sample Nights) is the natural logarithm of the number of detector-nights and accounts for variation in sampling effort among site-years. The random intercepts (1\|Grid Cell ID) and (1\|Quadrant) allow baseline activity to vary among grid cells and among quadrants within them, respectively.
@@ -1256,7 +1244,8 @@ For the transect-based abundance trend models, we used only manually verified de
 All models followed the same basic structure, modelling the total number of detected calls as a negative binomial response with log link:
 
 ``` r
-Total detections ~ YearS + log(transect length) + (1|Grid Cell ID)+ species specific covariates
+Total detections ~ YearS + log(transect length) + (1|Grid Cell ID) 
++ species specific covariates
 ```
 
 Where total detections is the total number of detected calls of a given species at a site in a given year. YearS is the standardized survey year (years since 2019) and provides the estimate of the temporal activity trend. log(transect length) is the natural logarithm of the total length of the transect sampled and accounts for variation in sampling effort among transects. The random intercept (1\|Grid Cell ID) allow baseline activity to vary among grid cells.
@@ -1415,13 +1404,6 @@ Covariates describing moisture in the air were among the most frequently retaine
 
 cov_kbl
 
-if (is_pdf) {
-  dir.create("figures", showWarnings = FALSE)
-  save_kable(cov_kbl, file = "figures/actabund_covariates.png", zoom = 2)
-  knitr::include_graphics("figures/actabund_covariates.png")
-} else {
-  cov_kbl
-}
 ```
 
 ## Dynamic Occupancy

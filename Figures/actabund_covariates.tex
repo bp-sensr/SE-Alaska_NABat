@@ -1,0 +1,56 @@
+\documentclass[border=1mm]{standalone}
+\usepackage{amssymb, amsmath}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage[utf8]{inputenc}
+\usepackage{makecell}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{xunicode}
+\usepackage{xcolor}
+\begin{document}
+\begin{table}[!h]
+\centering
+\begin{tabular}[t]{lrrrr}
+\toprule
+\multicolumn{1}{c}{ } & \multicolumn{2}{c}{Stationary Models} & \multicolumn{2}{c}{Transect Models} \\
+\cmidrule(l{3pt}r{3pt}){2-3} \cmidrule(l{3pt}r{3pt}){4-5}
+Covariate & Estimate $\pm$ 95\% CI & P-value & Estimate $\pm$ 95\% CI & P-value\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{5}{l}{\textbf{Silver-haired Bat}}\\
+\hspace{1em}Nightly min RH & -0.05 ± 0.05 & 0.068 &  & \\
+\hspace{1em}Nightly precipitation &  &  & 0.43 ± 0.34 & 0.014\\
+\hspace{1em}Percent clutter & -0.02 ± 0.02 & 0.040 &  & \\
+\hspace{1em}Water nearby & 1.34 ± 0.96 & 0.006 &  & \\
+\hspace{1em}Julian night &  &  & -0.09 ± 0.03 & <0.001\\
+\addlinespace[0.3em]
+\multicolumn{5}{l}{\textbf{California Myotis}}\\
+\hspace{1em}Nightly precipitation & -0.33 ± 0.24 & 0.006 &  & \\
+\hspace{1em}Percent clutter & 0.04 ± 0.01 & <0.001 &  & \\
+\addlinespace[0.3em]
+\multicolumn{5}{l}{\textbf{Long-eared Myotis}}\\
+\hspace{1em}Distance to clutter (m) & -0.02 ± 0.02 & 0.004 &  & \\
+\hspace{1em}Nightly max temp & 0.31 ± 0.21 & 0.005 &  & \\
+\hspace{1em}Nightly min RH & 0.05 ± 0.04 & 0.014 &  & \\
+\hspace{1em}Julian night & -0.06 ± 0.04 & 0.002 &  & \\
+\addlinespace[0.3em]
+\multicolumn{5}{l}{\textbf{Little Brown Myotis}}\\
+\hspace{1em}Nightly mean wind speed & -0.31 ± 0.33 & 0.067 &  & \\
+\hspace{1em}Nightly precipitation & -0.20 ± 0.17 & 0.016 & -0.21 ± 0.31 & 0.199\\
+\hspace{1em}Percent clutter & -0.03 ± 0.02 & <0.001 &  & \\
+\hspace{1em}Distance to water & -0.00 ± 0.00 & 0.002 &  & \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{document}
