@@ -1050,6 +1050,18 @@ pack_index <- setNames(runs$lengths, runs$values)
 
 # HTML/PDF-safe CI header: raw % and ± crash XeLaTeX, so escape for LaTeX only
 ci_lab <- if (knitr::is_latex_output()) "Estimate $\\pm$ 95\\% CI" else "Estimate ± 95% CI"
+
+cov_kbl <- kbl(cov_body,
+               booktabs  = TRUE,
+               escape    = FALSE,
+               col.names = c("Covariate", ci_lab, "P-value", ci_lab, "P-value"),
+               align     = c("l", "r", "r", "r", "r")) %>%
+  add_header_above(c(" " = 1,
+                     "Stationary Models" = 2,
+                     "Transect Models"   = 2)) %>%
+  pack_rows(index = pack_index, bold = TRUE, italic = FALSE,
+            label_row_css = "text-align: left; border-bottom: 1px solid #ddd;") %>%
+  kable_styling(latex_options = "hold_position", full_width = FALSE)
 ```
 
 ```{r}
@@ -1401,23 +1413,14 @@ Covariates describing moisture in the air were among the most frequently retaine
 #| tbl-cap: Covariate effects from the best-fitting (lowest-AIC) negative binomial generalized linear mixed model for each species' stationary and transect acoustic detector data. Estimates are fixed-effect coefficients on the log link (± 1.96 × standard error, an approximate 95% confidence interval). Only species with a reportable stationary trend model are included.
 #| tbl-pos: 'H'
 
-kbl(cov_body,
-    booktabs  = TRUE,
-    escape    = FALSE,
-    col.names = c("Covariate", ci_lab, "P-value", ci_lab, "P-value"),
-    align     = c("l", "r", "r", "r", "r")) %>%
-  add_header_above(c(" " = 1,
-                     "Stationary Models" = 2,
-                     "Transect Models"   = 2)) %>%
-  pack_rows(index = pack_index, bold = TRUE, italic = FALSE,
-            label_row_css = "text-align: left; border-bottom: 1px solid #ddd;") %>%
-  kable_styling(latex_options = "hold_position", full_width = FALSE)
+cov_kbl
+
 if (is_pdf) {
   dir.create("figures", showWarnings = FALSE)
-  save_kable(kbl, file = "figures/actabund_covariates.png", zoom = 2)
+  save_kable(cov_kbl, file = "figures/actabund_covariates.png", zoom = 2)
   knitr::include_graphics("figures/actabund_covariates.png")
 } else {
-  kbl
+  cov_kbl
 }
 ```
 
