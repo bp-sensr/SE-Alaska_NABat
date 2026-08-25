@@ -1440,7 +1440,7 @@ Covariate effects varied by species, but temperature was the most consistent det
 #| message: false
 #| tbl-pos: H
 #| tbl-cap: Covariate effects on occupancy dynamics and detection for each species. Values are estimated coefficients with 95% confidence intervals in parentheses. Covariates are grouped by the model parameter they act on: initial occupancy, colonization, persistence, and detection. Dashes (—) indicate covariates that were not retained in the selected model for that species. No covariates are presented for Hoary bat due to low number of detections over the sample years.
- 
+
 occ_kable$LACI <- NULL
 
 occ_kable <- kable(occ_tbl,
