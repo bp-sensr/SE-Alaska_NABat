@@ -317,8 +317,8 @@ cov_labels <- c(
   Distance.to.Clutter..m.  = "Distance to clutter (m)",
   Nightly.Max.Temp         = "Nightly max temp (°C)",
   Nightly.Min.Temp         = "Nightly min temp (°C)",
-  Nightly.Max.RH           = "Nightly max RH (%)",
-  Nightly.Min.RH           = "Nightly min RH (%)",
+  Nightly.Max.RH           = "Nightly max RH",
+  Nightly.Min.RH           = "Nightly min RH",
   Nightly.Precipitation    = "Nightly precipitation (mm)",
   Nightly.Mean.Windsp      = "Nightly mean wind speed (m/s)",
   jNight                   = "Julian night"
@@ -1418,7 +1418,7 @@ For the remaining three species, Silver-haired Bat (λ = 1.05, 0.95–1.17), and
 #| warning: false
 #| message: false
 #| tbl-pos: H
-#| tbl-cap: Occupancy trend estimates. Bolded rows show the estimates where lambada did not include 1 which suggest a changing trend
+#| tbl-cap: Occupancy trend estimates. Trend slopes from dynamic occupancy models and lambda, with 95% confidence intervals in parentheses. Bolded rows mark estimates where the λ interval excluded 1, suggesting a changing trend; unbolded rows indicate no detectable trend.
 
 kable(trend_tbl,
       col.names = c("Species", "Trend Slope (95% CI)", " λ (95% CI)"),
@@ -1439,7 +1439,9 @@ Covariate effects varied by species, but temperature was the most consistent det
 #| warning: false
 #| message: false
 #| tbl-pos: H
-#| tbl-cap: Covariates
+#| tbl-cap: Covariate effects on occupancy dynamics and detection for each species. Values are estimated coefficients with 95% confidence intervals in parentheses. Covariates are grouped by the model parameter they act on: initial occupancy, colonization, persistence, and detection. Dashes (—) indicate covariates that were not retained in the selected model for that species. No covariates are presented for Hoary bat due to low number of detections over the sample years.
+ 
+occ_kable$LACI <- NULL
 
 occ_kable <- kable(occ_tbl,
                    format = "html",                       # force HTML so styling applies even in PDF render
