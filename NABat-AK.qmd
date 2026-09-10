@@ -761,7 +761,7 @@ grids_grey  <- grids[grids$border_col == "#999999", ]
 grids_col   <- grids[grids$border_col != "#999999", ]
 
 m <- leaflet(map_data) %>%
-  addProviderTiles(providers$CartoDB.Positron) %>%
+  addProviderTiles(providers$Esri.WorldGrayCanvas) %>%
 
   # grey cells first -> bottom of the stack
   addPolygons(
@@ -1314,7 +1314,7 @@ if (is_html) {
   map_png <- "Figures/site_summary_map.png"
   
   m_static <- leaflet(map_data) %>%
-    addProviderTiles(providers$CartoDB.Positron) %>%
+    addProviderTiles(providers$Esri.WorldGrayCanvas) %>%
     addPolygons(
       data        = grids,
       color       = ~border_col,
