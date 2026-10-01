@@ -7,12 +7,14 @@
 **/*.quarto_ipynb
 
 #All fits results from activity models
-Data/Analyzed/AK.all.fits.rds
+Data/Raw/
+Data/Analyzed/Activity/AK.all.fits.rds
 
 #raw data 
 Data/NABatOccupancy2015-2023.xlsx
 
-Data/All Year Activity by Night 2016-2025 AK-Aug13-KSP-temp.csv
-
 #draft reports
 DraftReports/
+
+#clean up code
+Code/IncorporateNewCovariates.R

@@ -1,5 +1,5 @@
 #This code incorporates updated metadata for SE Alaska sites into my current df for modelling. 
-#Need to run the ode twice, once for the KSP resutls and nother for the Manual vetted results
+#Need to run the code twice, once for the KSP results and another for the Manual vetted results
 
 library(dplyr)
 

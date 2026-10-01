@@ -132,7 +132,7 @@ nocite: '@*'
 #     Species = factor(Species, levels = species_order),
 #     Name    = factor(Name,    levels = name_levels)
 #   )
-# write.csv(plot_df,"Data/yearlyspptotal.csv")
+# write.csv(plot_df,"Data/Analyzed/yearlyspptotal.csv")
 ```
 
 ```{r}
@@ -172,12 +172,12 @@ cap_sitesummary <- paste0(
 )
 
 #load summary and trend model data
-sites <- read.csv("Data/Sites2025.csv")
-df_pts <- read.csv("Data/hourlySppDetection.csv")
+sites <- read.csv("Data/Raw/Sites2025.csv")
+df_pts <- read.csv("Data/Analyzed/hourlySppDetection.csv")
 df_pts$x <- ymd(df_pts$x)
 df_pts$night_date <- ymd(df_pts$night_date)
 df_pts$ts <- ymd_hms(df_pts$ts)
-df1 <- read.csv("Data/dailytotaldetection.csv")
+df1 <- read.csv("Data/Analyzed/dailytotaldetection.csv")
 df1$date <- ymd(df1$date)
 
 grids <- st_read("Data/AK_GRTS10km_GridsSampled2025.shp", quiet = TRUE)
@@ -307,8 +307,8 @@ map_data <- map_sites %>%
 #| message: false
 
 # Load the model covariates summary table
-model_covariates <- read.csv("Data/Analyzed/ModelVariables.csv")
-transect_covariates <- read.csv("Data/Analyzed/ModelVariables_TransectMV.csv")
+model_covariates <- read.csv("Data/Analyzed/Activity/ModelVariables.csv")
+transect_covariates <- read.csv("Data/Analyzed/Activity/ModelVariables_TransectMV.csv")
 #this comes from running the ModelSelection.R code where it runs all of the covariates and chooses the best model best on AIC
 
 #format the covariates df
@@ -822,7 +822,7 @@ m
 #| warning: false
 #| message: false
 
-plot_df <- read.csv("Data/yearlyspptotal.csv")
+plot_df <- read.csv("Data/Analyzed/yearlyspptotal.csv")
 plot_df$Name[plot_df$Name=="Valley"] <- "Juneau" #update Juneau name for consistency
 loc_order <- c("Yakutat","Juneau","Douglas","Hoonah","Sitka",             
                "Petersburg","Wrangell","POW","Ketchikan")
@@ -877,8 +877,10 @@ actsum
 #| eval: true
 #| warning: false
 #| message: false
-ak.cov.slope.summary.singlet <- read.csv("Data/Analyzed/AK.cov.estimates.singlet.csv")
-ak.cov.slope.transect <- read.csv("Data/Analyzed/AK.transect.cov.estimatesMV.csv")
+
+#thesse resutls can be extracted using the code ModelSelection.R
+ak.cov.slope.summary.singlet <- read.csv("Data/Analyzed/Activity/AK.cov.estimates.singlet.csv")
+ak.cov.slope.transect <- read.csv("Data/Analyzed/Activity/AK.transect.cov.estimatesMV.csv")
 
 # Species excluded from stationary reporting due to insufficient precision
 excluded_stationary <- c("MYVO", "MYYU", "LACI")
@@ -968,8 +970,8 @@ merged_table <- merged_table %>%
 #| message: false
 
 #these are all the other covariate resutls that were included and their effect sizes. 
-cov_estimates_S <- read.csv("Data/Analyzed/ModelVariablesEstimates_Stationary.csv")
-cov_estimates_T <- read.csv("Data/Analyzed/ModelVariablesEstimates_Transect.csv")
+cov_estimates_S <- read.csv("Data/Analyzed/Activity/ModelVariablesEstimates_Stationary.csv")
+cov_estimates_T <- read.csv("Data/Analyzed/Activity/ModelVariablesEstimates_Transect.csv")
 stationarycov <- cov_estimates_S %>%
   filter(!species %in% excluded_stationary) %>%
   select(species, term, estimate, std_error, p) %>%
