@@ -1,0 +1,15 @@
+"species","process","covariate","param","mean","lo95","hi95","lo50","hi50","f","excludes_zero"
+"MYYU","Initial occupancy","Elevation","b.psi.elev",-1.2239,-2.1232,-0.3943,-1.5183,-0.9188,0.9978,TRUE
+"MYYU","Initial occupancy","Distance to water","b.psi.water",-0.3347,-0.9851,0.2641,-0.545,-0.1204,0.8558,FALSE
+"MYYU","Colonization","Elevation","b.gam.elev",-0.5791,-0.927,-0.2453,-0.6924,-0.4648,0.9998,TRUE
+"MYYU","Colonization","Distance to water","b.gam.water",-0.1345,-0.4269,0.1425,-0.2285,-0.0399,0.8304,FALSE
+"MYYU","Colonization","Distance to road","b.gam.road",-0.0773,-0.3426,0.201,-0.174,0.0148,0.7153,FALSE
+"MYYU","Colonization","Distance to harvest","b.gam.harv",-0.1488,-0.3917,0.0912,-0.2342,-0.064,0.8811,FALSE
+"MYYU","Persistence","Elevation","b.phi.elev",-1.6959,-2.2542,-1.1667,-1.885,-1.5034,1,TRUE
+"MYYU","Persistence","Distance to water","b.phi.water",-0.3015,-0.7475,0.0903,-0.4404,-0.1521,0.9302,FALSE
+"MYYU","Persistence","Distance to road","b.phi.road",0.3353,-0.0453,0.7197,0.2014,0.4682,0.9547,FALSE
+"MYYU","Persistence","Distance to harvest","b.phi.harv",0.7427,0.2959,1.2459,0.5811,0.8942,0.9989,TRUE
+"MYYU","Detection","Alaska vs BC","b.p.ak",-3.724,-4.7772,-2.2126,-4.1652,-3.3669,1,TRUE
+"MYYU","Detection","Clutter","b.p.clutter",0.1164,0.0199,0.2087,0.084,0.1488,0.9936,TRUE
+"MYYU","Detection","Temperature","b.p.temp",0.0873,-0.022,0.1997,0.0507,0.1249,0.942,FALSE
+"MYYU","Detection","Julian date","b.p.julian",0.1,-1e-04,0.2001,0.065,0.1347,0.9747,FALSE

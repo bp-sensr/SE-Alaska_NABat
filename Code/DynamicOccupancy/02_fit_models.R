@@ -44,13 +44,13 @@ library(jagsUI)
 
 # --- Alaska report: only species detected in Alaska ---
 INPUT_DIR   <- "Data/Processed/BC_AK"
-OUTPUT_DIR  <- "Data/Analyzed/Occupancy/fits"
+OUTPUT_DIR  <- "Data/Analyzed/Occupancy/fits_2019"
 det_summary <- read.csv(file.path(INPUT_DIR, "species_detection_summary.csv"))
 ALL_SPECIES <- det_summary$species[det_summary$det_Alaska > 0]
 
 ALL_SPECIES                    # species the loop in section 7 will fit
 
-SPECIES <- "COTO"              # species fitted by the step-by-step part (section 4)
+SPECIES <- "MYLU"              # species fitted by the step-by-step part (section 4)
 
 MIN_DETECTIONS <- 30           # loop only: below this, logged but not fitted
 

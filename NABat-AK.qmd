@@ -133,6 +133,28 @@ nocite: '@*'
 #     Name    = factor(Name,    levels = name_levels)
 #   )
 # write.csv(plot_df,"Data/Analyzed/yearlyspptotal.csv")
+# 
+# #---Extract the information on how many grid cells used in AK and Bc occupancy---
+# #example of the data used for MYLU -- this will show us which sites and grids were actually used
+# d <- readRDS("Data/Processed/BC_AK/QUAD_MYLU_data.rds")
+# 
+# #now extract how many sites and grid cells were used from AK and BC
+# si <- as.data.frame(d$site_info)
+# si$group <- ifelse(si$region == "Alaska", "Alaska", "BC")
+# 
+# counts <- data.frame(
+#   Region   = c("Alaska", "BC", "Total"),
+#   n_sites = c(length(unique(si$site[si$group == "Alaska"])),
+#               length(unique(si$site[si$group == "BC"])),
+#               length(unique(si$site))),
+#   n_cells = c(length(unique(si$GRTS_Cell_ID[si$group == "Alaska"])),
+#               length(unique(si$GRTS_Cell_ID[si$group == "BC"])),
+#               length(unique(si$GRTS_Cell_ID)))
+# )
+# counts
+# 
+# write.csv(counts, "Data/Analyzed/Occupancy/GridSiteSummary.csv")
+             
 ```
 
 ```{r}
@@ -294,7 +316,6 @@ day_ylab <- "Recordings / night"
 map_data <- map_sites %>%
   left_join(site_species, by = "Site_key") %>%
   mutate(across(all_of(target_species), ~ tidyr::replace_na(.x, 0)))
-
 
 ```
 
@@ -1056,58 +1077,160 @@ cov_kbl <- kbl(cov_body,
 ```
 
 ```{r}
-#| label: Load activity occupancy trend results and format
+#| label: Load activity occupancy trend results
 #| include: false
 #| echo: false
 #| eval: true
 #| warning: false
 #| message: false
 
+sitesummary <- read.csv("Data/Analyzed/Occupancy/GridSiteSummary.csv")
 trend_tbl <- read.csv("Data/Analyzed/Occupancy/yeartrendestimates.csv")
-occ_tbl <- read.csv("Data/Analyzed/Occupancy/covestimates.csv")
 
-# --- identify section-header rows (all species columns blank/NA) ---
-species_cols <- setdiff(names(occ_tbl), "Covariate")
+#site-year summary for interactive slider maps code
+#this creates a map that can go between species and show the slider maps with P(occupancy for all the sites where the species was detected)
+library(dplyr)
+library(plotly)
 
-is_header <- apply(occ_tbl[species_cols], 1, function(x)
-  all(is.na(x) | str_trim(as.character(x)) == ""))
+old_tojson <- options(htmlwidgets.TOJSON_ARGS = NULL)
 
-sections   <- str_trim(occ_tbl$Covariate[is_header])  # section titles, in order
-section_id <- cumsum(is_header)                        # section each row belongs to
-
-# --- keep only data rows, build the pack_rows index ---
-occ_tbl <- occ_tbl[!is_header, , drop = FALSE]
-grp <- section_id[!is_header]
-counts    <- as.integer(table(factor(grp, levels = seq_along(sections))))
-index_vec <- setNames(counts, sections)
-
-# --- normalize empty cells to a consistent em dash ---
-occ_tbl[species_cols] <- lapply(occ_tbl[species_cols], function(col) {
-  col <- str_trim(as.character(col))
-  col[is.na(col) | col == ""] <- "—"
-  col
-})
-
-occ_tbl$LACI <- ""
-
-# --- render ---
-occ_tbl %>%
-  kbl(
-    align    = c("l", rep("c", length(species_cols))),
-    booktabs = TRUE,
-    linesep  = "",
-    caption  = "Occupancy covariate estimates, posterior mean (95% CI)."
-  ) %>%
-  kable_styling(
-    latex_options     = if (is_pdf) c("hold_position", "scale_down"),
-    bootstrap_options = if (!is_pdf) c("striped", "condensed"),
-    full_width        = FALSE
-  ) %>%
-  pack_rows(index = index_vec, bold = TRUE, italic = FALSE)
-
-occ_tbl$LACI <- NULL
-
-species_cols1 <- species_cols[species_cols != "LACI"]
+make_occ_species_map <- function(species,
+                                 path = "Data/Analyzed/Occupancy/tables/per_species/") {
+  # species: named vector, names = codes, values = common names
+  pal_hex <- RColorBrewer::brewer.pal(9, "OrRd")
+  pal_fun <- scales::col_numeric(pal_hex, domain = c(0, 1), na.color = "#bdbdbd")
+  
+  occ_all <- lapply(names(species), function(sp) {
+    read.csv(file.path(path, paste0("site_year_occupancy_", sp, ".csv"))) |>
+      mutate(sp_code = sp)
+  }) |>
+    bind_rows() |>
+    mutate(
+      surveyed   = as.logical(surveyed),
+      detected   = suppressWarnings(as.numeric(detected)),
+      p_occupied = suppressWarnings(as.numeric(p_occupied))
+    ) |>
+    filter(surveyed) |>
+    mutate(
+      status = ifelse(detected %in% 1, "Detected", "Not detected"),
+      symbol = ifelse(status == "Detected", "circle", "triangle-up"),
+      fill   = pal_fun(pmin(pmax(p_occupied, 0), 1)),
+      hover  = paste0(
+        "<b>", site, "</b><br>", region,
+        "<br>Year: ", year,
+        "<br>", status, " (", n_visits, " visits)",
+        "<br>P(occupied): ", sprintf("%.2f", p_occupied),
+        "<br>\u03c8 expected: ",
+        sprintf("%.2f [%.2f\u2013%.2f]", psi_expected, psi_expected_lo95, psi_expected_hi95)
+      )
+    ) |>
+    arrange(sp_code, year, site)
+  
+  # fixed extent across all species and years
+  lon_rng <- range(occ_all$long, na.rm = TRUE) + c(-1, 1)
+  lat_rng <- range(occ_all$lat,  na.rm = TRUE) + c(-0.5, 0.5)
+  
+  off_lat <- 0; off_lon <- 0
+  title_for <- function(sp) list(
+    text = paste0("<b>", sp, " \u2014 ", species[[sp]],
+                  ": probability of occupancy by year</b>"),
+    x = 0.02)
+  
+  # ---- fixed traces first (always visible): colourbar + shape legend ----
+  p <- plot_ly(height = 760) |>
+    add_trace(
+      type = "scattergeo", mode = "markers",
+      lat = off_lat, lon = off_lon, hoverinfo = "skip", showlegend = FALSE,
+      marker = list(
+        color = 0, cmin = 0, cmax = 1,
+        colorscale = list(seq(0, 1, length.out = length(pal_hex)), pal_hex),
+        showscale = TRUE,
+        colorbar = list(title = list(text = "P(occupied)"), len = 0.45, y = 0.35,
+                        tickvals = seq(0, 1, 0.25))
+      )
+    ) |>
+    add_trace(type = "scattergeo", mode = "markers", lat = off_lat, lon = off_lon,
+              name = "Detected", hoverinfo = "skip",
+              marker = list(symbol = "circle", size = 11, color = "#bdbdbd",
+                            line = list(color = "#4d4d4d", width = 1))) |>
+    add_trace(type = "scattergeo", mode = "markers", lat = off_lat, lon = off_lon,
+              name = "Not detected", hoverinfo = "skip",
+              marker = list(symbol = "triangle-up", size = 11, color = "#bdbdbd",
+                            line = list(color = "#4d4d4d", width = 1)))
+  n_fixed <- 3
+  
+  # ---- one trace per species x year ----
+  key <- occ_all |> distinct(sp_code, year) |>
+    filter(sp_code %in% names(species)) |>
+    mutate(sp_code = factor(sp_code, levels = names(species))) |>
+    arrange(sp_code, year) |>
+    mutate(sp_code = as.character(sp_code))
+  
+  first_sp <- names(species)[1]
+  first_yr <- min(key$year[key$sp_code == first_sp])
+  
+  for (i in seq_len(nrow(key))) {
+    sub <- occ_all |> filter(sp_code == key$sp_code[i], year == key$year[i])
+    p <- p |> add_trace(
+      type = "scattergeo", mode = "markers",
+      lat = sub$lat, lon = sub$long,
+      text = sub$hover, hoverinfo = "text",
+      name = paste(key$sp_code[i], key$year[i]), showlegend = FALSE,
+      visible = key$sp_code[i] == first_sp & key$year[i] == first_yr,
+      marker = list(symbol = sub$symbol, color = sub$fill, size = 12, opacity = 0.95,
+                    line = list(color = "#4d4d4d", width = 1))
+    )
+  }
+  
+  # visibility vector for a given species-year
+  vis <- function(sp, yr) as.list(c(rep(TRUE, n_fixed),
+                                    key$sp_code == sp & key$year == yr))
+  
+  # one year slider per species
+  slider_for <- function(sp) {
+    yrs <- key$year[key$sp_code == sp]
+    list(list(
+      active = 0,
+      currentvalue = list(prefix = "Year: ", font = list(size = 16)),
+      pad = list(t = 20),
+      steps = lapply(yrs, function(y) list(
+        label = as.character(y), method = "restyle",
+        args = list("visible", vis(sp, y))
+      ))
+    ))
+  }
+  
+  # species buttons: switch traces, slider, and title together
+  buttons <- lapply(names(species), function(sp) {
+    y1 <- min(key$year[key$sp_code == sp])
+    list(label = sp, method = "update",
+         args = list(list(visible = vis(sp, y1)),
+                     list(sliders = slider_for(sp), title = title_for(sp))))
+  })
+  
+  p |> layout(
+    title = title_for(first_sp),
+    margin = list(t = 110),
+    updatemenus = list(list(
+      type = "buttons", direction = "right", active = 0, showactive = TRUE,
+      x = 0, xanchor = "left", y = 1.12, yanchor = "bottom",
+      buttons = buttons
+    )),
+    sliders = slider_for(first_sp),
+    geo = list(
+      scope = "north america", resolution = 50,
+      projection = list(type = "mercator"),
+      showland = TRUE,  landcolor  = "#f7f7f7",
+      showocean = TRUE, oceancolor = "#e8f0f5",
+      showlakes = TRUE, lakecolor  = "#e8f0f5",
+      showcountries = TRUE, countrycolor = "#9e9e9e",
+      showsubunits  = TRUE, subunitcolor = "#c8c8c8",
+      lonaxis = list(range = lon_rng),
+      lataxis = list(range = lat_rng)
+    ),
+    legend = list(x = 1.02, y = 0.9)
+  )
+}
 
 ```
 
@@ -1182,7 +1305,7 @@ For sites in British Columbia, station records were obtained from the Pacific Cl
 
 Site-level covariates were derived from GIS (elevation, distance to water, water body type) or recorded by grid leaders during deployment (distance to clutter, percent clutter); estimates of percent clutter were confirmed using site photos. For sites with smaller ponds that did not appear on the GIS, we used the distance estimate recorded by the grid leader.
 
-We explored additional factors influencing colonization and extinction in the dynamic occupancy models. For those models we included distance to the nearest road, and distance to timber harvest, calculated as the distance from each survey location to the closest road or harvest feature. Road and harvest features for British Columbia were derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways. Road features for Southeast Alaska were taken from the Alaska Department of Transportation and Public Facilities ([AKDOT](Model%20covariates%20for%20the%20activity%20trend%20models%20and%20dynamic%20occupancy%20models%20were%20based%20on%20those%20established%20by%20@rae2024,%20with%20additional%20exploration%20of%20factors%20influencing%20colonization%20and%20extinction%20in%20the%20dynamic%20occupancy%20models.%20For%20the%20dynamic%20occupancy%20models%20we%20included%20distance%20to%20the%20nearest%20road,%20calculated%20as%20the%20distance%20from%20each%20survey%20location%20to%20the%20closest%20road%20feature.%20Road%20features%20for%20British%20Columbia%20were%20derived%20from%20the%20unpublished%20Human%20Footprint%20Index%20(HFI)%20layer%20currently%20being%20developed%20by%20the%20Geospatial%20Centre%20within%20Biodiversity%20Pathways,%20while%20those%20for%20Southeast%20Alaska%20were%20taken%20from%20the%20Alaska%20Department%20of%20Transportation%20and%20Public%20Facilities%20(AKDOT)%20Roads%20layer,%20a%20statewide%20road-centerline%20dataset%20distributed%20through%20the%20State%20of%20Alaska%20open-data%20portal%20(https://gis.data.alaska.gov/datasets/AKDOT::roads-akdot/about).)) Roads layer and the US Forest Service Transportation layer. Harvest features for Southeast Alaska were taken from the US Forest Service Tongass_National_Forest_Past_Harvest_from_CoverType layer.
+We explored additional factors influencing colonization and extinction in the dynamic occupancy models. For those models we included distance to the nearest road, and distance to timber harvest, calculated as the distance from each survey location to the closest road or harvest feature. Road and harvest features for British Columbia were derived from the unpublished Human Footprint Index (HFI) layer currently being developed by the Geospatial Centre within Biodiversity Pathways. Road features for Southeast Alaska were taken from the Alaska Department of Transportation and Public Facilities ([AKDOT](Model%20covariates%20for%20the%20activity%20trend%20models%20and%20dynamic%20occupancy%20models%20were%20based%20on%20those%20established%20by%20@rae2024,%20with%20additional%20exploration%20of%20factors%20influencing%20colonization%20and%20extinction%20in%20the%20dynamic%20occupancy%20models.%20For%20the%20dynamic%20occupancy%20models%20we%20included%20distance%20to%20the%20nearest%20road,%20calculated%20as%20the%20distance%20from%20each%20survey%20location%20to%20the%20closest%20road%20feature.%20Road%20features%20for%20British%20Columbia%20were%20derived%20from%20the%20unpublished%20Human%20Footprint%20Index%20(HFI)%20layer%20currently%20being%20developed%20by%20the%20Geospatial%20Centre%20within%20Biodiversity%20Pathways,%20while%20those%20for%20Southeast%20Alaska%20were%20taken%20from%20the%20Alaska%20Department%20of%20Transportation%20and%20Public%20Facilities%20(AKDOT)%20Roads%20layer,%20a%20statewide%20road-centerline%20dataset%20distributed%20through%20the%20State%20of%20Alaska%20open-data%20portal%20(https://gis.data.alaska.gov/datasets/AKDOT::roads-akdot/about).)) Roads layer and the US Forest Service Transportation layer. Harvest features for Southeast Alaska were taken from the US Forest Service Tongass_National_Forest_Past_Harvest_from_CoverType layer. For occupancy analyses, all continuous covariates were standardized by centering on their mean and dividing by their standard deviation; missing covariate values were imputed with the global mean prior to standardization.
 
 ### Manual Verification
 
@@ -1283,15 +1406,13 @@ After selection, we ran a series of post-hoc checks to confirm model fit. We tre
 
 ### Dynamic Occupancy
 
-We fitted multi-season (dynamic) occupancy models [@mackenzie2003] to estimate trends in occupancy, colonization, and persistence while accounting for imperfect detection. This analysis used nightly acoustic detection/non-detection data from passive bat detectors deployed at 43 stationary detector sites located in 9 grid cells in Southeast Alaska, as well as 173 stationary detector sites in 56 grid cells in British Columbia (BC). Pooling the two regions allowed the more extensive BC data to inform species-specific detection probabilities and covariate slopes, improving our ability to distinguish true absences from non-detections and thereby sharpening occupancy estimates where Alaska data were sparse. A region effect accounted for structural differences in the landscape between British Columbia and southeast Alaska, allowing us to characterize occupancy trends for southeast Alaska with greater precision than an Alaska-only model would permit.
+We fitted multi-season (dynamic) occupancy models [@mackenzie2003] to estimate trends in occupancy, colonization, and persistence while accounting for imperfect detection. This analysis used nightly acoustic detection/non-detection data from passive bat detectors deployed at sites in Alaska an British Columbia (BC). Pooling the two regions allowed the more extensive BC data to inform species-specific detection probabilities and covariate slopes, improving our ability to distinguish true absences from non-detections and thereby sharpening occupancy estimates where Alaska data were sparse. To account for differences in detectability between Alaska and BC, we included a fixed regional effect on initial occupancy, colonization, and persistence.
 
-Data were filtered to the 2017--2025 period, and analysis used an every-other-night subsampling protocol to reduce temporal autocorrelation between consecutive nights, using a maximum of 4 nights per site-year. Sites had to have a minimum of 2 nights of data within a given year and data from at least 2 years total. Models were run separately for all 7 bat species.
+Initial occupancy ($\psi$) was modeled as a function of distance to water and elevation. Colonization ($\gamma$) and persistence ($\varphi$) were modeled as a function of distance to water, elevation, year-varying distance to harvest, and distance to road. Detection probability (p) was modeled as a function of percent clutter, nightly mean temperature, and Julian night. Detection probability also included a fixed Alaska offset on the logit scale, allowing detectability to differ between Alaska vs. BC due to differences in species classification, equipment, and survey conditions such as shorter nights at higher latitudes. The offset was estimated from repeat visits at Alaska sites and was assumed constant across years. Species with few detections in Alaska (\<30) make separating occupancy and detection difficult, thus Alaska estimates for those species were removed. 
 
-Initial occupancy ($\psi$) was modeled as a function of elevation and water nearby, with a random effect for region. Baseline occupancy for the Alaska region was estimated from Alaska detections only and was not forced toward the BC average. Colonization ($\gamma$) and persistence ($\varphi$) were modeled with time-varying intercepts and distance to road as a covariate. Detection probability (p) was modeled as a function of percent clutter, nightly mean temperature, and Julian night.
+Data were filtered to the 2019--2025 period, and analysis used an every-other-night subsampling protocol to reduce temporal autocorrelation between consecutive nights, using a maximum of 4 nights per site-year. Sites had to have a minimum of 2 nights of data within a given year and data from at least 2 years total. Models were run separately for all 7 bat species. After this filtering, a total of `r sitesummary$n_sites[sitesummary$group=="Alaska"]` sites in `r sitesummary$n_cells[sitesummary$group=="Alaska"]` grid cells Southeast Alaska, as well as `r sitesummary$n_sites[sitesummary$group=="BC"]` sites in `r sitesummary$n_cells[sitesummary$group=="BC"]` grid cells in British Columbia (BC) were used for these analyses.
 
-All continuous covariates were standardized by centering on their mean and dividing by their standard deviation; missing covariate values were imputed with the global mean prior to standardization.
-
-Models were fit in a Bayesian framework using JAGS (Version 4.3.2) via the `jagsUI` package (Version 1.6.3) in r (Version 4.5.1). We ran 3 chains in parallel for 30,000 iterations each, discarding the first 15,000 as burn-in and thinning the remainder by 5, yielding 9,000 posterior samples for inference. Priors on all regression coefficients were normal with mean 0 and precision 0.368 (equivalent to a standard deviation of approximately 1.65), and the standard deviation of the region-level random effect was assigned a Uniform(0, 5) prior. Convergence was assessed using Rhat diagnostics, with values below 1.1 taken to indicate convergence. Results are summarized using posterior means and 95% Bayesian credible intervals. We calculated an overall occupancy trend metric (𝜆) as the ratio of estimated occupancy in the final year to that in the initial year; values of 𝜆 \> 1 with 95% credible intervals entirely above 1 indicate an increase in occupancy, values 𝜆\<1 with intervals entirely below 1 indicate a decline, and intervals overlapping 1 indicate an uncertain or stable.
+Models were fit in a Bayesian framework using JAGS (Version 4.3.2) via the `jagsUI` package (Version 1.6.3) in r (Version 4.5.1). We ran 3 chains in parallel for 30,000 iterations each, discarding the first 15,000 as burn-in and thinning the remainder by 10, yielding 9,000 posterior samples for inference. Priors on all regression coefficients were normal with mean 0 and precision 0.368 (equivalent to a standard deviation of approximately 1.65), and the standard deviation of the region-level random effect was assigned a Uniform(0, 5) prior. Convergence was assessed using Rhat diagnostics, with values below 1.1 taken to indicate convergence. Results are summarized using posterior means and 95% Bayesian credible intervals. We calculated an overall occupancy trend metric (𝜆) as the ratio of estimated occupancy in the final year to that in the initial year; values of 𝜆 \> 1 with 95% credible intervals entirely above 1 indicate an increase in occupancy, values 𝜆\<1 with intervals entirely below 1 indicate a decline, and intervals overlapping 1 indicate an uncertain or stable.
 
 # Results
 
@@ -1416,9 +1537,9 @@ cov_kbl
 
 ## Dynamic Occupancy
 
-Dynamic occupancy models converged for all species. Due to the low number of Hoary bat detections across the monitoring period all Hoary bat results were removed from this report. Four species showed increasing occupancy over the 2017–2025 period, comprising all Myotis species except California Myotis: Long-legged Myotis (λ = 1.43, 95% CI 1.18–1.77), Long-eared Myotis (λ = 1.25, 1.05–1.50), Little Brown Myotis (λ = 1.10, 1.03–1.19), and Yuma Myotis (λ = 1.44, 1.17–1.79) ([@tbl-occ-trends]).
+Dynamic occupancy models converged for all species. Due to the low number of Hoary bat (LACI = 3) and Yuma Myotis (MYYU=6) detections across the monitoring period all Hoary bat and Yuma Myotis results were removed from this report. Two species showed increasing occupancy over the 2019–2025 period ([@tbl-occ-trends]). Little brown Myotis occupancy increased by an estimated 3.0 percentage points per year (95% CI: 0.2–7.0), corresponding to a net increase of 22.7 percentage points between 2017 and 2025. The net change was imprecise (95% CI: −13 to +73), but occupancy was higher in 2025 than in 2017 in 78% of posterior draws. Long-legged Myotis occupancy increased by 3.7 percentage points per year (95% CI: 0.8–5.6), with a net increase of 23.9 percentage points (95% CI: −6.7 to +40). Although this credible interval also overlapped zero, the probability that occupancy was higher in 2025 than in 2017 was 95%, providing the strongest evidence of an increase among the species assessed.
 
-For the remaining three species, Silver-haired Bat (λ = 1.05, 0.95–1.17), and California Myotis (λ = 1.16, 1.00–1.35) ([@tbl-occ-trends]), the 95% credible interval for λ overlapped 1, indicating that no directional change in occupancy could be detected.
+Trends for silver-haired bat, California Myotis and long-eared Myotis were uncertain, with 95% credible intervals for both the trend slope and net change overlapping zero ([@tbl-occ-trends]). Silver-haired bat showed a possible decline in occupancy (trend slope −0.007; λ −0.21) with an estimated 23% probability that occupancy was higher in 2025 than in 2017. However, part of this apparent decline may reflect the model adjusting from an uncertain starting value rather than a true loss. Long-eared Myotis showed a possible increase (slope 0.028; net change 0.18), while California Myotis showed no clear direction. Continued monitoring, particularly more consistent coverage of Alaska sites, is needed to resolve trends for these species.
 
 ```{r}
 #| label: tbl-occ-trends
@@ -1426,55 +1547,54 @@ For the remaining three species, Silver-haired Bat (λ = 1.05, 0.95–1.17), and
 #| warning: false
 #| message: false
 #| tbl-pos: H
-#| tbl-cap: Occupancy trend estimates. Trend slopes from dynamic occupancy models and lambda, with 95% confidence intervals in parentheses. Bolded rows mark estimates where the λ interval excluded 1, suggesting a changing trend; unbolded rows indicate no detectable trend.
+#| tbl-cap: Estimated occupancy trends for seven bat species in Southeast Alaska (2017–2025) from a dynamic occupancy model. Trend slope is the average annual change in the proportion of sites occupied (e.g., 0.03 = +3 percentage points per year). λ is the net change in the proportion of sites occupied from 2017 to 2025 (e.g., 0.23 = 23 percentage points higher in 2025). Values are posterior means with 95% credible intervals. P(increase) is the proportion of posterior draws in which occupancy was higher in 2025 than in 2017; values near 0.5 indicate no clear direction, and values near 1 or 0 indicate stronger evidence of an increase or decline. Bold rows indicate trend slopes whose 95% credible interval excludes zero.
 
 kable(trend_tbl,
-      col.names = c("Species", "Trend Slope (95% CI)", " λ (95% CI)"),
+      col.names = c("Species", "Trend Slope (95% CI)", " λ (95% CI)", "P(Increase)"),
       row.names = FALSE) %>%
   kable_styling(bootstrap_options = c("striped", "hover"),
                 full_width = FALSE,
                 position = "left") %>%
-  row_spec((nrow(trend_tbl) - 3):nrow(trend_tbl), bold = TRUE)
+  row_spec((nrow(trend_tbl) - 2):(nrow(trend_tbl) - 1), bold = TRUE) #bold results
+```
+
+```{r}
+#| label: fig-occ-slider
+#| fig-cap: "Probability of occupancy per site by year for each species with reliable occupancy estimates. Use the buttons to switch species and the slider to change year. Circles = detected; triangles = not detected that year (colour is model inference)."
+#| echo: false
+#| warning: false
+#| message: false
+
+sp_list <- c(
+  LANO = "Silver-haired bat",
+  MYCA = "California myotis",
+  MYEV = "Long-eared Mytois", 
+  MYLU = "Little brown myotis",
+  MYVO = "Long-legged Myotis"
+)
+
+if (knitr::pandoc_to("html")) {
+  make_occ_species_map(sp_list)
+} 
 ```
 
 ### Covariate Effects
 
-Covariate effects varied by species, but temperature was the most consistent detection covariate, with warmer nights associated with higher detection probability for most species. Clutter effects on detection probability were present but species-specific, and Julian date effects were mixed across species ([@tbl-occ-covariates]).
+Covariate effects varied by species, but temperature was the most consistent detection covariate, with detection probability increasing on warmer nights for most species([@fig-cov-occupancy]). Clutter also influenced detection probability, although the direction and strength of this effect were species-specific. Detection probability differed between Alaska and British Columbia for hoary bat and yuma Myotis, which is expected given that both species are rarely detected in the areas sampled. Detection probability for silver-haired bat and California Myotis was also lower in Alaska than in British Columbia, but the reason for this difference in unknown.
 
-```{r}
-#| label: tbl-occ-covariates
-#| echo: false
-#| warning: false
-#| message: false
-#| tbl-pos: H
-#| tbl-cap: "Covariate effects on occupancy dynamics and detection for each species. Values are estimated coefficients with 95% confidence intervals in parentheses. Covariates are grouped by the model parameter they act on: initial occupancy, colonization, persistence, and detection. Dashes (—) indicate covariates that were not retained in the selected model for that species. No covariates are presented for Hoary bat due to low number of detections over the sample years."
+Elevation and distance to water were the covariates most commonly associated with initial occupancy, colonization, and persistence. Although not always significant, colonization and persistence generally declined with increasing distance to water across species. Distance to water was also a significant predictor of initial occupancy for California Myotis and of persistence for little brown Myotis and long-legged Myotis. For yuma Myotis, persistence increased with distance from timber harvest, while for hoary bat, colonization decreased with distance from roads, suggesting this species may use roads as travel corridors when moving into new sites.
 
-occ_kable <- kable(occ_tbl,
-                   format = "html",                       # force HTML so styling applies even in PDF render
-                   col.names = c("Covariate", species_cols1),
-                   row.names = FALSE,
-                   label = "occ-covariates") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed"),
-                full_width = FALSE,
-                position = "left") %>%
-  column_spec(1, width = "10em") %>%
-    column_spec(2:(length(species_cols1) + 1),
-              width = "20em") %>%
-  pack_rows(index = index_vec, bold = TRUE, italic = FALSE,
-            label_row_css = "text-align: left; border-bottom: 1px solid #ddd;")
-
-if (is_pdf) {
-  dir.create("figures", showWarnings = FALSE)
-  save_kable(occ_kable, file = "figures/occ_covariates.png", zoom = 2)
-  knitr::include_graphics("figures/occ_covariates.png")
-} else {
-  occ_kable
-}
-```
+![Covariate effects on initial occupancy, colonization, persistence, and detection probability for each species, modelled using data from Alaska and British Columbia. Effects whose 95% confidence intervals do not overlap zero are shown in colour (blue for positive, red for negative); all others are shown in grey.](Figures/DOccupancy/_all_species/figA_covariate_effects_all_species.png){#fig-cov-occupancy}
 
 More detailed species results can be found on [Appendix A](#sec-appendix-a).
 
 # Discussion
+
+## Interpreting Alaska estimates vs. BC’s contributions
+
+Alaska's `r sitesummary$n_sites[sitesummary$group == "Alaska"]` sites were too few to support a model of their own, so they were analysed together with the `r sitesummary$n_sites[sitesummary$group == "BC"]` BC sites, with Alaska included as a separate region through fixed regional effects. Some estimates are therefore specific to Alaska: initial occupancy, average colonization and persistence rates, and the occupancy state of each Alaska site in each year. Other estimates are shared across regions and cannot be separated from BC: the effects of elevation, distance to water, distance to roads and distance to harvest on occupancy dynamics; year-to-year variation in colonisation, persistence and detection; and the effects of clutter, temperature and date of detection. Because Alaska contributes fewer than 10% of the sites, these shared terms are effectively estimated from BC data and applied to Alaska. This assumes that habitat relationships, and the timing of good and poor years, are broadly similar across regions.
+
+## Trend Results
 
 Overall, Alaska bat populations do not show evidence of decline, and several species show potential increases: the Silver-haired Bat (LANO) in activity, and most Myotis species in occupancy.
 
@@ -1500,23 +1620,23 @@ As species ranges continue to expand, a review of the data aimed at identifying 
 
 ## Silver-haired Bat (*Lasyonicteris noctivagans*)
 
-![](Figures/DOccupancy/LANO_04_alaska.png) ![](Figures/DOccupancy/LANO_01_occupancy_trend.png) ![](Figures/DOccupancy/LANO_02_dynamics.png) ![](Figures/DOccupancy/LANO_03_covariate_effects.png)
+![](Figures/DOccupancy/LANO/fig1_covariate_effects_LANO.png) ![](Figures/DOccupancy/LANO/fig2_dynamics_LANO.png) ![](Figures/DOccupancy/LANO/fig3_detection_by_year_LANO.png)
 
 ## California Myotis (*Myotis californicus*)
 
-![](Figures/DOccupancy/MYCA_04_alaska.png) ![](Figures/DOccupancy/MYCA_01_occupancy_trend.png) ![](Figures/DOccupancy/MYCA_02_dynamics.png) ![](Figures/DOccupancy/MYCA_03_covariate_effects.png)
+![](Figures/DOccupancy/MYCA/fig1_covariate_effects_MYCA.png) ![](Figures/DOccupancy/MYCA/fig2_dynamics_MYCA.png) ![](Figures/DOccupancy/MYCA/fig3_detection_by_year_MYCA.png)
 
 ## Long-eared Myotis (*Myotis evotis*)
 
-![](Figures/DOccupancy/MYEV_04_alaska.png) ![](Figures/DOccupancy/MYEV_01_occupancy_trend.png) ![](Figures/DOccupancy/MYEV_02_dynamics.png) ![](Figures/DOccupancy/MYEV_03_covariate_effects.png)
+![](Figures/DOccupancy/MYEV/fig1_covariate_effects_MYEV.png) ![](Figures/DOccupancy/MYEV/fig2_dynamics_MYEV.png) ![](Figures/DOccupancy/MYEV/fig3_detection_by_year_MYEV.png)
 
 ## Little Brown Myotis (*Myotis lucifugus*)
 
-![](Figures/DOccupancy/MYLU_04_alaska.png) ![](Figures/DOccupancy/MYVO_01_occupancy_trend.png) ![](Figures/DOccupancy/MYLU_02_dynamics.png) ![](Figures/DOccupancy/MYLU_03_covariate_effects.png)
+![](Figures/DOccupancy/MYLU/fig1_covariate_effects_MYLU.png) ![](Figures/DOccupancy/MYLU/fig2_dynamics_MYLU.png) ![](Figures/DOccupancy/MYLU/fig3_detection_by_year_MYLU.png)
 
 ## Long-legged Myotis (*Myotis volans*)
 
-![](Figures/DOccupancy/MYVO_04_alaska.png) ![](Figures/DOccupancy/MYVO_01_occupancy_trend.png) ![](Figures/DOccupancy/MYVO_02_dynamics.png) ![](Figures/DOccupancy/MYVO_03_covariate_effects.png)
+![](Figures/DOccupancy/MYVO/fig1_covariate_effects_MYVO.png) ![](Figures/DOccupancy/MYVO/fig2_dynamics_MYVO.png) ![](Figures/DOccupancy/MYVO/fig3_detection_by_year_MYVO.png)
 
 {{< pagebreak >}}
 

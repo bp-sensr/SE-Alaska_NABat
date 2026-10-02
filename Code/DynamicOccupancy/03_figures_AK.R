@@ -17,9 +17,9 @@ library(tidyr)
 # SETTINGS
 # ============================================================================
 
-DATA_DIR <- "data/processed/BC_AK"
-FIT_DIR  <- "outputs/BC_AK/fits"
-OUT_DIR  <- "outputs/BC_AK"
+DATA_DIR <- "Data/Processed/BC_AK"
+FIT_DIR  <- "Data/Analyzed/Occupancy/fits"
+OUT_DIR  <- "Figures/DOccupancy"
 
 FOCAL_REGION <- "Alaska"
 

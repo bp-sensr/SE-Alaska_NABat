@@ -1,0 +1,2 @@
+"species","region","n_sites","n_detections","psi_first","psi_last","slope","slope_lo95","slope_hi95","change","change_lo95","change_hi95","p_increase"
+"MYLU","Alaska",15,216,0.6948,0.9221,0.0304,0.00222,0.07,0.2273,-0.1333,0.7333,0.7809

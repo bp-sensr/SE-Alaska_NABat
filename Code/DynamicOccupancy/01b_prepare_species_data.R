@@ -15,16 +15,10 @@ library(tidyr)
 # SETTINGS
 # ============================================================================
 
-# Two analyses use this script, one per report. Keep ONE block active and put
-# a # in front of every line of the other. Use the same block in 01a, 01b, 02.
-
-# --- BC report ---
 DATA_DIR <- "Data/Processed/BC_AK"
 
 
-SPECIES_CODES <- c("ANPA", "COTO", "EPFU", "EUMA", "LABO", "LACI", "LANO",
-                   "MYCA", "MYCI", "MYEV", "MYLU", "MYSE", "MYTH", "MYVO",
-                   "MYYU", "PAHE", "TABR")
+SPECIES_CODES <- c("LACI", "LANO","MYCA", "MYEV", "MYLU", "MYVO","MYYU")
 
 # Columns that are numeric and look like detections but are not species
 NON_SPECIES_COLS <- c("F10K", "F20K", "F25K", "F30K", "F35K", "F40K",
@@ -34,10 +28,43 @@ NON_SPECIES_COLS <- c("F10K", "F20K", "F25K", "F30K", "F35K", "F40K",
 # ============================================================================
 # 1. LOAD THE ANALYSIS FRAME AND COVARIATES FROM 01a
 # ============================================================================
-
 bat_data  <- readRDS(file.path(DATA_DIR, "analysis_frame.rds"))
 site_covs <- readRDS(file.path(DATA_DIR, "site_covariates.rds"))
 covs      <- readRDS(file.path(DATA_DIR, "model_covariates.rds"))
+
+# ---- restrict to the analysis window ----
+YEAR_MIN <- 2019
+YEAR_MAX <- 2025
+dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
+
+bat_data <- bat_data %>% filter(year >= YEAR_MIN, year <= YEAR_MAX)
+
+keep_y <- covs$all_years >= YEAR_MIN & covs$all_years <= YEAR_MAX
+keep_s <- covs$all_sites %in% bat_data$site   # sites surveyed at least once in the window
+
+# dist_harvest must be site x year (one column per year) for this subsetting to be right
+stopifnot(ncol(covs$dist_harvest) == length(covs$all_years))
+
+covs$all_sites    <- covs$all_sites[keep_s]
+covs$all_years    <- covs$all_years[keep_y]
+covs$region_idx   <- covs$region_idx[keep_s]
+covs$elevation    <- covs$elevation[keep_s]
+covs$dist_water   <- covs$dist_water[keep_s]
+covs$dist_road    <- covs$dist_road[keep_s]
+covs$clutter      <- covs$clutter[keep_s]
+covs$dist_harvest <- covs$dist_harvest[keep_s, keep_y, drop = FALSE]
+covs$temp         <- covs$temp[keep_s, keep_y, , drop = FALSE]
+covs$julian       <- covs$julian[keep_s, keep_y, , drop = FALSE]
+covs$nsite        <- sum(keep_s)
+covs$nyear        <- sum(keep_y)
+
+# Every region still needs sites, or psi.reg divides by zero in JAGS
+sites_per_region <- setNames(tabulate(covs$region_idx, covs$nregion), covs$regions)
+sites_per_region
+stopifnot(all(sites_per_region > 0))
+
+covs$all_years   # should be 2019:2025
+covs$nsite
 
 all_sites  <- covs$all_sites
 all_years  <- covs$all_years
@@ -47,12 +74,8 @@ nregion    <- covs$nregion
 regions    <- covs$regions
 MAX_VISITS <- covs$MAX_VISITS
 
-# Detection covariate arrays: unsurveyed cells get 0 (the standardised mean).
-# Those cells are never referenced by the likelihood; the fill just stops JAGS
-# from seeing NAs in a data node.
 temp_arr   <- covs$temp;   temp_arr[is.na(temp_arr)]     <- 0
 julian_arr <- covs$julian; julian_arr[is.na(julian_arr)] <- 0
-
 # ============================================================================
 # 2. IDENTIFY AMBIGUOUS COLUMNS FOR EACH SPECIES
 # ============================================================================
