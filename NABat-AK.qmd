@@ -1138,7 +1138,7 @@ make_occ_species_map <- function(species,
   off_lat <- 0; off_lon <- 0
  
   # ---- fixed traces first (always visible): colourbar + shape legend ----
-  p <- plot_ly(height = 760) |>
+  p <- plot_ly() |>
     add_trace(
       type = "scattergeo", mode = "markers",
       lat = off_lat, lon = off_lon, hoverinfo = "skip", showlegend = FALSE,
@@ -1210,7 +1210,7 @@ make_occ_species_map <- function(species,
   })
   
   p |> layout(
-    margin = list(t = 60),
+    margin = list(t = 60, b = 140),
     updatemenus = list(list(
       type = "buttons", direction = "right", active = 0, showactive = TRUE,
       x = 0, xanchor = "left", y = 1.02, yanchor = "bottom",
@@ -1537,7 +1537,7 @@ cov_kbl
 
 ## Dynamic Occupancy
 
-Due to the low number of hoary bat (LACI; n = 3) and Yuma myotis (MYYU; n = 6) detections across the monitoring period, results for these two species were removed from this report. Dynamic occupancy models converged for all remaining species. All modeled species showed increasing occupancy over the 2019–2025 period [@tbl-occ-trends], with yearly increases ranging from 2.3 percentage points (95% CI: 0.7 to 3.8) for little brown myotis to 6.7 percentage points (95% CI: 0.2 to 11.7) for California myotis. Net change estimates were imprecise for all species except long-legged myotis, which increased by 29.6 percentage points (95% CI: 20.0 to 40.0). Continued monitoring, particularly more consistent coverage of Southeast Alaska sites, will help clarify how these species are changing over time.
+Due to the low number of hoary bat (LACI; n = 3) and Yuma myotis (MYYU; n = 6) detections across the monitoring period, results for these two species were removed from this report. Dynamic occupancy models converged for all remaining species. All modeled species showed increasing occupancy over the 2019–2025 period (@tbl-occ-trends), with yearly increases ranging from 2.3 percentage points (95% CI: 0.7 to 3.8) for little brown myotis to 6.7 percentage points (95% CI: 0.2 to 11.7) for California myotis. Net change estimates were imprecise for all species except long-legged myotis, which increased by 29.6 percentage points (95% CI: 20.0 to 40.0). Continued monitoring, particularly more consistent coverage of Southeast Alaska sites, will help clarify how these species are changing over time.
 
 ```{r}
 #| label: tbl-occ-trends
@@ -1556,7 +1556,7 @@ kable(trend_tbl,
   row_spec((nrow(trend_tbl) - 1):(nrow(trend_tbl) - 1), bold = TRUE) #bold results
 ```
 
-[The interactive map [@fig-occ-slider] shows occupancy across the sampled sites for each species.]{.content-visible when-format="html"} [[Appendix A](#sec-appendix-a) shows the changes in occupancy across the sites for each species.]{.content-visible when-format="pdf"} Silver-haired bat has been detected further north in recent years, starting in 2023. The highest species diversity remains in southern Southeast Alaska, where almost all species have been detected at least once in our sample period. Note that the colour shows the predicted occupancy probability from the model. Because of the low number of detections, hoary bat and Yuma Myotis occupancy estimates are uncertain and should not be interpreted as reliable trends. They are included in this figure only to show where they have been detected over the years. Continued monitoring will be needed to confirm their occupancy.
+[The interactive map (@fig-occ-slider) shows occupancy across the sampled sites for each species.]{.content-visible when-format="html"} [[Appendix A](#sec-appendix-a) shows the changes in occupancy across the sites for each species.]{.content-visible when-format="pdf"} Silver-haired bat has been detected further north in recent years, starting in 2023. The highest species diversity remains in southern Southeast Alaska, where almost all species have been detected at least once in our sample period. Note that the colour shows the predicted occupancy probability from the model. Because of the low number of detections, hoary bat and Yuma Myotis occupancy estimates are uncertain and should not be interpreted as reliable trends. They are included in this figure only to show where they have been detected over the years. Continued monitoring will be needed to confirm their occupancy.
 
 ```{r}
 #| label: fig-occ-slider
@@ -1626,33 +1626,61 @@ As species ranges continue to expand, a review of the data aimed at identifying 
 
 Only presenting the covariate effects due to low numbers in the model (3 detections in Alaska)
 
-![](Figures/DOccupancy/figures/LACI/fig1_covariate_effects_LACI.png) ::: {.content-visible when-format="pdf"} ![](Figures/DOccupancy/figures/LACI/fig5_site_map_by_year_LACI.png) :::
+![](Figures/DOccupancy/figures/LACI/fig1_covariate_effects_LACI.png)
+
+::: {.content-visible when-format="pdf"}
+![](Figures/DOccupancy/figures/LACI/fig5_site_map_by_year_LACI.png)
+:::
 
 ## Silver-haired Bat (*Lasyonicteris noctivagans*)
 
-![](Figures/DOccupancy/figures/LANO/fig1_covariate_effects_LANO.png) ![](Figures/DOccupancy/figures/LANO/fig2_dynamics_LANO.png) ![](Figures/DOccupancy/figures/LANO/fig3_detection_by_year_LANO.png) ::: {.content-visible when-format="pdf"} ![](Figures/DOccupancy/figures/LANO/fig5_site_map_by_year_LANO.png) :::
+![](Figures/DOccupancy/figures/LANO/fig1_covariate_effects_LANO.png) ![](Figures/DOccupancy/figures/LANO/fig2_dynamics_LANO.png) ![](Figures/DOccupancy/figures/LANO/fig3_detection_by_year_LANO.png)
+
+::: {.content-visible when-format="pdf"}
+![](Figures/DOccupancy/figures/LANO/fig5_site_map_by_year_LANO.png)
+:::
 
 ## California Myotis (*Myotis californicus*)
 
-![](Figures/DOccupancy/figures/MYCA/fig1_covariate_effects_MYCA.png) ![](Figures/DOccupancy/figures/MYCA/fig2_dynamics_MYCA.png) ![](Figures/DOccupancy/figures/MYCA/fig3_detection_by_year_MYCA.png) ::: {.content-visible when-format="pdf"} ![](Figures/DOccupancy/figures/MYCA/fig5_site_map_by_year_MYCA.png) :::
+![](Figures/DOccupancy/figures/MYCA/fig1_covariate_effects_MYCA.png) ![](Figures/DOccupancy/figures/MYCA/fig2_dynamics_MYCA.png) ![](Figures/DOccupancy/figures/MYCA/fig3_detection_by_year_MYCA.png)
+
+::: {.content-visible when-format="pdf"}
+![](Figures/DOccupancy/figures/MYCA/fig5_site_map_by_year_MYCA.png)
+:::
 
 ## Long-eared Myotis (*Myotis evotis*)
 
-![](Figures/DOccupancy/figures/MYEV/fig1_covariate_effects_MYEV.png) ![](Figures/DOccupancy/figures/MYEV/fig2_dynamics_MYEV.png) ![](Figures/DOccupancy/figures/MYEV/fig3_detection_by_year_MYEV.png) ::: {.content-visible when-format="pdf"} ![](Figures/DOccupancy/figures/MYEV/fig5_site_map_by_year_MYEV.png) :::
+![](Figures/DOccupancy/figures/MYEV/fig1_covariate_effects_MYEV.png) ![](Figures/DOccupancy/figures/MYEV/fig2_dynamics_MYEV.png) ![](Figures/DOccupancy/figures/MYEV/fig3_detection_by_year_MYEV.png)
+
+::: {.content-visible when-format="pdf"}
+![](Figures/DOccupancy/figures/MYEV/fig5_site_map_by_year_MYEV.png)
+:::
 
 ## Little Brown Myotis (*Myotis lucifugus*)
 
-![](Figures/DOccupancy/figures/MYLU/fig1_covariate_effects_MYLU.png) ![](Figures/DOccupancy/figures/MYLU/fig2_dynamics_MYLU.png) ![](Figures/DOccupancy/figures/MYLU/fig3_detection_by_year_MYLU.png) ::: {.content-visible when-format="pdf"} ![](Figures/DOccupancy/figures/MYLU/fig5_site_map_by_year_MYLU.png) :::
+![](Figures/DOccupancy/figures/MYLU/fig1_covariate_effects_MYLU.png) ![](Figures/DOccupancy/figures/MYLU/fig2_dynamics_MYLU.png) ![](Figures/DOccupancy/figures/MYLU/fig3_detection_by_year_MYLU.png)
+
+::: {.content-visible when-format="pdf"}
+![](Figures/DOccupancy/figures/MYLU/fig5_site_map_by_year_MYLU.png)
+:::
 
 ## Long-legged Myotis (*Myotis volans*)
 
-![](Figures/DOccupancy/figures/MYVO/fig1_covariate_effects_MYVO.png) ![](Figures/DOccupancy/figures/MYVO/fig2_dynamics_MYVO.png) ![](Figures/DOccupancy/figures/MYVO/fig3_detection_by_year_MYVO.png) ::: {.content-visible when-format="pdf"} ![](Figures/DOccupancy/figures/MYVO/fig5_site_map_by_year_MYVO.png) :::
+![](Figures/DOccupancy/figures/MYVO/fig1_covariate_effects_MYVO.png) ![](Figures/DOccupancy/figures/MYVO/fig2_dynamics_MYVO.png) ![](Figures/DOccupancy/figures/MYVO/fig3_detection_by_year_MYVO.png)
+
+::: {.content-visible when-format="pdf"}
+![](Figures/DOccupancy/figures/MYVO/fig5_site_map_by_year_MYVO.png)
+:::
 
 ## Yuma Mytois (*Myotis yumanensis*)
 
 Only presenting the covariate effects due to low numbers in the model (6 detections in Alaska)
 
-![](Figures/DOccupancy/figures/MYYU/fig1_covariate_effects_MYYU.png) ::: {.content-visible when-format="pdf"} ![](Figures/DOccupancy/figures/MYYU/fig5_site_map_by_year_MYYU.png) :::
+![](Figures/DOccupancy/figures/MYYU/fig1_covariate_effects_MYYU.png)
+
+::: {.content-visible when-format="pdf"}
+![](Figures/DOccupancy/figures/MYYU/fig5_site_map_by_year_MYYU.png)
+:::
 
 {{< pagebreak >}}
 
