@@ -1,15 +1,15 @@
 "species","process","covariate","param","mean","lo95","hi95","lo50","hi50","f","excludes_zero"
-"LANO","Initial occupancy","Elevation","b.psi.elev",-0.5889,-1.295,0.1035,-0.8189,-0.3519,0.9562,FALSE
-"LANO","Initial occupancy","Distance to water","b.psi.water",-0.2779,-1.0638,0.4314,-0.5213,-0.0204,0.7716,FALSE
-"LANO","Colonization","Elevation","b.gam.elev",0.0448,-0.4313,0.5128,-0.1174,0.2055,0.5729,FALSE
-"LANO","Colonization","Distance to water","b.gam.water",-0.2103,-0.6612,0.1998,-0.3505,-0.0615,0.836,FALSE
-"LANO","Colonization","Distance to road","b.gam.road",0.2308,-0.141,0.6156,0.1033,0.3526,0.8889,FALSE
-"LANO","Colonization","Distance to harvest","b.gam.harv",-0.1419,-0.5565,0.2468,-0.279,9e-04,0.7487,FALSE
-"LANO","Persistence","Elevation","b.phi.elev",-0.7153,-1.1225,-0.3252,-0.8545,-0.5773,1,TRUE
-"LANO","Persistence","Distance to water","b.phi.water",-0.237,-0.5625,0.0642,-0.3414,-0.1307,0.9402,FALSE
-"LANO","Persistence","Distance to road","b.phi.road",-0.3366,-0.6943,0.0213,-0.4589,-0.2121,0.9669,FALSE
-"LANO","Persistence","Distance to harvest","b.phi.harv",-0.2387,-0.6085,0.0798,-0.3493,-0.1154,0.9231,FALSE
-"LANO","Detection","Alaska vs BC","b.p.ak",-1.0117,-1.4989,-0.5351,-1.1761,-0.8455,1,TRUE
-"LANO","Detection","Clutter","b.p.clutter",-0.0494,-0.1281,0.0272,-0.0758,-0.0224,0.892,FALSE
-"LANO","Detection","Temperature","b.p.temp",0.4581,0.3676,0.5509,0.426,0.4896,1,TRUE
-"LANO","Detection","Julian date","b.p.julian",0.0506,-0.0353,0.1409,0.0205,0.0792,0.8756,FALSE
+"LANO","Initial occupancy","Elevation","b.psi.elev",-0.8065,-1.3843,-0.2418,-0.9996,-0.6093,0.9964,TRUE
+"LANO","Initial occupancy","Distance to water","b.psi.water",-0.3151,-0.8952,0.2587,-0.5063,-0.1172,0.8622,FALSE
+"LANO","Colonization","Elevation","b.gam.elev",0.2409,-0.3083,0.8271,0.0418,0.4315,0.798,FALSE
+"LANO","Colonization","Distance to water","b.gam.water",-0.2506,-0.7456,0.2395,-0.4098,-0.0834,0.8433,FALSE
+"LANO","Colonization","Distance to road","b.gam.road",0.3586,-0.0428,0.8018,0.2115,0.5001,0.9571,FALSE
+"LANO","Colonization","Distance to harvest","b.gam.harv",0.0174,-0.402,0.4587,-0.1353,0.1644,0.5284,FALSE
+"LANO","Persistence","Elevation","b.phi.elev",-0.6742,-1.1143,-0.2333,-0.822,-0.5269,0.9993,TRUE
+"LANO","Persistence","Distance to water","b.phi.water",-0.1629,-0.5378,0.1744,-0.2812,-0.0386,0.8147,FALSE
+"LANO","Persistence","Distance to road","b.phi.road",-0.4857,-0.9606,-0.0523,-0.6362,-0.3266,0.9896,TRUE
+"LANO","Persistence","Distance to harvest","b.phi.harv",-0.3395,-0.8838,0.0962,-0.4951,-0.1608,0.9307,FALSE
+"LANO","Detection","Alaska vs BC","b.p.ak",-1.0112,-1.5083,-0.5196,-1.18,-0.8388,1,TRUE
+"LANO","Detection","Clutter","b.p.clutter",-0.0395,-0.1238,0.0429,-0.0684,-0.01,0.818,FALSE
+"LANO","Detection","Temperature","b.p.temp",0.4751,0.3764,0.5723,0.4411,0.5087,1,TRUE
+"LANO","Detection","Julian date","b.p.julian",0.0341,-0.0594,0.1254,0.0026,0.0662,0.7678,FALSE

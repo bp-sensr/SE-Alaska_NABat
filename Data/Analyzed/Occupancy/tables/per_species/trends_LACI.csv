@@ -1,2 +1,2 @@
 "species","region","n_sites","n_detections","psi_first","psi_last","slope","slope_lo95","slope_hi95","change","change_lo95","change_hi95","p_increase"
-"LACI","Alaska",15,3,0.5337,0.3474,-0.00942,-0.06444,0.05614,-0.1863,-0.8667,0.6,0.3031
+"LACI","Alaska",15,3,0.3826,0.4738,0.01835,-0.06315,0.1,0.0912,-0.6,0.7333,0.594

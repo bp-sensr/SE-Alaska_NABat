@@ -134,8 +134,8 @@ nocite: '@*'
 #   )
 # write.csv(plot_df,"Data/Analyzed/yearlyspptotal.csv")
 # 
-# #---Extract the information on how many grid cells used in AK and Bc occupancy---
-# #example of the data used for MYLU -- this will show us which sites and grids were actually used
+#---Extract the information on how many grid cells used in AK and Bc occupancy---
+#example of the data used for MYLU -- this will show us which sites and grids were actually used
 # d <- readRDS("Data/Processed/BC_AK/QUAD_MYLU_data.rds")
 # 
 # #now extract how many sites and grid cells were used from AK and BC
@@ -154,7 +154,7 @@ nocite: '@*'
 # counts
 # 
 # write.csv(counts, "Data/Analyzed/Occupancy/GridSiteSummary.csv")
-             
+
 ```
 
 ```{r}
@@ -1087,6 +1087,11 @@ cov_kbl <- kbl(cov_body,
 sitesummary <- read.csv("Data/Analyzed/Occupancy/GridSiteSummary.csv")
 trend_tbl <- read.csv("Data/Analyzed/Occupancy/yeartrendestimates.csv")
 
+#Remove LACI and YUMA results for low species detections in the area
+trend_tbl$Trend.slope..95..CI.[trend_tbl$Species %in% c("Hoary Bat", "Yuma Myotis")] <- ""
+trend_tbl$RateofChange..95..CI.[trend_tbl$Species %in% c("Hoary Bat", "Yuma Myotis")] <- ""
+trend_tbl$p_increase[trend_tbl$Species %in% c("Hoary Bat", "Yuma Myotis")] <- ""
+
 #site-year summary for interactive slider maps code
 #this creates a map that can go between species and show the slider maps with P(occupancy for all the sites where the species was detected)
 library(dplyr)
@@ -1537,9 +1542,7 @@ cov_kbl
 
 ## Dynamic Occupancy
 
-Dynamic occupancy models converged for all species. Due to the low number of Hoary bat (LACI = 3) and Yuma Myotis (MYYU=6) detections across the monitoring period all Hoary bat and Yuma Myotis results were removed from this report. Two species showed increasing occupancy over the 2019–2025 period ([@tbl-occ-trends]). Little brown Myotis occupancy increased by an estimated 3.0 percentage points per year (95% CI: 0.2–7.0), corresponding to a net increase of 22.7 percentage points between 2017 and 2025. The net change was imprecise (95% CI: −13 to +73), but occupancy was higher in 2025 than in 2017 in 78% of posterior draws. Long-legged Myotis occupancy increased by 3.7 percentage points per year (95% CI: 0.8–5.6), with a net increase of 23.9 percentage points (95% CI: −6.7 to +40). Although this credible interval also overlapped zero, the probability that occupancy was higher in 2025 than in 2017 was 95%, providing the strongest evidence of an increase among the species assessed.
-
-Trends for silver-haired bat, California Myotis and long-eared Myotis were uncertain, with 95% credible intervals for both the trend slope and net change overlapping zero ([@tbl-occ-trends]). Silver-haired bat showed a possible decline in occupancy (trend slope −0.007; λ −0.21) with an estimated 23% probability that occupancy was higher in 2025 than in 2017. However, part of this apparent decline may reflect the model adjusting from an uncertain starting value rather than a true loss. Long-eared Myotis showed a possible increase (slope 0.028; net change 0.18), while California Myotis showed no clear direction. Continued monitoring, particularly more consistent coverage of Alaska sites, is needed to resolve trends for these species.
+Due to the low number of hoary bat (LACI; n = 3) and Yuma myotis (MYYU; n = 6) detections across the monitoring period, results for these two species were removed from this report. Dynamic occupancy models converged for all remaining species. All modeled species showed increasing occupancy over the 2019–2025 period [@tbl-occ-trends], with yearly increases ranging from 2.3 percentage points (95% CI: 0.7 to 3.8) for little brown myotis to 6.7 percentage points (95% CI: 0.2 to 11.7) for California myotis. Net change estimates were imprecise for all species except long-legged myotis, which increased by 29.6 percentage points (95% CI: 20.0 to 40.0). Continued monitoring, particularly more consistent coverage of Southeast Alaska sites, will help clarify how these species are changing over time.
 
 ```{r}
 #| label: tbl-occ-trends
@@ -1547,7 +1550,7 @@ Trends for silver-haired bat, California Myotis and long-eared Myotis were uncer
 #| warning: false
 #| message: false
 #| tbl-pos: H
-#| tbl-cap: Estimated occupancy trends for seven bat species in Southeast Alaska (2017–2025) from a dynamic occupancy model. Trend slope is the average annual change in the proportion of sites occupied (e.g., 0.03 = +3 percentage points per year). λ is the net change in the proportion of sites occupied from 2017 to 2025 (e.g., 0.23 = 23 percentage points higher in 2025). Values are posterior means with 95% credible intervals. P(increase) is the proportion of posterior draws in which occupancy was higher in 2025 than in 2017; values near 0.5 indicate no clear direction, and values near 1 or 0 indicate stronger evidence of an increase or decline. Bold rows indicate trend slopes whose 95% credible interval excludes zero.
+#| tbl-cap: Estimated occupancy trends for seven bat species in Southeast Alaska (2017–2025) from a dynamic occupancy model. Trend slope is the average annual change in the proportion of sites occupied (e.g., 0.03 = +3 percentage points per year). λ is the net change in the proportion of sites occupied from 2019 to 2025 (e.g., 0.23 = 23 percentage points higher in 2025). Values are posterior means with 95% credible intervals. P(increase) is the proportion of posterior draws in which occupancy was higher in 2025 than in 2019; values near 0.5 indicate no clear direction, and values near 1 or 0 indicate stronger evidence of an increase or decline. Bold rows indicate trend slopes and λ whose 95% credible interval both exclude zero.
 
 kable(trend_tbl,
       col.names = c("Species", "Trend Slope (95% CI)", " λ (95% CI)", "P(Increase)"),
@@ -1555,8 +1558,10 @@ kable(trend_tbl,
   kable_styling(bootstrap_options = c("striped", "hover"),
                 full_width = FALSE,
                 position = "left") %>%
-  row_spec((nrow(trend_tbl) - 2):(nrow(trend_tbl) - 1), bold = TRUE) #bold results
+  row_spec((nrow(trend_tbl) - 1):(nrow(trend_tbl) - 1), bold = TRUE) #bold results
 ```
+
+The interactive map [@fig-occ-slider]shows occupancy across the sampled sites for each species. Silver-haired bat has been detected further north in recent years, starting in 2023. The highest species diversity remains in southern Southeast Alaska, where almost all species have been detected at least once in our sample period. Note that the colour shows the predicted occupancy probability from the model. Because of the low number of detections, hoary bat and Yuma Myotis occupancy estimates are uncertain and should not be interpreted as reliable trends. They are included in this figure only to show where they have been detected over the years. Continued monitoring will be needed to confirm their occupancy.
 
 ```{r}
 #| label: fig-occ-slider
@@ -1566,11 +1571,13 @@ kable(trend_tbl,
 #| message: false
 
 sp_list <- c(
+  LACI = "Hoary bat",
   LANO = "Silver-haired bat",
   MYCA = "California myotis",
   MYEV = "Long-eared Mytois", 
   MYLU = "Little brown myotis",
-  MYVO = "Long-legged Myotis"
+  MYVO = "Long-legged Myotis",
+  MYYU = "Yuma Myotis"
 )
 
 if (knitr::pandoc_to("html")) {
@@ -1580,31 +1587,33 @@ if (knitr::pandoc_to("html")) {
 
 ### Covariate Effects
 
-Covariate effects varied by species, but temperature was the most consistent detection covariate, with detection probability increasing on warmer nights for most species([@fig-cov-occupancy]). Clutter also influenced detection probability, although the direction and strength of this effect were species-specific. Detection probability differed between Alaska and British Columbia for hoary bat and yuma Myotis, which is expected given that both species are rarely detected in the areas sampled. Detection probability for silver-haired bat and California Myotis was also lower in Alaska than in British Columbia, but the reason for this difference in unknown.
+Alaska contributed less than 10% of the data used in the occupancy models, so the covariate effects presented mainly reflect patterns in the British Columbia dataset. We included an Alaska vs. British Columbia detection covariate to test whether detectability differed between the two regions for each species. Detection probability was lower in Alaska than in British Columbia for hoary bat and Yuma myotis, which is expected given that both species are rarely detected in the areas sampled. Detection probability for silver-haired bat and California myotis was also lower in Alaska, but the reason for this difference is unknown.
 
-Elevation and distance to water were the covariates most commonly associated with initial occupancy, colonization, and persistence. Although not always significant, colonization and persistence generally declined with increasing distance to water across species. Distance to water was also a significant predictor of initial occupancy for California Myotis and of persistence for little brown Myotis and long-legged Myotis. For yuma Myotis, persistence increased with distance from timber harvest, while for hoary bat, colonization decreased with distance from roads, suggesting this species may use roads as travel corridors when moving into new sites.
+Covariate effects varied by species, but temperature was the most consistent detection covariate, with detection probability increasing on warmer nights for all species except Yuma Myotis ([@fig-cov-occupancy]). Clutter also influenced detection probability, with increasing clutter resulting in higher detection of all Myotis species except Yuma Myotis. Detection probability also changed over the season, increasing with Julian date for hoary bat, little brown Myotis, and long-legged Myotis, and decreasing for California Myotis.
 
-![Covariate effects on initial occupancy, colonization, persistence, and detection probability for each species, modelled using data from Alaska and British Columbia. Effects whose 95% confidence intervals do not overlap zero are shown in colour (blue for positive, red for negative); all others are shown in grey.](Figures/DOccupancy/_all_species/figA_covariate_effects_all_species.png){#fig-cov-occupancy}
+Elevation was the covariate most commonly associated with initial occupancy, colonization, and persistence. Initial occupancy declined with elevation for hoary bat, silver-haired bat, California Myotis, and Yuma Myotis. Initial occupancy declined with increase distance to water for little brown and Yuma Myotis, but distance to water had no clear effect on colonization or persistence. For hoary bat, colonization decreased with distance from roads, suggesting this species may use roads as travel corridors when moving into new sites. Persistence increased with increased distance from timber harvest for both long-legged and Yuma Myotis.
+
+![Covariate effects on initial occupancy, colonization, persistence, and detection probability for each species, modelled using combined data from Alaska and British Columbia. Because Alaska contributes less than 10% of the data, these effects mainly reflect patterns in the British Columbia dataset. Effects whose 95% confidence intervals do not overlap zero are shown in colour (blue for positive, red for negative); all others are shown in grey.](Figures/DOccupancy/figures/_all_species/figA_covariate_effects_all_species.png){#fig-cov-occupancy}
 
 More detailed species results can be found on [Appendix A](#sec-appendix-a).
 
 # Discussion
 
-## Interpreting Alaska estimates vs. BC’s contributions
-
-Alaska's `r sitesummary$n_sites[sitesummary$group == "Alaska"]` sites were too few to support a model of their own, so they were analysed together with the `r sitesummary$n_sites[sitesummary$group == "BC"]` BC sites, with Alaska included as a separate region through fixed regional effects. Some estimates are therefore specific to Alaska: initial occupancy, average colonization and persistence rates, and the occupancy state of each Alaska site in each year. Other estimates are shared across regions and cannot be separated from BC: the effects of elevation, distance to water, distance to roads and distance to harvest on occupancy dynamics; year-to-year variation in colonisation, persistence and detection; and the effects of clutter, temperature and date of detection. Because Alaska contributes fewer than 10% of the sites, these shared terms are effectively estimated from BC data and applied to Alaska. This assumes that habitat relationships, and the timing of good and poor years, are broadly similar across regions.
-
 ## Trend Results
 
-Overall, Alaska bat populations do not show evidence of decline, and several species show potential increases: the Silver-haired Bat (LANO) in activity, and most Myotis species in occupancy.
+The positive activity trends for the California Myotis (MYCA) and LANO should be interpreted with caution ([@tbl-models]). Activity counts are noisy, and it can be difficult to distinguish a true trend from a random increase driven by year effects. For this reason it is prudent to examine activity trends across many years; a trend that persists across years is more likely to reflect a real change. The 2023 Alaska report identified a negative and non-significant trend for MYCA [@raeBlejwas2026Alaska], so although the estimate is significant in the present analysis, additional years of data are needed to confirm it.
 
-The positive activity trends for the California Myotis (MYCA) and LANO should be interpreted with caution ([@tbl-models]). Activity counts are noisy, and it can be difficult to distinguish a true trend from a random increase driven by year effects. For this reason it is prudent to examine trends across many years; a trend that persists across years is more likely to reflect a real change. The 2023 Alaska report identified a negative and non-significant trend for MYCA [@raeBlejwas2026Alaska], so although the estimate is significant in the present analysis, additional years of data are needed to confirm it.
+@raeBlejwas2026Alaska found a positive activity trend for LANO that was marginally non-significant (p = 0.05), and the continued positive trend observed in this report (stationary: 0.48 ± 0.17 p\<0.001, and transect 0.40 ± 0.20 p\<0.001) suggests it may represent a genuine trend rather than noise. Two additional results point the same way. The occupancy results from this report show that the yearly occupancy trend is significantly positive, and the change from 2019-2025 is positive although not significant ([@tbl-occ-trends]). The second independent study by @bradleyjudell has preliminary NABat species-distribution and trend models that estimate an increase in LANO occupancy across Alaska (mean = 0.23, 95% CI \[0.07, 0.39\]). The accumulation of estimates pointing consistently in the same direction, across different datasets and modeling approaches, gives us a solid point from which to conlcude LANO is increasing in occupancy across southeast Alaska. This pattern also speaks to why we include occupancy analyses alongside activity trends in this report: activity counts are noisy and easily perturbed by year effects, so a metric that is less sensitive to fluctuations in activity volume offers a valuable complementary check.
 
-In contrast, @raeBlejwas2026Alaska found a positive activity trend for LANO that was marginally non-significant (p = 0.05), and the continued positive trend observed in this report (stationary: 0.48 ± 0.17 p\<0.001, and transect 0.40 ± 0.20 p\<0.001) suggests it may represent a genuine trend rather than noise. Two additional results point the same way. The occupancy results from this report show that although the occupancy trend is not significant, it is positive ([@tbl-occ-trends]). The second independent study by @bradleyjudell has preliminary NABat species-distribution and trend models that estimate an increase in LANO occupancy across Alaska (mean = 0.23, 95% CI \[0.07, 0.39\]). The accumulation of estimates pointing consistently in the same direction, across different datasets and modeling approaches, gives us a solid point from which to conlcude LANO is increasing in occupancy across southeast Alaska. This pattern also speaks to why we include occupancy analyses alongside activity trends in this report: activity counts are noisy and easily perturbed by year effects, so a metric that is less sensitive to fluctuations in activity volume offers a valuable complementary check.
-
-Occupancy models require a stronger signal to detect change, because they consider only whether a cell is occupied rather than overall activity levels. As a result, when a trend is detected in occupancy we can be more confident that it reflects a real change. Our occupancy results indicate that all Myotis species except MYCA may be increasing in occupancy (@tbl-occ-trends; [Appendix A](#sec-appendix-a)), which could suggest that Myotis species are expanding in Southeast Alaska. It is worth noting that MYCA is the one Myotis species that does not show an increase in occupancy, in direct contrast to its positive activity trend. This divergence reinforces the caution above: the MYCA activity estimate should not be treated as confirmed until additional years of data are available. With that caveat in mind, the broader occupancy signal is encouraging, particularly because these are the species most likely to be affected by white-nose syndrome (WNS).
+Occupancy models require a stronger signal to detect change, because they consider only whether a cell is occupied rather than overall activity levels. As a result, when a trend is detected in occupancy we can be more confident that it reflects a real change. Our occupancy results indicate that all Myotis species may be increasing in occupancy (@tbl-occ-trends; [Appendix A](#sec-appendix-a)), which could suggest that Myotis species are expanding in Southeast Alaska. The broader occupancy signal is encouraging, particularly because these are the species most likely to be affected by white-nose syndrome (WNS).
 
 One important consideration is the large pulse in activity observed across most sites in 2024. Sampling effort in 2024 was comparable to previous years and to 2025, so this spike most likely reflects year-to-year variation in bat activity rather than a change in survey design. This pulse currently registers as part of the trend in the models because of its magnitude, but additional years of data will help discern whether it represents a true trend or a short-lived effect of an atypical year.
+
+## Interpreting occupancy estimates in Alaska vs. BC’s contributions
+
+Alaska's `r sitesummary$n_sites[sitesummary$group == "Alaska"]` sites were too few to support a model of their own, so they were analysed together with the `r sitesummary$n_sites[sitesummary$group == "BC"]` BC sites. Alaska was included as a separate region via a fixed regional effect on initial occupancy, colonization, and persistence, and an Alaska offset on detection. Alaska's occupancy level, average colonization and persistence rates, and detection level were estimated from Alaska data alone. All other terms were shared with BC: the effects of elevation, distance to water, roads, and harvest; the effects of clutter, temperature, and date of detection; and the year-to-year fluctuations in colonization, persistence, and detection.Because Alaska contributes under 10% of the sites, these shared terms are effectively estimated from BC, which assumes habitat relationships and good and bad years are broadly similar across regions.
+
+Alaska trend metrics (slope and change from initial to final year) were calculated from the estimated occupancy at the `r sitesummary$n_sites[sitesummary$group == "Alaska"]` Alaska sites, anchored by the observed detections. The slope is the preferred metric because it depends less on the shared fluctuation in any single year. Uncertainty is greater for Alaska than for BC because of the small number of sites, and greatest for species with very few Alaska detections (hoary bat and Yuma Myotis). Although the models included both BC and Alaska data to increase statistical power, all maps and figures in this report show only the Alaska sites.
 
 ## Looking forward
 
@@ -1618,25 +1627,37 @@ As species ranges continue to expand, a review of the data aimed at identifying 
 
 # Appendix A {#sec-appendix-a}
 
+## Hoary Bat (*Lasiurus cinereus*)
+
+Only presenting the covariate effects due to low numbers in the model (3 detections in Alaska)
+
+![](Figures/DOccupancy/figures/LACI/fig1_covariate_effects_LACI.png)
+
 ## Silver-haired Bat (*Lasyonicteris noctivagans*)
 
-![](Figures/DOccupancy/LANO/fig1_covariate_effects_LANO.png) ![](Figures/DOccupancy/LANO/fig2_dynamics_LANO.png) ![](Figures/DOccupancy/LANO/fig3_detection_by_year_LANO.png)
+![](Figures/DOccupancy/figures/LANO/fig1_covariate_effects_LANO.png) ![](Figures/DOccupancy/figures/LANO/fig2_dynamics_LANO.png) ![](Figures/DOccupancy/figures/LANO/fig3_detection_by_year_LANO.png)
 
 ## California Myotis (*Myotis californicus*)
 
-![](Figures/DOccupancy/MYCA/fig1_covariate_effects_MYCA.png) ![](Figures/DOccupancy/MYCA/fig2_dynamics_MYCA.png) ![](Figures/DOccupancy/MYCA/fig3_detection_by_year_MYCA.png)
+![](Figures/DOccupancy/figures/MYCA/fig1_covariate_effects_MYCA.png) ![](Figures/DOccupancy/figures/MYCA/fig2_dynamics_MYCA.png) ![](Figures/DOccupancy/figures/MYCA/fig3_detection_by_year_MYCA.png)
 
 ## Long-eared Myotis (*Myotis evotis*)
 
-![](Figures/DOccupancy/MYEV/fig1_covariate_effects_MYEV.png) ![](Figures/DOccupancy/MYEV/fig2_dynamics_MYEV.png) ![](Figures/DOccupancy/MYEV/fig3_detection_by_year_MYEV.png)
+![](Figures/DOccupancy/figures/MYEV/fig1_covariate_effects_MYEV.png) ![](Figures/DOccupancy/figures/MYEV/fig2_dynamics_MYEV.png) ![](Figures/DOccupancy/figures/MYEV/fig3_detection_by_year_MYEV.png)
 
 ## Little Brown Myotis (*Myotis lucifugus*)
 
-![](Figures/DOccupancy/MYLU/fig1_covariate_effects_MYLU.png) ![](Figures/DOccupancy/MYLU/fig2_dynamics_MYLU.png) ![](Figures/DOccupancy/MYLU/fig3_detection_by_year_MYLU.png)
+![](Figures/DOccupancy/figures/MYLU/fig1_covariate_effects_MYLU.png) ![](Figures/DOccupancy/figures/MYLU/fig2_dynamics_MYLU.png) ![](Figures/DOccupancy/figures/MYLU/fig3_detection_by_year_MYLU.png)
 
 ## Long-legged Myotis (*Myotis volans*)
 
-![](Figures/DOccupancy/MYVO/fig1_covariate_effects_MYVO.png) ![](Figures/DOccupancy/MYVO/fig2_dynamics_MYVO.png) ![](Figures/DOccupancy/MYVO/fig3_detection_by_year_MYVO.png)
+![](Figures/DOccupancy/figures/MYVO/fig1_covariate_effects_MYVO.png) ![](Figures/DOccupancy/figures/MYVO/fig2_dynamics_MYVO.png) ![](Figures/DOccupancy/figures/MYVO/fig3_detection_by_year_MYVO.png)
+
+## Yuma Mytois (*Myotis yumanensis*)
+
+Only presenting the covariate effects due to low numbers in the model (6 detections in Alaska)
+
+![](Figures/DOccupancy/figures/MYYU/fig1_covariate_effects_MYYU.png)
 
 {{< pagebreak >}}
 

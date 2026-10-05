@@ -1,0 +1,2 @@
+"species","region","n_sites","n_detections","psi_first","psi_last","slope","slope_lo95","slope_hi95","change","change_lo95","change_hi95","p_increase"
+"MYCA","Alaska",15,87,0.6649,0.6041,0.01986,-0.02444,0.07889,-0.0608,-0.5333,0.5333,0.3504

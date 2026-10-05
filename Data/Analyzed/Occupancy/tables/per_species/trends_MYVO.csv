@@ -1,2 +1,2 @@
 "species","region","n_sites","n_detections","psi_first","psi_last","slope","slope_lo95","slope_hi95","change","change_lo95","change_hi95","p_increase"
-"MYVO","Alaska",15,33,0.0583,0.2976,0.03716,0.00778,0.05556,0.2393,-0.0667,0.4,0.9458
+"MYVO","Alaska",15,33,0.0077,0.3034,0.05502,0.0381,0.07619,0.2957,0.2,0.4,1

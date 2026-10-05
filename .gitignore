@@ -18,3 +18,7 @@ DraftReports/
 
 #clean up code
 Code/IncorporateNewCovariates.R
+
+#Results from models including 2017
+Figures/DOccupancy/2017-2025
+Data/Analyzed/Occupancy/fits_2017

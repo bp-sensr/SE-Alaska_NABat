@@ -1,0 +1,99 @@
+"species","process","covariate","param","mean","lo95","hi95","lo50","hi50","f","excludes_zero"
+"LACI","Initial occupancy","Elevation","b.psi.elev",-0.7433,-1.4013,-0.1088,-0.9515,-0.5276,0.9898,TRUE
+"LACI","Initial occupancy","Distance to water","b.psi.water",-0.2776,-0.8594,0.2691,-0.4623,-0.0786,0.8336,FALSE
+"LACI","Colonization","Elevation","b.gam.elev",-0.29,-0.7115,0.1036,-0.4256,-0.1538,0.9313,FALSE
+"LACI","Colonization","Distance to water","b.gam.water",0.0039,-0.3759,0.4017,-0.1255,0.1331,0.4956,FALSE
+"LACI","Colonization","Distance to road","b.gam.road",-0.468,-0.8631,-0.0907,-0.5949,-0.3365,0.9909,TRUE
+"LACI","Colonization","Distance to harvest","b.gam.harv",0.1687,-0.1229,0.4539,0.0733,0.268,0.8736,FALSE
+"LACI","Persistence","Elevation","b.phi.elev",0.0772,-0.4653,0.6945,-0.1337,0.2658,0.5807,FALSE
+"LACI","Persistence","Distance to water","b.phi.water",-0.0994,-0.4814,0.2627,-0.229,0.0305,0.694,FALSE
+"LACI","Persistence","Distance to road","b.phi.road",0.2192,-0.2274,0.6777,0.0638,0.3722,0.8316,FALSE
+"LACI","Persistence","Distance to harvest","b.phi.harv",0.2207,-0.1633,0.6007,0.0926,0.3468,0.8809,FALSE
+"LACI","Detection","Alaska vs BC","b.p.ak",-3.2246,-4.6627,-1.3706,-3.7943,-2.7435,0.9991,TRUE
+"LACI","Detection","Clutter","b.p.clutter",0.0414,-0.0547,0.1388,0.009,0.0745,0.8056,FALSE
+"LACI","Detection","Temperature","b.p.temp",0.5341,0.4324,0.635,0.4986,0.5699,1,TRUE
+"LACI","Detection","Julian date","b.p.julian",0.2194,0.1223,0.3222,0.1845,0.254,1,TRUE
+"LANO","Initial occupancy","Elevation","b.psi.elev",-0.8065,-1.3843,-0.2418,-0.9996,-0.6093,0.9964,TRUE
+"LANO","Initial occupancy","Distance to water","b.psi.water",-0.3151,-0.8952,0.2587,-0.5063,-0.1172,0.8622,FALSE
+"LANO","Colonization","Elevation","b.gam.elev",0.2409,-0.3083,0.8271,0.0418,0.4315,0.798,FALSE
+"LANO","Colonization","Distance to water","b.gam.water",-0.2506,-0.7456,0.2395,-0.4098,-0.0834,0.8433,FALSE
+"LANO","Colonization","Distance to road","b.gam.road",0.3586,-0.0428,0.8018,0.2115,0.5001,0.9571,FALSE
+"LANO","Colonization","Distance to harvest","b.gam.harv",0.0174,-0.402,0.4587,-0.1353,0.1644,0.5284,FALSE
+"LANO","Persistence","Elevation","b.phi.elev",-0.6742,-1.1143,-0.2333,-0.822,-0.5269,0.9993,TRUE
+"LANO","Persistence","Distance to water","b.phi.water",-0.1629,-0.5378,0.1744,-0.2812,-0.0386,0.8147,FALSE
+"LANO","Persistence","Distance to road","b.phi.road",-0.4857,-0.9606,-0.0523,-0.6362,-0.3266,0.9896,TRUE
+"LANO","Persistence","Distance to harvest","b.phi.harv",-0.3395,-0.8838,0.0962,-0.4951,-0.1608,0.9307,FALSE
+"LANO","Detection","Alaska vs BC","b.p.ak",-1.0112,-1.5083,-0.5196,-1.18,-0.8388,1,TRUE
+"LANO","Detection","Clutter","b.p.clutter",-0.0395,-0.1238,0.0429,-0.0684,-0.01,0.818,FALSE
+"LANO","Detection","Temperature","b.p.temp",0.4751,0.3764,0.5723,0.4411,0.5087,1,TRUE
+"LANO","Detection","Julian date","b.p.julian",0.0341,-0.0594,0.1254,0.0026,0.0662,0.7678,FALSE
+"MYCA","Initial occupancy","Elevation","b.psi.elev",-0.64,-1.2363,-0.0519,-0.8397,-0.4392,0.982,TRUE
+"MYCA","Initial occupancy","Distance to water","b.psi.water",-0.4543,-0.9729,0.0504,-0.6207,-0.28,0.9638,FALSE
+"MYCA","Colonization","Elevation","b.gam.elev",-0.7402,-1.2964,-0.2064,-0.923,-0.5582,0.9971,TRUE
+"MYCA","Colonization","Distance to water","b.gam.water",0.0048,-0.4244,0.4557,-0.1445,0.1523,0.4933,FALSE
+"MYCA","Colonization","Distance to road","b.gam.road",-0.3252,-0.7416,0.0934,-0.4689,-0.1856,0.9396,FALSE
+"MYCA","Colonization","Distance to harvest","b.gam.harv",-0.0141,-0.3636,0.3295,-0.1317,0.1023,0.5329,FALSE
+"MYCA","Persistence","Elevation","b.phi.elev",-0.9087,-1.3777,-0.4532,-1.0604,-0.754,1,TRUE
+"MYCA","Persistence","Distance to water","b.phi.water",-0.1463,-0.5372,0.2299,-0.2761,-0.0174,0.7756,FALSE
+"MYCA","Persistence","Distance to road","b.phi.road",0.3529,-0.0219,0.745,0.2212,0.4789,0.9698,FALSE
+"MYCA","Persistence","Distance to harvest","b.phi.harv",-0.2263,-0.6038,0.1198,-0.348,-0.0999,0.898,FALSE
+"MYCA","Detection","Alaska vs BC","b.p.ak",-0.822,-1.2707,-0.3802,-0.9751,-0.6687,1,TRUE
+"MYCA","Detection","Clutter","b.p.clutter",0.2666,0.1753,0.3557,0.2344,0.2973,1,TRUE
+"MYCA","Detection","Temperature","b.p.temp",0.1354,0.0383,0.2315,0.1032,0.1673,0.9976,TRUE
+"MYCA","Detection","Julian date","b.p.julian",-0.1986,-0.2892,-0.1034,-0.2317,-0.1661,1,TRUE
+"MYEV","Initial occupancy","Elevation","b.psi.elev",0.1439,-0.4825,1.0268,-0.1069,0.3482,0.6276,FALSE
+"MYEV","Initial occupancy","Distance to water","b.psi.water",-0.2921,-0.806,0.1876,-0.4532,-0.123,0.8882,FALSE
+"MYEV","Colonization","Elevation","b.gam.elev",0.9909,0.2934,1.8447,0.7236,1.2213,0.998,TRUE
+"MYEV","Colonization","Distance to water","b.gam.water",-0.2065,-0.6184,0.2279,-0.3508,-0.0666,0.8373,FALSE
+"MYEV","Colonization","Distance to road","b.gam.road",-0.2009,-0.6082,0.2022,-0.3352,-0.0638,0.8287,FALSE
+"MYEV","Colonization","Distance to harvest","b.gam.harv",-0.2837,-0.9742,0.2528,-0.4556,-0.0792,0.8369,FALSE
+"MYEV","Persistence","Elevation","b.phi.elev",-0.2813,-0.6662,0.1092,-0.4197,-0.145,0.9196,FALSE
+"MYEV","Persistence","Distance to water","b.phi.water",0.0103,-0.3296,0.341,-0.1039,0.1276,0.5276,FALSE
+"MYEV","Persistence","Distance to road","b.phi.road",0.2545,-0.0902,0.6002,0.139,0.3739,0.9282,FALSE
+"MYEV","Persistence","Distance to harvest","b.phi.harv",-0.1673,-0.5691,0.1893,-0.2924,-0.0301,0.8031,FALSE
+"MYEV","Detection","Alaska vs BC","b.p.ak",0.2926,-0.046,0.651,0.1655,0.4154,0.9502,FALSE
+"MYEV","Detection","Clutter","b.p.clutter",0.1348,0.0572,0.213,0.108,0.1621,1,TRUE
+"MYEV","Detection","Temperature","b.p.temp",0.1975,0.1166,0.2799,0.1701,0.2245,1,TRUE
+"MYEV","Detection","Julian date","b.p.julian",0.0038,-0.0776,0.0832,-0.0243,0.0308,0.5487,FALSE
+"MYLU","Initial occupancy","Elevation","b.psi.elev",-0.0764,-0.6815,0.5949,-0.2929,0.1324,0.6089,FALSE
+"MYLU","Initial occupancy","Distance to water","b.psi.water",-0.7277,-1.3439,-0.1466,-0.937,-0.5177,0.9936,TRUE
+"MYLU","Colonization","Elevation","b.gam.elev",1.0737,-0.0019,2.2924,0.6538,1.4487,0.9749,FALSE
+"MYLU","Colonization","Distance to water","b.gam.water",0.3733,-0.4992,1.3626,0.0633,0.673,0.7911,FALSE
+"MYLU","Colonization","Distance to road","b.gam.road",-0.7071,-1.5821,0.0226,-0.9515,-0.4287,0.9707,FALSE
+"MYLU","Colonization","Distance to harvest","b.gam.harv",0.4742,-0.6175,1.5175,0.1469,0.8263,0.8262,FALSE
+"MYLU","Persistence","Elevation","b.phi.elev",-0.2931,-0.7443,0.2057,-0.4567,-0.1427,0.8853,FALSE
+"MYLU","Persistence","Distance to water","b.phi.water",-0.1776,-0.6685,0.2899,-0.3386,-0.0089,0.7607,FALSE
+"MYLU","Persistence","Distance to road","b.phi.road",0.3258,-0.0915,0.7559,0.1802,0.467,0.9333,FALSE
+"MYLU","Persistence","Distance to harvest","b.phi.harv",0.1628,-0.2092,0.5204,0.0372,0.2886,0.8049,FALSE
+"MYLU","Detection","Alaska vs BC","b.p.ak",0.277,-0.1174,0.6754,0.1377,0.4085,0.9136,FALSE
+"MYLU","Detection","Clutter","b.p.clutter",0.1183,0.0283,0.2085,0.087,0.1496,0.9951,TRUE
+"MYLU","Detection","Temperature","b.p.temp",0.2665,0.1688,0.3641,0.2332,0.3001,1,TRUE
+"MYLU","Detection","Julian date","b.p.julian",0.1811,0.0862,0.2779,0.1474,0.2135,1,TRUE
+"MYVO","Initial occupancy","Elevation","b.psi.elev",-0.2204,-0.8199,0.3674,-0.4163,-0.0236,0.7716,FALSE
+"MYVO","Initial occupancy","Distance to water","b.psi.water",-0.029,-0.4704,0.4011,-0.1702,0.1139,0.5462,FALSE
+"MYVO","Colonization","Elevation","b.gam.elev",0.1861,-0.2231,0.637,0.036,0.3259,0.8062,FALSE
+"MYVO","Colonization","Distance to water","b.gam.water",-0.2764,-0.6658,0.0861,-0.4036,-0.1511,0.9293,FALSE
+"MYVO","Colonization","Distance to road","b.gam.road",-0.3256,-0.7125,0.0211,-0.4456,-0.1981,0.9678,FALSE
+"MYVO","Colonization","Distance to harvest","b.gam.harv",-0.0164,-0.3514,0.3093,-0.1269,0.0963,0.5362,FALSE
+"MYVO","Persistence","Elevation","b.phi.elev",-0.0758,-0.508,0.3725,-0.2322,0.0737,0.6347,FALSE
+"MYVO","Persistence","Distance to water","b.phi.water",-0.329,-0.7833,0.0495,-0.465,-0.1776,0.9498,FALSE
+"MYVO","Persistence","Distance to road","b.phi.road",0.0836,-0.2744,0.4389,-0.0435,0.2113,0.6711,FALSE
+"MYVO","Persistence","Distance to harvest","b.phi.harv",0.3816,0.0813,0.6848,0.2803,0.4824,0.9922,TRUE
+"MYVO","Detection","Alaska vs BC","b.p.ak",0.2719,-0.4079,0.9561,0.0421,0.4979,0.7869,FALSE
+"MYVO","Detection","Clutter","b.p.clutter",0.1625,0.077,0.2506,0.1324,0.1923,1,TRUE
+"MYVO","Detection","Temperature","b.p.temp",0.1196,0.0337,0.2024,0.0912,0.1491,0.9973,TRUE
+"MYVO","Detection","Julian date","b.p.julian",0.155,0.0609,0.25,0.1226,0.1873,0.9996,TRUE
+"MYYU","Initial occupancy","Elevation","b.psi.elev",-1.1284,-1.7462,-0.5803,-1.3225,-0.9233,1,TRUE
+"MYYU","Initial occupancy","Distance to water","b.psi.water",-0.5026,-0.9694,-0.0687,-0.6521,-0.3438,0.9882,TRUE
+"MYYU","Colonization","Elevation","b.gam.elev",-0.6119,-0.9968,-0.2385,-0.7418,-0.4768,0.9993,TRUE
+"MYYU","Colonization","Distance to water","b.gam.water",-0.0372,-0.3446,0.2669,-0.1382,0.0637,0.5984,FALSE
+"MYYU","Colonization","Distance to road","b.gam.road",-0.0341,-0.3402,0.2783,-0.1415,0.074,0.5889,FALSE
+"MYYU","Colonization","Distance to harvest","b.gam.harv",-0.224,-0.4888,0.0413,-0.3145,-0.133,0.9536,FALSE
+"MYYU","Persistence","Elevation","b.phi.elev",-1.9742,-2.6979,-1.3354,-2.1961,-1.7356,1,TRUE
+"MYYU","Persistence","Distance to water","b.phi.water",-0.3906,-0.8955,0.0716,-0.5555,-0.2227,0.9527,FALSE
+"MYYU","Persistence","Distance to road","b.phi.road",0.5267,0.0805,0.9909,0.3666,0.675,0.9916,TRUE
+"MYYU","Persistence","Distance to harvest","b.phi.harv",0.5497,0.035,1.0662,0.3691,0.7256,0.9838,TRUE
+"MYYU","Detection","Alaska vs BC","b.p.ak",-3.9275,-4.8826,-2.6265,-4.294,-3.6286,1,TRUE
+"MYYU","Detection","Clutter","b.p.clutter",0.0791,-0.021,0.1819,0.0436,0.1145,0.9364,FALSE
+"MYYU","Detection","Temperature","b.p.temp",0.0845,-0.0301,0.2027,0.0434,0.1243,0.926,FALSE
+"MYYU","Detection","Julian date","b.p.julian",0.0997,-0.0048,0.2023,0.0646,0.135,0.9707,FALSE

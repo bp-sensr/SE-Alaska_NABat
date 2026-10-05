@@ -18,8 +18,8 @@ library(tidyr)
 # ============================================================================
 
 DATA_DIR <- "Data/Processed/BC_AK"
-FIT_DIR  <- "Data/Analyzed/Occupancy/fits"
-OUT_DIR  <- "Figures/DOccupancy"
+FIT_DIR  <- "Data/Analyzed/Occupancy/fits_2019"
+OUT_DIR  <- "Figures/DOccupancy/"
 
 FOCAL_REGION <- "Alaska"
 
