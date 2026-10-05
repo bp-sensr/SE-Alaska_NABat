@@ -1545,7 +1545,7 @@ Due to the low number of hoary bat (LACI; n = 3) and Yuma myotis (MYYU; n = 6) d
 #| warning: false
 #| message: false
 #| tbl-pos: H
-#| tbl-cap: Estimated occupancy trends for seven bat species in Southeast Alaska (2017–2025) from a dynamic occupancy model. Trend slope is the average annual change in the proportion of sites occupied (e.g., 0.03 = +3 percentage points per year). λ is the net change in the proportion of sites occupied from 2019 to 2025 (e.g., 0.23 = 23 percentage points higher in 2025). Values are posterior means with 95% credible intervals. P(increase) is the proportion of posterior draws in which occupancy was higher in 2025 than in 2019; values near 0.5 indicate no clear direction, and values near 1 or 0 indicate stronger evidence of an increase or decline. Bold rows indicate trend slopes and λ whose 95% credible interval both exclude zero.
+#| tbl-cap: Estimated occupancy trends for seven bat species in Southeast Alaska (2019–2025) from a dynamic occupancy model. Trend slope is the average annual change in the proportion of sites occupied (e.g., 0.03 = +3 percentage points per year). λ is the net change in the proportion of sites occupied from 2019 to 2025 (e.g., 0.23 = 23 percentage points higher in 2025). Values are posterior means with 95% credible intervals. P(increase) is the proportion of posterior draws in which occupancy was higher in 2025 than in 2019; values near 0.5 indicate no clear direction, and values near 1 or 0 indicate stronger evidence of an increase or decline. Bold rows indicate trend slopes and λ whose 95% credible interval both exclude zero.
 
 kable(trend_tbl,
       col.names = c("Species", "Trend Slope (95% CI)", " λ (95% CI)", "P(Increase)"),
