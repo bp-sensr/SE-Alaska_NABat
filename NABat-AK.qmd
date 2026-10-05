@@ -37,9 +37,9 @@ format:
 date: last-modified
 author: 
   - name: "Camila Hurtado"
-    affiliation: "Biodiversity Pathways"
+    affiliation: "NNW Bat Hub, Biodiversity Pathways"
   - name: "Taylor Hart"
-    affiliation: "University of Alberta"   
+    affiliation: "University of Alberta"
 editor: visual
 bibliography: references.bib
 nocite: '@*'
