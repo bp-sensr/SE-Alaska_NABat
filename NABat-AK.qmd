@@ -1620,6 +1620,8 @@ Another way to sustain monitoring is to look for ways to make the process more e
 
 As species ranges continue to expand, a review of the data aimed at identifying potential new species would be prudent, particularly the Big Brown Bat (EPFU). Because this species produces calls very similar to those of LANO, bioacoustics could be used for preliminary screening to find potential sites worth exploring further. Once these sites are identified, capture surveys can be conducted, as capturing bats will ultimately be the only way to confirm a range expansion.
 
+{{< pagebreak >}}
+
 # Appendix A {#sec-appendix-a}
 
 ## Hoary Bat (*Lasiurus cinereus*)
