@@ -1678,15 +1678,12 @@ Only presenting the covariate effects due to low numbers in the model (6 detecti
 
 ![](Figures/DOccupancy/figures/MYYU/fig1_covariate_effects_MYYU.png)
 
-{{< pagebreak >}}
-
 ```{r}
 #| label: AppendixB
 #| echo: false
 #| warning: false
 #| message: false
 #| output: asis
-
 # ---- Appendix B: per-site popup content, PDF only ------------------------
 # Recreates the pie chart + "Mean detections by date" chart from the map
 # popups, screenshots each with webshot2, one site per subsection.
@@ -1738,9 +1735,12 @@ if (is_pdf) {
   site_palette <- c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3",
                     "#ff7f00", "#a65628", "#f781bf", "#666666")
   
-  cells <- sort(unique(md$GRTS_ID[!is.na(md$GRTS_ID)]))
+  # cells in decreasing GRTS ID order
+  cells <- unique(md$GRTS_ID[!is.na(md$GRTS_ID)])
+  cells <- cells[order(as.numeric(as.character(cells)), decreasing = FALSE)]
+  sc_cells <- c("117173", "203189")   # Southcentral Alaska; all others are SE Alaska
   
-  pie_html <- pie_png <- bar_html <- bar_png <- hr_html <- hr_png <- cell_tag <- cell_title <- character(0) 
+  pie_html <- pie_png <- bar_html <- bar_png <- hr_html <- hr_png <- cell_tag <- cell_title <- cell_region <- character(0) 
   
   for (cell in cells) {
     cell_sites <- sort(unique(md$Site[!is.na(md$GRTS_ID) & md$GRTS_ID == cell]))
@@ -1809,6 +1809,7 @@ if (is_pdf) {
     hr_html  <- c(hr_html,  hh); hr_png  <- c(hr_png,  file.path(appx_dir, paste0(tag, "_hour.png")))
     cell_tag <- c(cell_tag, as.character(cell))
     cell_title <- c(cell_title, cell_lab)
+    cell_region <- c(cell_region, if (as.character(cell) %in% sc_cells) "sc" else "se")
   }
   
   invisible(utils::capture.output(suppressMessages({
@@ -1818,16 +1819,27 @@ if (is_pdf) {
   })))
   
   cat("# Appendix B\n\n")
-  cat("Species detection summaries by GRTS cell. For each cell, 2025 plots appear first, with the 2024 equivalents below where the cell was sampled in 2024.\n\n")
-  for (k in seq_along(cell_tag)) {
-    if (k > 1) cat("\n\\newpage\n\n")
-    cat(sprintf("## Grid cell %s {.unnumbered .unlisted}\n\n", cell_title[k]))
-    cat(sprintf("![](%s){width=100%%}\n\n", pie_png[k]))
-    cat("\n\\newpage\n\n")
-    cat(sprintf("![Nightly activity by site (2025 top, 2024 below), cell %s](%s){width=100%%}\n\n", cell_title[k], bar_png[k]))
-    cat("\n\\newpage\n\n")
-    cat(sprintf("![Detection times by species and site (2025 top, 2024 below), cell %s](%s){width=100%%}\n\n", cell_title[k], hr_png[k]))
+  
+  regions <- c(se = "Southeast Alaska", sc = "Southcentral Alaska")
+  first_region <- TRUE
+  for (r in names(regions)) {
+    ks <- which(cell_region == r)
+    if (!length(ks)) next
+    if (!first_region) cat("\n\\newpage\n\n")
+    cat(sprintf("## %s {.unnumbered}\n\n", regions[[r]]))
+    for (j in seq_along(ks)) {
+      k <- ks[j]
+      if (j > 1) cat("\n\\newpage\n\n")
+      cat(sprintf("### Grid cell %s {.unnumbered .unlisted}\n\n", cell_title[k]))
+      cat(sprintf("![](%s){width=100%%}\n\n", pie_png[k]))
+      cat("\n\\newpage\n\n")
+      cat(sprintf("![Nightly activity by site (2025 top, 2024 below), cell %s](%s){width=100%%}\n\n", cell_title[k], bar_png[k]))
+      cat("\n\\newpage\n\n")
+      cat(sprintf("![Detection times by species and site (2025 top, 2024 below), cell %s](%s){width=100%%}\n\n", cell_title[k], hr_png[k]))
+    }
+    first_region <- FALSE
   }}
+
 ```
 
 {{< pagebreak >}}
