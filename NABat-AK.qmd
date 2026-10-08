@@ -187,7 +187,7 @@ is_pdf  <- !is_html
 #Need to specify figure captions based on the rendering type (PDF or HTML)
 cap_sitesummary <- paste0(
   "Acoustic bat monitoring sites in Alaska in 2025.",
-  "NABat grid cells monitored (with two or more stationary sites) in 2025 appear in red and those monitored in 2024 in orange. Cells monitored in previous years but not in 2024 or 2025 appear in grey.",
+  "NABat grid cells monitored (with two or more stationary sites) in 2025 appear in red and those monitored in 2024 in orange. Cells monitored in previous years but not in 2024 or 2025 appear in grey. ",
   if (is_html) paste0(
     "Zooming in shows monitoring sites (blue circles) within each grid cell. Clicking any site opens a summary of species detections, including a pie chart of total detections by species code, bar chart of means of daily detection totals, and figure with hourly detections by species."
   ) else ""
@@ -1418,7 +1418,29 @@ Models were fit in a Bayesian framework using JAGS (Version 4.3.2) via the `jags
 
 # Results
 
-In 2024 all 9 grid cells were monitored, and in 2025 a total of 6 grids were sampled in SE Alaska and 2 grid cells were sampled in the Anchorage area (@fig-sites).
+## Species Summaries
+
+In 2024 all 9 grid cells were monitored, and in 2025 a total of 6 grids were sampled in SE Alaska and 2 grid cells were sampled in the Anchorage area (@fig-sites). Total acoustic activity varied substantially across grids and years, with little brown Myotis dominating call volume at every grid in nearly every year (@fig-activitysummary) . In Southeast Alaska, overall detection totals were highest at the northern grids: Yakutat produced the single largest grid-year total (\~17,500 calls in 2024), and Juneau recorded consistently high volumes (\~12,000 in 2020 and \~13,500 in 2024). Southern and central grids generally recorded lower totals, with Petersburg (\~9,000 in 2024) and POW (\~7,500 in 2024) reaching comparable peaks in single years, while Wrangell and Hoonah remained low throughout (generally under \~2,000 calls per year). Most grids recorded substantially higher activity in 2024 than in any other year. In Southcentral Alaska only little brown Myotis were recorded in 2025.
+
+```{r}
+#| label: fig-activitysummary 
+#| echo: false
+#| warning: false
+#| message: false 
+#| out-width: 100% 
+#| fig-pos: H
+#| fig-width: 13
+#| fig-height: 6
+#| fig-cap: Relative activity of bat species detected during NABat monitoring in 9 grid cells in Southeast Alaska, arranged north to south, during 2019-2025  
+
+actsum
+```
+
+Across the Southeast Alaska grid cells, bats were detected throughout the night, with activity generally beginning around 22:00 and continuing until about 04:00 ([@fig-sites]{.content-visible when-format="html"}[[Appendix B](#AppendixB)]{.content-visible when-format="pdf"}). In Southcentral Alaska activity began later, shortly after midnight, and was concentrated in a narrower window that ended around 04:00, likely reflecting the shorter period of darkness at higher latitude in July.
+
+::: {.content-visible when-format="html"}
+@fig-sites is an interactive map. Readers can zoom in on any NABat grid cell to see the individual stationary monitoring sites (blue circles), and click a site to open a pop-up summary of its acoustic detections. Each summary includes a pie chart of total detections by species code, a bar chart of mean nightly detections, and a plot of detections by hour of the night. These summaries give site-level detail that is not repeated elsewhere in this report, so we encourage readers to explore the map directly.
+:::
 
 ```{r}
 #| label: fig-sites
@@ -1469,22 +1491,6 @@ if (is_html) {
   
   knitr::include_graphics(map_png)
 }
-```
-
-Total acoustic activity varied substantially across grids and years, with little brown Myotis dominating call volume at every grid in nearly every year. Overall detection totals were highest at the northern grids: Yakutat produced the single largest grid-year total (\~17,500 calls in 2024), and Juneau recorded consistently high volumes (\~12,000 in 2020 and \~13,500 in 2024). Southern and central grids generally recorded lower totals, with Petersburg (\~9,000 in 2024) and POW (\~7,500 in 2024) reaching comparable peaks in single years, while Wrangell and Hoonah remained low throughout (generally under \~2,000 calls per year). Most grids recorded substantially higher activity in 2024 than in any other year.
-
-```{r}
-#| label: fig-activitysummary 
-#| echo: false
-#| warning: false
-#| message: false 
-#| out-width: 100% 
-#| fig-pos: H
-#| fig-width: 13
-#| fig-height: 6
-#| fig-cap: Relative activity of bat species detected during NABat monitoring in 9 grid cells in Southeast Alaska, arranged north to south, during 2019-2025  
- 
-actsum
 ```
 
 ## Activity and Abundance Trends
